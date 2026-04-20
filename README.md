@@ -11,6 +11,10 @@ Fortran:
 - `td_real`: triple-double precision, about 159 mantissa bits
 - `qd_real`: quad-double precision, about 212 mantissa bits
 
+libQD3 1.0.0 was released on 2026-04-20.  This first release adds
+TD/triple-double support through the new `td_real` type.  See
+[CHANGES.1.0.0.md](CHANGES.1.0.0.md) for the 1.0.0 release notes.
+
 ## Citation
 Y. Hida, X. S. Li and D. H. Bailey, "Algorithms for quad-double precision floating point arithmetic," Proceedings 15th IEEE Symposium on Computer Arithmetic. ARITH-15 2001, Vail, CO, USA, 2001, pp. 155-162, doi: 10.1109/ARITH.2001.930115.
 
@@ -30,7 +34,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.0.0 are in `CHANGES.1.0.0.md`.
+Release-specific notes for libQD3 1.0.0 are in
+[CHANGES.1.0.0.md](CHANGES.1.0.0.md).
 
 ## Tips for developers
 
