@@ -1,25 +1,40 @@
-# QD
-A double-double and quad-double package for Fortran and C++.
+# libQD3
 
-# Cite this paper
+libQD3 is a fork of the [QD library](https://github.com/BL-highprecision/QD).
+It keeps the original double-double and quad-double functionality and adds
+native triple-double support.
+
+libQD3 provides extended-precision floating-point types for C++, C, and
+Fortran:
+
+- `dd_real`: double-double precision, about 106 mantissa bits
+- `td_real`: triple-double precision, about 159 mantissa bits
+- `qd_real`: quad-double precision, about 212 mantissa bits
+
+## Citation
 Y. Hida, X. S. Li and D. H. Bailey, "Algorithms for quad-double precision floating point arithmetic," Proceedings 15th IEEE Symposium on Computer Arithmetic. ARITH-15 2001, Vail, CO, USA, 2001, pp. 155-162, doi: 10.1109/ARITH.2001.930115.
 
 ## End-user documentation
 
 For historical reasons, the original user-focused documentation is
 located in the `README` file, sans the `.md` extension. In-depth
-technical documentation is also provided, as `docs/qd.pdf` in the
-release tarballs. To build the PDF from its LaTeX sources, run
+technical documentation is also provided in the `docs` directory.
+Release tarballs include the generated PDFs.
+
+To build the PDFs from LaTeX sources, run
 
 ```
 $ make -C docs qd.pdf
+$ make -C docs td.pdf
 ```
 
 after installing the necessary LaTeX bits on your system.
 
+Release-specific notes for libQD3 1.0.0 are in `CHANGES.1.0.0.md`.
+
 ## Tips for developers
 
-Before you can build QD from the git repository, you will likely have
+Before you can build libQD3 from the git repository, you will likely have
 to generate the "autotools" files (such as `./configure`) that are
 normally provided for you in a release tarball. The easiest way to do
 that is to run,
@@ -35,12 +50,17 @@ everything, and to install any missing auxiliary files.  You will of
 course need all of the relevant autotools packages (autoconf,
 automake, and libtool) installed for this to work.
 
-Afterwards, you can `./configure` the package and build it like you
-normally would from a release tarball.
+Afterwards, you can configure and build the package normally:
+
+```
+$ ./configure
+$ make
+$ make check
+```
 
 ### Running the test suite
 
-The QD library comes with an automated test suite that should always
+The libQD3 library comes with an automated test suite that should always
 pass. To run it, execute `make check` after building the
 library. Ignoring the noise from the compiler (the test suite itself
 must be compiled), the output should look something like
@@ -55,12 +75,13 @@ $ make check
 PASS: qd_test
 PASS: pslq_test
 PASS: c_test
+PASS: huge
 PASS: f_test
 ============================================================================
-Testsuite summary for qd 2.3.23
+Testsuite summary for qd3 1.0.0
 ============================================================================
-# TOTAL: 4
-# PASS:  4
+# TOTAL: 5
+# PASS:  5
 # SKIP:  0
 # XFAIL: 0
 # FAIL:  0
@@ -70,13 +91,32 @@ Testsuite summary for qd 2.3.23
 
 ```
 
+The `f_test` entry is present when Fortran support is enabled.  The main
+numeric test can also be run by precision:
+
+```
+$ ./tests/qd_test -dd
+$ ./tests/qd_test -td
+$ ./tests/qd_test -qd
+```
+
+For release-oriented configuration coverage, run:
+
+```
+$ bash qa/check_16_builds.sh
+```
+
+This performs out-of-tree builds for the default configuration plus all
+16 combinations of `ieee_add`, `sloppy_mul`, `sloppy_div`, and `fma`.
+It writes logs and summaries under `_build_matrix/` by default.
+
 ### Making a release
 
 There are several steps that need to be performed when making a new
 release:
 
 1. Ensure that all important user-facing changes are mentioned
-   in the `NEWS` file.
+   in the `NEWS` file and the appropriate `CHANGES.*.md` file.
 
 2. Update the package version number in `configure.ac`.
 
@@ -85,14 +125,16 @@ release:
    all of the autotools files. Run `./configure` to create your
    Makefiles, and finally, `make dist` to create the release tarball.
 
-4. Run `make distcheck` to ensure that the release tarball works.
+4. Run `bash qa/check_16_builds.sh` to validate the release matrix.
 
-5. Tag the commit that corresponds to the release with `git tag -s
+5. Run `make distcheck` to ensure that the release tarball works.
+
+6. Tag the commit that corresponds to the release with `git tag -s
    <version-number>`.
 
-6. Push everything to Github.
+7. Push everything to GitHub.
 
-7. Upload the release tarball (created earlier) to the Github release
+8. Upload the release tarball (created earlier) to the GitHub release
    page that corresponds to your new version tag. This ensures that
    end-users can run `./configure` and such "out of the box," without
    having to install the GNU autotools (or learn their commands).
