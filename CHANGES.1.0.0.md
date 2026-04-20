@@ -1,10 +1,35 @@
 # Changes for libQD3 1.0.0
 
+## Release Highlights
+
+- Added `td_real`, a native triple-double precision type, as the main feature
+  of libQD3 1.0.0.
+- Added TD support across the C++ API, C wrappers, Fortran modules, tests,
+  documentation, and release QA.
+- Implemented native triple-double transcendental functions instead of keeping
+  the early qd-backed fallback path.
+- Added exact normalized-difference comparison semantics for `dd_real`,
+  `td_real`, and `qd_real`, so numerically equal values with different
+  component layouts compare equal without tolerance-based equality.
+- Added and expanded huge-operand overflow fixes and regression tests inherited
+  from post-QD-2.3.24 development.
+
 ## Changes Inherited Since QD 2.3.24
 
 Before the libQD3 rename and triple-double work, this branch includes several
 post-2.3.24 fixes and test improvements for the original `dd_real` and
 `qd_real` code paths.
+
+### Normalized DD/QD Comparisons
+
+- Integrated the `fix-normalized-qdd-comparisons` work for `dd_real` and
+  `qd_real`.
+- Exact equality and relational operators now compare normalized subtraction
+  results rather than raw component layout.
+- This avoids false inequality when two numerically equal values are stored
+  with different non-normalized component representations.
+- The same exact normalized-difference comparison model is also applied to the
+  new `td_real` type in libQD3 1.0.0.
 
 ### Huge-Operand Overflow Fixes
 
@@ -108,7 +133,8 @@ post-2.3.24 fixes and test improvements for the original `dd_real` and
 - Added missing mixed-mode self operators and non-member operators involving
   `td_real`.
 - Added conversions between `dd_real`, `td_real`, and `qd_real`.
-- Added normalized comparison semantics for `dd_real` and `qd_real`:
+- Added normalized comparison semantics for `dd_real`, `td_real`, and
+  `qd_real`:
   values are compared by exact normalized differences rather than direct
   component layout, and relational operators follow the same semantics.
   NaN and infinity cases are handled before subtraction.

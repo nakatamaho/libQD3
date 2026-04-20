@@ -764,20 +764,87 @@ inline td_real ldexp(const td_real &a, int n) {
   return td_real(std::ldexp(a[0], n), std::ldexp(a[1], n), std::ldexp(a[2], n));
 }
 
+namespace td {
+template <class A, class B>
+inline td_real comparison_difference(const A &a, const B &b) {
+  return td_real(a) - td_real(b);
+}
+
+template <class A, class B>
+inline bool comparison_eq(const A &a, const B &b) {
+  td_real ta(a);
+  td_real tb(b);
+  if (ta.isnan() || tb.isnan())
+    return false;
+  if (ta.isinf() || tb.isinf())
+    return ta[0] == tb[0];
+  td_real d = comparison_difference(ta, tb);
+  return d.is_zero();
+}
+
+template <class A, class B>
+inline bool comparison_lt(const A &a, const B &b) {
+  td_real ta(a);
+  td_real tb(b);
+  if (ta.isnan() || tb.isnan())
+    return false;
+  if (ta.isinf() || tb.isinf())
+    return ta[0] < tb[0];
+  td_real d = comparison_difference(ta, tb);
+  return d.is_negative();
+}
+
+template <class A, class B>
+inline bool comparison_gt(const A &a, const B &b) {
+  td_real ta(a);
+  td_real tb(b);
+  if (ta.isnan() || tb.isnan())
+    return false;
+  if (ta.isinf() || tb.isinf())
+    return ta[0] > tb[0];
+  td_real d = comparison_difference(ta, tb);
+  return d.is_positive();
+}
+
+template <class A, class B>
+inline bool comparison_le(const A &a, const B &b) {
+  td_real ta(a);
+  td_real tb(b);
+  if (ta.isnan() || tb.isnan())
+    return false;
+  if (ta.isinf() || tb.isinf())
+    return ta[0] <= tb[0];
+  td_real d = comparison_difference(ta, tb);
+  return d.is_zero() || d.is_negative();
+}
+
+template <class A, class B>
+inline bool comparison_ge(const A &a, const B &b) {
+  td_real ta(a);
+  td_real tb(b);
+  if (ta.isnan() || tb.isnan())
+    return false;
+  if (ta.isinf() || tb.isinf())
+    return ta[0] >= tb[0];
+  td_real d = comparison_difference(ta, tb);
+  return d.is_zero() || d.is_positive();
+}
+}
+
 inline bool operator==(const td_real &a, double b) {
-  return a[0] == b && a[1] == 0.0 && a[2] == 0.0;
+  return td::comparison_eq(a, b);
 }
 
 inline bool operator==(double a, const td_real &b) {
-  return b == a;
+  return td::comparison_eq(a, b);
 }
 
 inline bool operator==(const td_real &a, const dd_real &b) {
-  return a == td_real(b);
+  return td::comparison_eq(a, b);
 }
 
 inline bool operator==(const dd_real &a, const td_real &b) {
-  return td_real(a) == b;
+  return td::comparison_eq(a, b);
 }
 
 inline bool operator==(const td_real &a, const qd_real &b) {
@@ -789,23 +856,23 @@ inline bool operator==(const qd_real &a, const td_real &b) {
 }
 
 inline bool operator==(const td_real &a, const td_real &b) {
-  return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+  return td::comparison_eq(a, b);
 }
 
 inline bool operator<(const td_real &a, double b) {
-  return a < td_real(b);
+  return td::comparison_lt(a, b);
 }
 
 inline bool operator<(double a, const td_real &b) {
-  return td_real(a) < b;
+  return td::comparison_lt(a, b);
 }
 
 inline bool operator<(const td_real &a, const dd_real &b) {
-  return a < td_real(b);
+  return td::comparison_lt(a, b);
 }
 
 inline bool operator<(const dd_real &a, const td_real &b) {
-  return td_real(a) < b;
+  return td::comparison_lt(a, b);
 }
 
 inline bool operator<(const td_real &a, const qd_real &b) {
@@ -817,93 +884,91 @@ inline bool operator<(const qd_real &a, const td_real &b) {
 }
 
 inline bool operator<(const td_real &a, const td_real &b) {
-  if (a[0] != b[0]) return a[0] < b[0];
-  if (a[1] != b[1]) return a[1] < b[1];
-  return a[2] < b[2];
+  return td::comparison_lt(a, b);
 }
 
 inline bool operator>(const td_real &a, double b) {
-  return td_real(b) < a;
+  return td::comparison_gt(a, b);
 }
 
 inline bool operator>(double a, const td_real &b) {
-  return b < td_real(a);
+  return td::comparison_gt(a, b);
 }
 
 inline bool operator>(const td_real &a, const dd_real &b) {
-  return td_real(b) < a;
+  return td::comparison_gt(a, b);
 }
 
 inline bool operator>(const dd_real &a, const td_real &b) {
-  return b < td_real(a);
+  return td::comparison_gt(a, b);
 }
 
 inline bool operator>(const td_real &a, const qd_real &b) {
-  return b < a;
+  return td::to_qd_conversion(a) > b;
 }
 
 inline bool operator>(const qd_real &a, const td_real &b) {
-  return b < a;
+  return a > td::to_qd_conversion(b);
 }
 
 inline bool operator>(const td_real &a, const td_real &b) {
-  return b < a;
+  return td::comparison_gt(a, b);
 }
 
 inline bool operator<=(const td_real &a, double b) {
-  return !(a > b);
+  return td::comparison_le(a, b);
 }
 
 inline bool operator<=(double a, const td_real &b) {
-  return !(a > b);
+  return td::comparison_le(a, b);
 }
 
 inline bool operator<=(const td_real &a, const dd_real &b) {
-  return !(a > b);
+  return td::comparison_le(a, b);
 }
 
 inline bool operator<=(const dd_real &a, const td_real &b) {
-  return !(a > b);
+  return td::comparison_le(a, b);
 }
 
 inline bool operator<=(const td_real &a, const qd_real &b) {
-  return !(a > b);
+  return td::to_qd_conversion(a) <= b;
 }
 
 inline bool operator<=(const qd_real &a, const td_real &b) {
-  return !(a > b);
+  return a <= td::to_qd_conversion(b);
 }
 
 inline bool operator<=(const td_real &a, const td_real &b) {
-  return !(a > b);
+  return td::comparison_le(a, b);
 }
 
 inline bool operator>=(const td_real &a, double b) {
-  return !(a < b);
+  return td::comparison_ge(a, b);
 }
 
 inline bool operator>=(double a, const td_real &b) {
-  return !(a < b);
+  return td::comparison_ge(a, b);
 }
 
 inline bool operator>=(const td_real &a, const dd_real &b) {
-  return !(a < b);
+  return td::comparison_ge(a, b);
 }
 
 inline bool operator>=(const dd_real &a, const td_real &b) {
-  return !(a < b);
+  return td::comparison_ge(a, b);
 }
 
 inline bool operator>=(const td_real &a, const qd_real &b) {
-  return !(a < b);
+  return td::to_qd_conversion(a) >= b;
 }
 
 inline bool operator>=(const qd_real &a, const td_real &b) {
-  return !(a < b);
+  return a >= td::to_qd_conversion(b);
 }
 
 inline bool operator>=(const td_real &a, const td_real &b) {
-  return !(a < b);
+  return td::comparison_ge(a, b);
 }
 
 inline bool operator!=(const td_real &a, double b) {

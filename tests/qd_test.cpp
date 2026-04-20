@@ -1010,6 +1010,39 @@ bool test_dd_real_comparison() {
   return pass;
 }
 
+bool test_td_real_comparison() {
+  cout << endl;
+  cout << "Test 22.  (td_real comparison normalization)." << endl;
+
+  double lo = std::ldexp(1.0, -53);
+  td_real a(1.0 - lo, lo, 0.0);
+  td_real b(1.0);
+  td_real diff = a - b;
+
+  bool pass = diff.is_zero();
+  pass &= (a == b);
+  pass &= !(a != b);
+  pass &= !(a < b);
+  pass &= !(a > b);
+  pass &= (a <= b);
+  pass &= (a >= b);
+
+  pass &= (a == 1.0);
+  pass &= (1.0 == a);
+  pass &= (a == dd_real(1.0));
+  pass &= (dd_real(1.0) == a);
+  pass &= (a == qd_real(1.0));
+  pass &= (qd_real(1.0) == a);
+
+  if (flag_verbose) {
+    cout << "a = [" << a[0] << ", " << a[1] << ", " << a[2] << "]" << endl;
+    cout << "b = " << b << endl;
+    cout << "diff is zero: " << diff.is_zero() << endl;
+  }
+
+  return pass;
+}
+
 template <class T>
 bool TestSuite<T>::testall() {
   bool pass = true;
@@ -1106,6 +1139,7 @@ int main(int argc, char *argv[]) {
       cout << "sizeof(td_real) = " << sizeof(td_real) << endl;
     pass &= td_base_test.testall();
     pass &= td_test.testall();
+    pass &= print_result(test_td_real_comparison());
   }
 
   fpu_fix_end(&old_cw);
