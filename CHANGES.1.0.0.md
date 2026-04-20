@@ -1,14 +1,5 @@
 # Changes for libQD3 1.0.0
 
-Commit range summarized from the qd-2.3.24 tarball baseline:
-
-- `a0a93cc7f0a946b56d5a4d4f96aacfda99b0ab2e`
-- through `HEAD`
-
-This release starts libQD3 as an independently versioned fork of QD and
-adds triple-double arithmetic as a first-class precision type alongside
-`dd_real` and `qd_real`.
-
 ## Changes Inherited Since QD 2.3.24
 
 Before the libQD3 rename and triple-double work, this branch includes several
