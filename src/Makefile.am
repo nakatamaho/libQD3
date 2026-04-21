@@ -2,7 +2,7 @@ SRC = c_dd.cpp c_qd.cpp c_td.cpp dd_real.cpp dd_const.cpp td_real.cpp td_const.c
       fpu.cpp qd_real.cpp qd_const.cpp util.cpp bits.cpp util.h
 
 if HAVE_EDD_REAL
-SRC += edd_real.cpp edd_const.cpp
+SRC += edd_real.cpp edd_const.cpp edd_trans.cpp c_edd.cpp
 endif
 
 lib_LTLIBRARIES = libqd.la

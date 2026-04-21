@@ -139,6 +139,10 @@ public:
   bool test11();
   bool test12();
   bool test13();
+  bool test14();
+  bool test15();
+  bool test16();
+  bool test17();
   bool testall();
 };
 
@@ -402,6 +406,125 @@ bool EddTestSuite::test13() {
   return pass;
 }
 
+bool EddTestSuite::test14() {
+  cout << endl;
+  cout << "Test 14.  (edd native exp/log across safe and wide ranges)." << endl;
+
+  edd_real x("1.2345678901234567890123456789");
+  edd_real ex = exp(x);
+  edd_real lx = log(ex);
+  qd_real qx("1.2345678901234567890123456789");
+
+  edd_real huge = edd_real::_log2 * (_Float64x) 12000.0;
+  edd_real ehuge = exp(huge);
+  edd_real lhuge = log(ehuge);
+
+  bool pass = true;
+  pass &= edd_check_close(ex, exp(qx), 128.0);
+  pass &= edd_check_close(lx, qx, 128.0);
+  pass &= ehuge.isfinite();
+  pass &= edd_is_normalized(ehuge);
+  pass &= edd_is_normalized(lhuge);
+  pass &= (to_double(abs(lhuge - huge) / abs(huge)) <= 2048.0 * static_cast<double>(edd_real::_eps));
+
+  return pass;
+}
+
+bool EddTestSuite::test15() {
+  cout << endl;
+  cout << "Test 15.  (edd trig identities and qd oracle agreement)." << endl;
+
+  const char *samples[] = {
+    "0.125",
+    "-1.234567890123456789",
+    "21.991148575128552669238503682"
+  };
+
+  bool pass = true;
+  for (int i = 0; i < 3; i++) {
+    edd_real a(samples[i]);
+    qd_real qa(samples[i]);
+    edd_real s = sin(a);
+    edd_real c = cos(a);
+    edd_real t = tan(a);
+
+    pass &= edd_check_close(s, sin(qa), 128.0);
+    pass &= edd_check_close(c, cos(qa), 128.0);
+    pass &= edd_check_close(t, tan(qa), 256.0);
+    pass &= edd_check_close(sqr(s) + sqr(c), qd_real(1.0), 256.0);
+    pass &= edd_check_close(t - (s / c), qd_real(0.0), 256.0);
+  }
+
+  return pass;
+}
+
+bool EddTestSuite::test16() {
+  cout << endl;
+  cout << "Test 16.  (edd inverse trig consistency)." << endl;
+
+  edd_real x("0.3125");
+  edd_real y("0.75");
+  qd_real qx("0.3125");
+  qd_real qy("0.75");
+
+  bool pass = true;
+  pass &= edd_check_close(asin(x), asin(qx), 128.0);
+  pass &= edd_check_close(acos(x), acos(qx), 128.0);
+  pass &= edd_check_close(atan(y), atan(qy), 128.0);
+  pass &= edd_check_close(atan2(y, x), atan2(qy, qx), 128.0);
+  pass &= edd_check_close(sin(asin(x)), qd_real("0.3125"), 256.0);
+  pass &= edd_check_close(cos(acos(x)), qd_real("0.3125"), 256.0);
+
+  return pass;
+}
+
+bool EddTestSuite::test17() {
+  cout << endl;
+  cout << "Test 17.  (edd large-argument reduction and hyperbolic checks)." << endl;
+
+  edd_real large = edd_real("1.0e40") * edd_real::_pi + edd_real("0.125");
+  qd_real qlarge = to_qd_real(large);
+  edd_real h("0.875");
+  qd_real qh("0.875");
+
+  edd_real s = sin(large);
+  edd_real c = cos(large);
+  edd_real sh = sinh(h);
+  edd_real ch = cosh(h);
+  edd_real th = tanh(h);
+
+  bool pass = true;
+  pass &= edd_check_close(s, sin(qlarge), 256.0);
+  pass &= edd_check_close(c, cos(qlarge), 256.0);
+  pass &= edd_check_close(sh, sinh(qh), 128.0);
+  pass &= edd_check_close(ch, cosh(qh), 128.0);
+  pass &= edd_check_close(th, tanh(qh), 128.0);
+  pass &= edd_check_close(sqr(ch) - sqr(sh), qd_real(1.0), 256.0);
+
+  if (flag_verbose) {
+    cout << "large sin err = "
+         << edd_abs_error(s, sin(qlarge)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "large cos err = "
+         << edd_abs_error(c, cos(qlarge)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "sinh err = "
+         << edd_abs_error(sh, sinh(qh)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "cosh err = "
+         << edd_abs_error(ch, cosh(qh)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "tanh err = "
+         << edd_abs_error(th, tanh(qh)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "cosh^2-sinh^2 err = "
+         << edd_abs_error(sqr(ch) - sqr(sh), qd_real(1.0)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+  }
+
+  return pass;
+}
+
 bool EddTestSuite::testall() {
   bool pass = true;
   pass &= print_result(test1());
@@ -417,12 +540,16 @@ bool EddTestSuite::testall() {
   pass &= print_result(test11());
   pass &= print_result(test12());
   pass &= print_result(test13());
+  pass &= print_result(test14());
+  pass &= print_result(test15());
+  pass &= print_result(test16());
+  pass &= print_result(test17());
   return pass;
 }
 
 bool test_edd_real_comparison() {
   cout << endl;
-  cout << "Test 14.  (edd comparison normalization)." << endl;
+  cout << "Test 18.  (edd comparison normalization)." << endl;
 
   _Float64x lo = __builtin_ldexpf64x((_Float64x) 1.0, -63);
   edd_real a((_Float64x) 1.0 - lo, lo);

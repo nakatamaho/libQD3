@@ -3,6 +3,9 @@
 #include <qd/c_dd.h>
 #include <qd/c_qd.h>
 #include <qd/c_td.h>
+#ifdef QD_HAVE_EDD_REAL
+#include <qd/c_edd.h>
+#endif
 
 /* Test 1.  Salamin-Brent quadratically convergent formula for pi. */
 int test_1() {
@@ -158,7 +161,49 @@ int test_3() {
   return 0;
 }
 
+#ifdef QD_HAVE_EDD_REAL
+int test_4() {
+  _Float64x x[2], y[2], s[2], c[2], t[2], u[2];
+  int r;
+
+  puts("Test 4.  (Extended-double-double C wrapper smoke test)");
+
+  c_edd_read("0.5", x);
+  c_edd_sin(x, s);
+  c_edd_cos(x, c);
+  c_edd_sqr(s, t);
+  c_edd_sqr(c, u);
+  c_edd_add(t, u, t);
+  c_edd_comp_edd_d(t, 1.0, &r);
+  if (r != 0 && fabsl((long double) (t[0] - 1.0)) > 1e-18L) {
+    puts("  c_edd sin^2 + cos^2 failed");
+    return 1;
+  }
+
+  c_edd_exp(x, y);
+  c_edd_log(y, t);
+  c_edd_sub(t, x, u);
+  c_edd_abs(u, u);
+  if (fabsl((long double) u[0]) > 1e-18L) {
+    puts("  c_edd log(exp(x)) failed");
+    return 1;
+  }
+
+  c_edd_tanh(x, y);
+  if (fabsl((long double) y[0]) >= 1.0L) {
+    puts("  c_edd tanh out of range");
+    return 1;
+  }
+
+  return 0;
+}
+#endif
+
 int main(void) {
   fpu_fix_start(NULL);
+#ifdef QD_HAVE_EDD_REAL
+  return test_1() || test_2() || test_3() || test_4();
+#else
   return test_1() || test_2() || test_3();
+#endif
 }
