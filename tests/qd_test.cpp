@@ -98,11 +98,6 @@ namespace {
 
 #ifdef QD_HAVE_EDD_REAL
 
-qd_real edd_to_qd(const edd_real &a) {
-  std::string s = a.to_string(40, 0, std::ios_base::scientific);
-  return qd_real(s.c_str());
-}
-
 bool edd_nonoverlap(_Float64x hi, _Float64x lo) {
   if (hi == (_Float64x) 0.0) {
     return lo == (_Float64x) 0.0;
@@ -117,7 +112,7 @@ bool edd_is_normalized(const edd_real &a) {
 }
 
 double edd_abs_error(const edd_real &a, const qd_real &ref) {
-  return to_double(abs(edd_to_qd(a) - ref));
+  return to_double(abs(to_qd_real(a) - ref));
 }
 
 double edd_scale(const qd_real &ref) {
@@ -140,6 +135,10 @@ public:
   bool test7();
   bool test8();
   bool test9();
+  bool test10();
+  bool test11();
+  bool test12();
+  bool test13();
   bool testall();
 };
 
@@ -231,7 +230,7 @@ bool EddTestSuite::test6() {
   edd_real s = sqrt(a);
   edd_real back = sqr(s);
 
-  return edd_is_normalized(s) && edd_check_close(back, edd_to_qd(a), 8.0);
+  return edd_is_normalized(s) && edd_check_close(back, to_qd_real(a), 8.0);
 }
 
 bool EddTestSuite::test7() {
@@ -250,7 +249,7 @@ bool EddTestSuite::test7() {
 
 bool EddTestSuite::test8() {
   cout << endl;
-  cout << "Test 8.  (edd constructor / conversion checks)." << endl;
+  cout << "Test 8.  (edd constructor / scalar conversion checks)." << endl;
 
   _Float64x x = (_Float64x) 1.0 +
       __builtin_ldexpf64x((_Float64x) 1.0, -63);
@@ -268,7 +267,127 @@ bool EddTestSuite::test8() {
 
 bool EddTestSuite::test9() {
   cout << endl;
-  cout << "Test 9.  (edd overflow / underflow boundary behavior)." << endl;
+  cout << "Test 9.  (edd constants sanity)." << endl;
+
+  bool pass = true;
+  pass &= edd_check_close(edd_real::_pi, qd_real::_pi, 8.0);
+  pass &= edd_check_close(edd_real::_2pi, qd_real::_2pi, 8.0);
+  pass &= edd_check_close(edd_real::_3pi4, qd_real::_3pi4, 8.0);
+  pass &= edd_check_close(edd_real::_pi2, qd_real::_pi2, 8.0);
+  pass &= edd_check_close(edd_real::_pi4, qd_real::_pi4, 8.0);
+  pass &= edd_check_close(edd_real::_e, qd_real::_e, 8.0);
+  pass &= edd_check_close(edd_real::_log2, qd_real::_log2, 8.0);
+  pass &= edd_check_close(edd_real::_log10, qd_real::_log10, 8.0);
+  pass &= (edd_real::_2pi > edd_real::_pi);
+  pass &= (edd_real::_pi > edd_real::_pi2);
+  pass &= (edd_real::_eps > (_Float64x) 0.0);
+  pass &= (edd_real::_min_normalized > (_Float64x) 0.0);
+  pass &= (edd_real::_ndigits >= 38);
+
+  return pass;
+}
+
+bool EddTestSuite::test10() {
+  cout << endl;
+  cout << "Test 10.  (edd string I/O round trips and specials)." << endl;
+
+  const char *samples[] = {
+    "3.14159265358979323846264338327950288420",
+    "-2.71828182845904523536028747135266249776e-200",
+    "9.87654321098765432109876543210987654321e+200",
+    "  -0.0",
+    "6.02214076000000000000000000000000000000e+23"
+  };
+
+  bool pass = true;
+  for (int i = 0; i < 5; i++) {
+    edd_real a(samples[i]);
+    std::ostringstream os;
+    os << std::setprecision(edd_real::_ndigits) << std::scientific << a;
+    std::istringstream is(os.str());
+    edd_real b;
+    is >> b;
+    pass &= edd_check_close(b, to_qd_real(a), 16.0);
+  }
+
+  pass &= edd_real(" \t+INF\n").isinf();
+  pass &= edd_real("-inf").isinf();
+  pass &= edd_real("nan").isnan();
+
+  return pass;
+}
+
+bool EddTestSuite::test11() {
+  cout << endl;
+  cout << "Test 11.  (edd mixed-mode _Float64x arithmetic and comparisons)." << endl;
+
+  edd_word x = (edd_word) 1.0 + __builtin_ldexpf64x((edd_word) 1.0, -63);
+  edd_word y = (edd_word) 3.0;
+  edd_real a("1.125");
+
+  bool pass = true;
+  pass &= ((a + x) == (a + edd_real(x)));
+  pass &= ((x + a) == (edd_real(x) + a));
+  pass &= ((a - x) == (a - edd_real(x)));
+  pass &= ((x - a) == (edd_real(x) - a));
+  pass &= ((a * y) == (a * edd_real(y)));
+  pass &= ((y * a) == (edd_real(y) * a));
+  pass &= ((a / y) == (a / edd_real(y)));
+  pass &= ((y / a) == (edd_real(y) / a));
+  pass &= (x > edd_real((edd_word) 1.0));
+  pass &= (edd_real((edd_word) 1.0) < x);
+
+  return pass;
+}
+
+bool EddTestSuite::test12() {
+  cout << endl;
+  cout << "Test 12.  (edd dd/qd conversion paths)." << endl;
+
+  dd_real dd("1.234567890123456789012345678901");
+  edd_real from_dd = to_edd_real(dd);
+  dd_real dd_roundtrip = to_dd_real(from_dd);
+
+  qd_real qd("1.234567890123456789012345678901234567890123456789");
+  edd_real from_qd = to_edd_real(qd);
+  qd_real qd_roundtrip = to_qd_real(from_qd);
+
+  const bool dd_roundtrip_ok = (dd == dd_roundtrip);
+  const bool from_dd_norm_ok = edd_is_normalized(from_dd);
+  const bool from_qd_norm_ok = edd_is_normalized(from_qd);
+  const bool from_dd_close_ok = edd_check_close(from_dd, qd_real(dd), 8.0);
+  const bool from_qd_close_ok = edd_check_close(from_qd, qd, 8.0);
+  const bool qd_roundtrip_ok = (to_double(abs(qd_roundtrip - qd)) <=
+      16.0 * static_cast<double>(edd_real::_eps) * edd_scale(qd));
+
+  bool pass = dd_roundtrip_ok && from_dd_norm_ok && from_qd_norm_ok &&
+      from_dd_close_ok && from_qd_close_ok && qd_roundtrip_ok;
+
+  if (flag_verbose) {
+    cout << "dd           = " << dd << endl;
+    cout << "dd_roundtrip = " << dd_roundtrip << endl;
+    cout << "from_dd      = " << from_dd << endl;
+    cout << "from_qd      = " << from_qd << endl;
+    cout << "qd error     = "
+         << to_double(abs(qd_roundtrip - qd)) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "from_qd err  = "
+         << edd_abs_error(from_qd, qd) / static_cast<double>(edd_real::_eps)
+         << " eps" << endl;
+    cout << "dd_roundtrip_ok = " << dd_roundtrip_ok << endl;
+    cout << "from_dd_norm_ok = " << from_dd_norm_ok << endl;
+    cout << "from_qd_norm_ok = " << from_qd_norm_ok << endl;
+    cout << "from_dd_close_ok = " << from_dd_close_ok << endl;
+    cout << "from_qd_close_ok = " << from_qd_close_ok << endl;
+    cout << "qd_roundtrip_ok = " << qd_roundtrip_ok << endl;
+  }
+
+  return pass;
+}
+
+bool EddTestSuite::test13() {
+  cout << endl;
+  cout << "Test 13.  (edd overflow / underflow boundary behavior)." << endl;
 
   edd_real large = ldexp(edd_real((_Float64x) 1.0), QD_EDD_FLT64X_MAX_EXP - 200);
   edd_real tiny = ldexp(edd_real((_Float64x) 1.0), -16000);
@@ -294,12 +413,16 @@ bool EddTestSuite::testall() {
   pass &= print_result(test7());
   pass &= print_result(test8());
   pass &= print_result(test9());
+  pass &= print_result(test10());
+  pass &= print_result(test11());
+  pass &= print_result(test12());
+  pass &= print_result(test13());
   return pass;
 }
 
 bool test_edd_real_comparison() {
   cout << endl;
-  cout << "Test 10.  (edd comparison normalization)." << endl;
+  cout << "Test 14.  (edd comparison normalization)." << endl;
 
   _Float64x lo = __builtin_ldexpf64x((_Float64x) 1.0, -63);
   edd_real a((_Float64x) 1.0 - lo, lo);
