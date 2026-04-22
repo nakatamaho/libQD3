@@ -2,13 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 define([QD_PATCH_VERSION], 0)
 AC_PREREQ([2.69])
-AC_INIT([qd3],[1.0.QD_PATCH_VERSION],[maho.nakata@gmail.com])
+AC_INIT([qd3],[1.1.QD_PATCH_VERSION],[maho.nakata@gmail.com])
 AC_CONFIG_SRCDIR([src/qd_real.cpp])
 AC_CONFIG_MACRO_DIR([m4])
 
 PACKAGE="qd3"
 MAJOR_VERSION="1"
-MINOR_VERSION="0"
+MINOR_VERSION="1"
 PATCH_VERSION="QD_PATCH_VERSION"
 VERSION=$MAJOR_VERSION.$MINOR_VERSION.$PATCH_VERSION
 AC_DEFINE_UNQUOTED([MAJOR_VERSION],$MAJOR_VERSION,[qd major version number])
@@ -17,7 +17,7 @@ AC_DEFINE_UNQUOTED([PATCH_VERSION],$PATCH_VERSION,[qd patch number (sub minor ve
 echo "configuring $PACKAGE $VERSION..."
 
 AC_CONFIG_AUX_DIR([config])
-AM_INIT_AUTOMAKE([foreign tar-ustar])
+AM_INIT_AUTOMAKE([foreign tar-ustar dist-xz no-dist-gzip])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_HEADERS([include/qd/qd_config.h])
 
