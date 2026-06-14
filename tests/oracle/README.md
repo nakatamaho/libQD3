@@ -107,10 +107,12 @@ cmake --build build-coverage --target coverage -j
 ```
 
 The coverage target writes `coverage.filtered.info` and
-`coverage-html/index.html` under the build directory. The latest local M5
-run with GCC 15.2.0 and MPFR 4.2.2 passed 37/37 tests under
-ASan+UBSan. Filtered lcov coverage over `src/*` and `include/qd/*_inline.h`
-was 69.0% line coverage and 74.8% function coverage. The follow-up target
+`coverage-html/index.html` under the build directory. The latest local
+coverage run with GCC 15.2.0, MPFR 4.2.2, and the MPFR oracle suite
+enabled passed 41/41 tests. Filtered lcov
+coverage over `src/*.cpp`, `src/td_trig_reduce.h`, and
+`include/qd/*_inline.h` was 69.7% line coverage and 75.2% function
+coverage. The follow-up target
 is to raise exercised arithmetic/transcendental function-body coverage to
 at least 90% as the remaining corner-case tests are added.
 

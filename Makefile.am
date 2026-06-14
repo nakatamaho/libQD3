@@ -63,7 +63,7 @@ coverage:
 	$(LCOV) --zerocounters --directory "$(abs_top_builddir)"
 	$(MAKE) check
 	$(LCOV) --capture --directory "$(abs_top_builddir)" --output-file "$(abs_top_builddir)/coverage.info"
-	$(LCOV) --extract "$(abs_top_builddir)/coverage.info" "$(abs_top_srcdir)/src/*" "$(abs_top_srcdir)/include/qd/*_inline.h" --output-file "$(abs_top_builddir)/coverage.filtered.info" --ignore-errors unused
+	$(LCOV) --extract "$(abs_top_builddir)/coverage.info" "$(abs_top_srcdir)/src/*.cpp" "$(abs_top_srcdir)/src/td_trig_reduce.h" "$(abs_top_srcdir)/include/qd/*_inline.h" --output-file "$(abs_top_builddir)/coverage.filtered.info" --ignore-errors unused
 	$(GENHTML) "$(abs_top_builddir)/coverage.filtered.info" --output-directory "$(abs_top_builddir)/coverage-html"
 endif
 

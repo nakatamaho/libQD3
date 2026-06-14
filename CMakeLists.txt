@@ -613,7 +613,8 @@ if(QD3_ENABLE_COVERAGE)
     COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --output-on-failure
     COMMAND "${LCOV_EXECUTABLE}" --capture --directory "${CMAKE_BINARY_DIR}" --output-file "${CMAKE_BINARY_DIR}/coverage.info"
     COMMAND "${LCOV_EXECUTABLE}" --extract "${CMAKE_BINARY_DIR}/coverage.info"
-            "${CMAKE_SOURCE_DIR}/src/*"
+            "${CMAKE_SOURCE_DIR}/src/*.cpp"
+            "${CMAKE_SOURCE_DIR}/src/td_trig_reduce.h"
             "${CMAKE_SOURCE_DIR}/include/qd/*_inline.h"
             --output-file "${CMAKE_BINARY_DIR}/coverage.filtered.info"
             --ignore-errors unused
