@@ -112,9 +112,10 @@ inline td_real td_nint(const td_real &a) {
 static const int td_exp_squares = 12;
 static const double td_exp_k = 4096.0;
 static const double td_exp_inv_k = 1.0 / td_exp_k;
-static const td_real td_pi16(1.963495408493620697e-01,
-                             7.654042494670957545e-18,
-                             -1.871731131073962291e-34);
+static const qd_real td_qd_pi16(1.963495408493620697e-01,
+                                7.654042494670957545e-18,
+                                -1.871731131073962291e-34,
+                                6.952838880396033010e-51);
 
 static const double td_sin_table[4][3] = {
   {1.950903220161282758e-01, -7.991079068461731263e-18,  6.184627002422071324e-34},
@@ -202,18 +203,20 @@ inline void sincos_taylor(const td_real &a, td_real &sin_a, td_real &cos_a) {
 
 /* Reduce to t with |t| <= pi/32 while tracking pi/2 and pi/16 sectors. */
 inline void reduce_trig_arg(const td_real &a, td_real &t, int &j, int &k) {
-  td_real z = td_nint(a / td_real::_2pi);
-  td_real r = a - td_real::_2pi * z;
+  qd_real aq = to_qd_real(a);
+  qd_real z = nint(aq / qd_real::_2pi);
+  qd_real r = aq - qd_real::_2pi * z;
 
-  td_real q = nint(r / td_real::_pi2);
-  t = r - td_real::_pi2 * q;
+  qd_real q = nint(r / qd_real::_pi2);
+  qd_real tq = r - qd_real::_pi2 * q;
   j = static_cast<int>(q[0]);
   while (j > 2) j -= 4;
   while (j < -2) j += 4;
 
-  q = nint(t / td_pi16);
-  t -= td_pi16 * q;
+  q = nint(tq / td_qd_pi16);
+  tq -= td_qd_pi16 * q;
   k = static_cast<int>(q[0]);
+  t = to_td_real(tq);
 }
 
 }  // namespace

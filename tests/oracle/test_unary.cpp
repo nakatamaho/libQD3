@@ -530,22 +530,25 @@ double td_abs_err_in_eps(const td_real &got, mpfr_t ref) {
 
 void td_reduce_trig_arg_for_oracle(const td_real &a, td_real &t, int &j,
                                    int &k) {
-  static const td_real td_pi16(1.963495408493620697e-01,
-                               7.654042494670957545e-18,
-                               -1.871731131073962291e-34);
+  static const qd_real td_qd_pi16(1.963495408493620697e-01,
+                                  7.654042494670957545e-18,
+                                  -1.871731131073962291e-34,
+                                  6.952838880396033010e-51);
 
-  td_real z = nint(a / td_real::_2pi);
-  td_real r = a - td_real::_2pi * z;
+  qd_real aq = to_qd_real(a);
+  qd_real z = nint(aq / qd_real::_2pi);
+  qd_real r = aq - qd_real::_2pi * z;
 
-  td_real q = nint(r / td_real::_pi2);
-  t = r - td_real::_pi2 * q;
+  qd_real q = nint(r / qd_real::_pi2);
+  qd_real tq = r - qd_real::_pi2 * q;
   j = static_cast<int>(q[0]);
   while (j > 2) j -= 4;
   while (j < -2) j += 4;
 
-  q = nint(t / td_pi16);
-  t -= td_pi16 * q;
+  q = nint(tq / td_qd_pi16);
+  tq -= td_qd_pi16 * q;
   k = static_cast<int>(q[0]);
+  t = to_td_real(tq);
 }
 
 template <class T>
