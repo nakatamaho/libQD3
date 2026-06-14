@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
@@ -65,6 +66,7 @@ public:
   bool test6();
   bool test7();
   bool test8();
+  bool test9();
   bool testall();
 };
 
@@ -313,6 +315,11 @@ bool EddTestSuite::test10() {
     is >> b;
     pass &= edd_check_close(b, to_qd_real(a), 16.0);
   }
+
+  const std::string edd_fixed =
+      edd_real(-0.5).to_string(0, 8, std::ios_base::fixed, false, false, '_');
+  pass &= (edd_fixed.size() == 8);
+  pass &= (edd_fixed.substr(edd_fixed.size() - 2) == "-1");
 
   pass &= edd_real(" \t+INF\n").isinf();
   pass &= edd_real("-inf").isinf();
@@ -1524,6 +1531,31 @@ bool test_td_real_comparison() {
   return pass;
 }
 
+
+template <class T>
+bool TestSuite<T>::test9() {
+  cout << endl;
+  cout << "Test 9.  (Fixed zero-precision formatting preserves width)." << endl;
+
+  const std::string negative =
+      T(-0.5).to_string(0, 8, std::ios_base::fixed, false, false, '_');
+  const std::string positive =
+      T(0.5).to_string(0, 8, std::ios_base::fixed, false, false, '_');
+
+  bool pass = true;
+  pass &= (negative.size() == 8);
+  pass &= (positive.size() == 8);
+  pass &= (negative.substr(negative.size() - 2) == "-1");
+  pass &= (positive.substr(positive.size() - 1) == "1");
+
+  if (flag_verbose) {
+    cout << "negative fixed text = '" << negative << "'" << endl;
+    cout << "positive fixed text = '" << positive << "'" << endl;
+  }
+
+  return pass;
+}
+
 template <class T>
 bool TestSuite<T>::testall() {
   bool pass = true;
@@ -1535,6 +1567,7 @@ bool TestSuite<T>::testall() {
   pass &= print_result(test6());
   pass &= print_result(test7());
   pass &= print_result(test8());
+  pass &= print_result(test9());
   return pass;
 }
 

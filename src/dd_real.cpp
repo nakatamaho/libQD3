@@ -1097,11 +1097,8 @@ string dd_real::to_string(int precision, int width, ios_base::fmtflags fmt,
     	  else
     		  s += '0';
 
-    	  return s;
-      }
-
       // handle near zero to working precision (but not exactly zero)
-      if (fixed && d <= 0) {
+      } else if (fixed && d <= 0) {
         s += '0';
         if (precision > 0) {
           s += '.';

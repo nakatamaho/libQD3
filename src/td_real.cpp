@@ -924,10 +924,7 @@ string td_real::to_string(int precision, int width, ios_base::fmtflags fmt,
 
       if (fixed && precision == 0 && abs(*this) < 1.0) {
         s += (abs(*this) >= 0.5) ? '1' : '0';
-        return s;
-      }
-
-      if (fixed && d <= 0) {
+      } else if (fixed && d <= 0) {
         s += '0';
         if (precision > 0) {
           s += '.';
