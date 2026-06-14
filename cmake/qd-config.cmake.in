@@ -1,0 +1,63 @@
+#!/bin/sh
+prefix="@CMAKE_INSTALL_PREFIX@"
+exec_prefix="${prefix}"
+includedir="${prefix}/@CMAKE_INSTALL_INCLUDEDIR@"
+libdir="${exec_prefix}/@CMAKE_INSTALL_LIBDIR@"
+bindir="${exec_prefix}/@CMAKE_INSTALL_BINDIR@"
+
+CXX="@CMAKE_CXX_COMPILER@"
+CXXFLAGS="-I${includedir}"
+LIBS="-L${libdir} -lqd @QD_CONFIG_LIBS@"
+STATIC_LIBS="${libdir}/libqd.a @QD_CONFIG_LIBS@"
+FC="@QD_CONFIG_FC@"
+FCFLAGS="@QD_CONFIG_FCFLAGS@"
+FCLIBS="-L${libdir} -lqdmod -lqd @QD_CONFIG_LIBS@ @QD_CONFIG_FC_LIBS@"
+FMAINLIB="-L${libdir} -lqd_f_main"
+MODFLAG="@QD_CONFIG_MODFLAG@${includedir}/qd"
+version="@PROJECT_VERSION@"
+
+usage() {
+  cat <<EOF
+Usage: qd-config [OPTIONS]
+Options:
+  --prefix
+  --exec-prefix
+  --cxx
+  --cxxflags
+  --libs
+  --static
+  --static-libs
+  --fc
+  --fcflags
+  --fclibs
+  --fmainlib
+  --modflag
+  --version
+  --help
+EOF
+}
+
+if [ $# -eq 0 ]; then
+  usage
+  exit 0
+fi
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --prefix) echo "$prefix" ;;
+    --exec-prefix) echo "$exec_prefix" ;;
+    --cxx) echo "$CXX" ;;
+    --cxxflags) echo "$CXXFLAGS" ;;
+    --libs) echo "$LIBS" ;;
+    --static|--static-libs) echo "$STATIC_LIBS" ;;
+    --fc) echo "$FC" ;;
+    --fcflags) echo "$MODFLAG $FCFLAGS" ;;
+    --fclibs) echo "$FCLIBS" ;;
+    --fmainlib) echo "$FMAINLIB" ;;
+    --modflag) echo "$MODFLAG" ;;
+    --version) echo "$version" ;;
+    --help|-h) usage ;;
+    *) usage >&2; exit 1 ;;
+  esac
+  shift
+done

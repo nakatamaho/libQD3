@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: qd
+Description: A C++/Fortran-90 double-double and quad-double package
+URL: http://crd-legacy.lbl.gov/~dhbailey/mpdist/
+Version: @PROJECT_VERSION@
+Requires:
+Libs: -L${libdir} -lqd @QD_PC_LIBS@
+Cflags: -I${includedir}

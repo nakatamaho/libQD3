@@ -1,0 +1,57 @@
+#ifndef QD3_CONFIG_H
+#define QD3_CONFIG_H 1
+
+#define MAJOR_VERSION @PROJECT_VERSION_MAJOR@
+#define MINOR_VERSION @PROJECT_VERSION_MINOR@
+#define PATCH_VERSION @PROJECT_VERSION_PATCH@
+
+#ifndef QD_API
+#define QD_API
+#endif
+
+#cmakedefine QD_VACPP_BUILTINS_H 1
+@QD_FMA_CONFIG_DEFINE@
+@QD_FMS_CONFIG_DEFINE@
+#cmakedefine QD_INLINE 1
+#define QD_HAVE_STD 1
+#cmakedefine QD_IEEE_ADD 1
+#cmakedefine QD_SLOPPY_MUL 1
+#cmakedefine QD_SLOPPY_DIV 1
+#cmakedefine QD_HAVE_EDD_REAL 1
+#cmakedefine QD_EDD_FLT64X_MANT_DIG @QD_EDD_FLT64X_MANT_DIG@
+#cmakedefine QD_EDD_FLT64X_MAX_EXP @QD_EDD_FLT64X_MAX_EXP@
+#cmakedefine QD_EDD_SPLIT_BITS @QD_EDD_SPLIT_BITS@
+#cmakedefine QD_EDD_SPLIT_SCALE_BITS @QD_EDD_SPLIT_SCALE_BITS@
+
+#ifdef __cplusplus
+#include <cmath>
+#define QD_ISNAN(x) std::isnan(x)
+#define QD_ISINF(x) std::isinf(x)
+#define QD_ISFINITE(x) std::isfinite(x)
+#define QD_COPYSIGN(x,y) std::copysign((x),(y))
+#else
+#include <math.h>
+#define QD_ISNAN(x) isnan(x)
+#define QD_ISINF(x) isinf(x)
+#define QD_ISFINITE(x) isfinite(x)
+#define QD_COPYSIGN(x,y) copysign((x),(y))
+#endif
+
+#cmakedefine X86 1
+#cmakedefine HAVE_FORTRAN 1
+#cmakedefine HAVE_CLOCK_GETTIME 1
+#cmakedefine HAVE_GETTIMEOFDAY 1
+#cmakedefine HAVE_IEEEFP_H 1
+#cmakedefine HAVE_FPU_CONTROL_H 1
+
+#ifdef HAVE_FORTRAN
+#include "qd_fortran_mangle.h"
+#ifndef FC_FUNC
+#define FC_FUNC(name,NAME) FC_GLOBAL(name,NAME)
+#endif
+#ifndef FC_FUNC_
+#define FC_FUNC_(name,NAME) FC_GLOBAL_(name,NAME)
+#endif
+#endif
+
+#endif /* QD3_CONFIG_H */

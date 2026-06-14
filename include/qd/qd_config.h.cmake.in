@@ -1,0 +1,36 @@
+#ifndef _QD_QD_CONFIG_H
+#define _QD_QD_CONFIG_H 1
+
+#ifndef QD_API
+#define QD_API
+#endif
+
+#cmakedefine QD_VACPP_BUILTINS_H 1
+@QD_FMA_CONFIG_DEFINE@
+@QD_FMS_CONFIG_DEFINE@
+#cmakedefine QD_INLINE 1
+#define QD_HAVE_STD 1
+#cmakedefine QD_IEEE_ADD 1
+#cmakedefine QD_SLOPPY_MUL 1
+#cmakedefine QD_SLOPPY_DIV 1
+#cmakedefine QD_HAVE_EDD_REAL 1
+#cmakedefine QD_EDD_FLT64X_MANT_DIG @QD_EDD_FLT64X_MANT_DIG@
+#cmakedefine QD_EDD_FLT64X_MAX_EXP @QD_EDD_FLT64X_MAX_EXP@
+#cmakedefine QD_EDD_SPLIT_BITS @QD_EDD_SPLIT_BITS@
+#cmakedefine QD_EDD_SPLIT_SCALE_BITS @QD_EDD_SPLIT_SCALE_BITS@
+
+#ifdef __cplusplus
+#include <cmath>
+#define QD_ISNAN(x) std::isnan(x)
+#define QD_ISINF(x) std::isinf(x)
+#define QD_ISFINITE(x) std::isfinite(x)
+#define QD_COPYSIGN(x,y) std::copysign((x),(y))
+#else
+#include <math.h>
+#define QD_ISNAN(x) isnan(x)
+#define QD_ISINF(x) isinf(x)
+#define QD_ISFINITE(x) isfinite(x)
+#define QD_COPYSIGN(x,y) copysign((x),(y))
+#endif
+
+#endif /* _QD_QD_CONFIG_H */
