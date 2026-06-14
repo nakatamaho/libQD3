@@ -1,3 +1,10 @@
+# Local build directories
+/build*/
+/_build*/
+
+# Local task prompts
+/refactor-instructions.md
+
 # Prerequisites
 *.d
 
