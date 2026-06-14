@@ -1,4 +1,13 @@
 Changes for 1.1.1
+    Reworked td_real trigonometric argument reduction to use a native
+    four-limb residual helper instead of routing the reduction through
+    qd_real, and added deterministic td sin/cos/tan worst-case regressions.
+    Shared the td trig reduction helper between production code and MPFR
+    unary oracle diagnostics so reported j/k sectors match the library path.
+    Refreshed coverage filtering to include src/*.cpp, src/td_trig_reduce.h,
+    and include/qd/*_inline.h; the latest MPFR coverage run passed 41/41
+    tests with 69.7% filtered line coverage and 75.2% filtered function
+    coverage.
     Added an optional MPFR-backed oracle test suite under tests/oracle and wired
     it into CMake/Autotools test flows when MPFR testing is enabled.
     Added seeded TAP diagnostics, optional JUnit output, and reproducibility notes
