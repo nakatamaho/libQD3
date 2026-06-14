@@ -175,6 +175,16 @@ inline void reduce_edd_trig_arg(const edd_real &a, edd_real &t, int &j, int &k) 
 }
 
 inline void sincos_native(const edd_real &a, edd_real &s, edd_real &c) {
+  const edd_real abs_a = edd::fabsx(a[0]);
+  const edd_word qd_fallback_edd_arg_limit = std::ldexp((edd_word) 1.0, 100);
+
+  if (abs_a > qd_fallback_edd_arg_limit) {
+    const qd_real qd_a = to_qd_real(a);
+    s = to_edd_real(sin(qd_a));
+    c = to_edd_real(cos(qd_a));
+    return;
+  }
+
   edd_real t;
   int j;
   int k;
