@@ -205,15 +205,15 @@ inline void reduce_trig_arg(const td_real &a, td_real &t, int &j, int &k) {
   td_real z = td_nint(a / td_real::_2pi);
   td_real r = a - td_real::_2pi * z;
 
-  double q = std::floor(r[0] / td_real::_pi2[0] + 0.5);
+  td_real q = nint(r / td_real::_pi2);
   t = r - td_real::_pi2 * q;
-  j = static_cast<int>(q);
+  j = static_cast<int>(q[0]);
   while (j > 2) j -= 4;
   while (j < -2) j += 4;
 
-  q = std::floor(t[0] / td_pi16[0] + 0.5);
+  q = nint(t / td_pi16);
   t -= td_pi16 * q;
-  k = static_cast<int>(q);
+  k = static_cast<int>(q[0]);
 }
 
 }  // namespace
