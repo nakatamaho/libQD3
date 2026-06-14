@@ -164,6 +164,47 @@ coverage. The follow-up target
 is to raise exercised arithmetic/transcendental function-body coverage to
 at least 90% as the remaining corner-case tests are added.
 
+
+## Unary Worst-Case Snapshot (seed 12345)
+
+The following table is a representative comparison of the maximum observed
+`relerr` per function+domain across `dd`, `td`, `qd`, and `edd`.
+
+Command used:
+
+```sh
+build-mpfr/tests/oracle/test_unary -dd --seed=12345 --worst-report=/tmp/oracle_unary_dd_worst.csv
+build-mpfr/tests/oracle/test_unary -td --seed=12345 --worst-report=/tmp/oracle_unary_td_worst.csv
+build-mpfr/tests/oracle/test_unary -qd --seed=12345 --worst-report=/tmp/oracle_unary_qd_worst.csv
+build-mpfr/tests/oracle/test_unary -edd --seed=12345 --worst-report=/tmp/oracle_unary_edd_worst.csv
+python3 qa/compare_unary_worst_reports.py \
+  --report dd=/tmp/oracle_unary_dd_worst.csv \
+  --report td=/tmp/oracle_unary_td_worst.csv \
+  --report qd=/tmp/oracle_unary_qd_worst.csv \
+  --report edd=/tmp/oracle_unary_edd_worst.csv
+```
+
+| function | operation | domain | dd | td | qd | edd | best_precision | best_relerr | worst_relerr |
+|---|---|---|---|---|---|---|---|---|
+| cos_conditioned | cos | trig_conditioned | 234.5158837015159 | 0.1859678578838277 | 3.606068198292264 | 0.5842733118180256 | td:0.1859678578838277 | 234.5158837015159 |
+| tan_conditioned | tan | trig_conditioned | 100.2354127653254 | 0.4293062542108887 | 5.337407515500874 | 0.7403564850562804 | td:0.4293062542108887 | 100.2354127653254 |
+| tan_stable | tan | trig_stable | 6.894465606911766 | 0.6904400371696184 | 0.1798864565349701 | 0.5534120362369035 | qd:0.1798864565349701 | 6.894465606911766 |
+| cos_stable | cos | trig_stable | 6.627038246121096 | 0.1448689713104189 | 0.1563370472712637 | 0.3846866974570015 | td:0.1448689713104189 | 6.627038246121096 |
+| sin_stable | sin | trig_stable | 5.558650157962114 | 0.1646533043055813 | 0.1356551055455925 | 0.4341243022129826 | qd:0.1356551055455925 | 5.558650157962114 |
+| sin_conditioned | sin | trig_conditioned | 4.061869175123492 | 0.2586139619497284 | 0.484758983433543 | 0.7634140708511088 | td:0.2586139619497284 | 4.061869175123492 |
+| log10 | log10 | positive | 3.382881796619329 | 1.451569741775147 | 0.5365655341154324 | 0.2169708880475239 | edd:0.2169708880475239 | 3.382881796619329 |
+| log | log | positive | 3.188037618468893 | 0.1733815365736716 | 0.02628300239941649 | 0.22259460670651 | qd:0.02628300239941649 | 3.188037618468893 |
+| tanh | tanh | hyperbolic_moderate | 3.040973951650837 | 1.2649942359957 | 0.2710157193589349 | 0.9181692205563492 | qd:0.2710157193589349 | 3.040973951650837 |
+| sinh | sinh | hyperbolic_moderate | 2.437613433479258 | 0.4052122187515949 | 0.1673047257728243 | 0.6210456354884193 | qd:0.1673047257728243 | 2.437613433479258 |
+| exp | exp | exp_moderate | 1.789884216404387 | 0.7173980805162762 | 0.04589685531423539 | 0.7639450291224287 | qd:0.04589685531423539 | 1.789884216404387 |
+| asin | asin | unit | 1.078179715832877 | 0.2747186105239964 | 0.0912821036830738 | 0.5494034213667686 | qd:0.0912821036830738 | 1.078179715832877 |
+| atan | atan | all_moderate | 0.9421272497469996 | 0.2171871948503973 | 0.6420795173406116 | 0.9853352078363772 | td:0.2171871948503973 | 0.9853352078363772 |
+| sqrt | sqrt | nonnegative | 0.6002603878042156 | 0.06519135199933343 | 0.2240958605086439 | 0.9717311669399569 | td:0.06519135199933343 | 0.9717311669399569 |
+| cosh | cosh | hyperbolic_moderate | 0.856867811548415 | 0.4996760014112317 | 0.08926190204519797 | 0.7348719673112949 | qd:0.08926190204519797 | 0.856867811548415 |
+| sqr | sqr | all_moderate | 0.5849260506966909 | 0.04975007369238089 | 0.05073075808077032 | 0.4151285873497249 | td:0.04975007369238089 | 0.5849260506966909 |
+| acos | acos | unit | 0.2374165876842437 | 0.1021943776724964 | 0.03530422376174445 | 0.1447475598100737 | qd:0.03530422376174445 | 0.2374165876842437 |
+
+
 Build-matrix QA:
 
 ```sh
