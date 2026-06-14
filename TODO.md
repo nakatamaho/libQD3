@@ -1,9 +1,4 @@
 * update documentation
-* replace td trig qd-assisted argument reduction with a native td reduction
-  that avoids the qd round-trip while preserving sub-eps reduced-argument accuracy;
-  simple staged subtraction of the fourth pi limb was tested and still left
-  conditioned tan worst cases around 5-10 eps, so this likely needs true
-  four-limb residual accumulation
 * add integer format support
 * support complex types.
 * partial template specialization for complex divide.
