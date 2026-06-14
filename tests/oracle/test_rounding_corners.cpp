@@ -23,13 +23,14 @@ struct Options {
   bool test_td;
   bool test_qd;
   bool test_edd;
+  bool verbose;
   bool has_seed;
   std::uint64_t seed;
   std::string worst_report;
 
   Options()
       : test_dd(false), test_td(false), test_qd(false), test_edd(false),
-        has_seed(false), seed(0), worst_report("") {}
+        verbose(false), has_seed(false), seed(0), worst_report("") {}
 };
 
 struct RoundingCaseRecord {
@@ -43,7 +44,7 @@ struct RoundingCaseRecord {
 };
 
 void print_usage() {
-  std::cout << "oracle_test_rounding_corners [-dd] [-td] [-qd] [-edd] [-all]"
+  std::cout << "oracle_test_rounding_corners [-dd] [-td] [-qd] [-edd] [-all] [-v]"
             << " [--seed=N] [--worst-report=FILE]" << std::endl;
 }
 
@@ -216,16 +217,18 @@ void apply_mpfr(qd_oracle::ArithOp op, mpfr_t out, mpfr_t a, mpfr_t b) {
 template <class T>
 bool report_case(qd_oracle::Tap &tap, const char *case_name,
                  bool pass,
-                 const std::vector<qd_oracle::Tap::Diagnostic> &diag) {
+                 const std::vector<qd_oracle::Tap::Diagnostic> &diag,
+                 bool verbose) {
   typedef qd_oracle::TypeTraits<T> traits;
-  tap.ok(pass, std::string(traits::name()) + " " + case_name, diag);
+  tap.ok(pass, std::string(traits::name()) + " " + case_name, diag,
+         verbose);
   return pass;
 }
 
 template <class T>
 bool exact_case(qd_oracle::Tap &tap, const char *case_name,
                 qd_oracle::ArithOp op, const T &a, const T &b,
-                std::vector<RoundingCaseRecord> *records) {
+                std::vector<RoundingCaseRecord> *records, bool verbose) {
   bool pass = true;
   mpfr_t a_mp;
   mpfr_t b_mp;
@@ -244,24 +247,34 @@ bool exact_case(qd_oracle::Tap &tap, const char *case_name,
                 0.0, pass);
 
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>(case_name);
     diag.push_back(qd_oracle::Tap::Diagnostic("input_a_limbs",
                                               qd_oracle::limbs_hex(a)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("input_a_value",
+                                              qd_oracle::value_to_mpfr_string(a)));
     diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
                                               qd_oracle::limbs_hex(b)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                              qd_oracle::value_to_mpfr_string(b)));
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("expected_limbs",
                                               qd_oracle::limbs_hex(expected)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                               qd_oracle::limbs_hex(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                              qd_oracle::value_to_mpfr_string(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                              qd_oracle::abs_error_to_string(got, exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                               double_text(relerr)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                              double_text(qd_oracle::ulp_error_estimate(got, exact_ref))));
   }
   pass = pass && qd_oracle::bit_equal(expected, got);
   mpfr_clears(a_mp, b_mp, exact_ref, (mpfr_ptr) 0);
-  return report_case<T>(tap, case_name, pass, diag);
+  return report_case<T>(tap, case_name, pass, diag, verbose);
 }
 
 
@@ -269,7 +282,7 @@ template <class T>
 bool bounded_case(qd_oracle::Tap &tap, const char *case_name,
                  qd_oracle::ArithOp op, const T &a, const T &b,
                  const qd_oracle::ErrorBound &bound,
-                 std::vector<RoundingCaseRecord> *records) {
+                 std::vector<RoundingCaseRecord> *records, bool verbose) {
   bool pass = true;
   mpfr_t a_mp;
   mpfr_t b_mp;
@@ -288,18 +301,28 @@ bool bounded_case(qd_oracle::Tap &tap, const char *case_name,
                 bound.eps_multiplier, pass);
 
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>(case_name);
     diag.push_back(qd_oracle::Tap::Diagnostic("input_a_limbs",
                                               qd_oracle::limbs_hex(a)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("input_a_value",
+                                              qd_oracle::value_to_mpfr_string(a)));
     diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
                                               qd_oracle::limbs_hex(b)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                              qd_oracle::value_to_mpfr_string(b)));
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                               qd_oracle::limbs_hex(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                              qd_oracle::value_to_mpfr_string(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                              qd_oracle::abs_error_to_string(got, exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                               double_text(relerr)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                              double_text(qd_oracle::ulp_error_estimate(got, exact_ref))));
     diag.push_back(qd_oracle::Tap::Diagnostic("allowed_eps_multiplier",
                                               double_text(bound.eps_multiplier)));
     diag.push_back(qd_oracle::Tap::Diagnostic("bound_justification",
@@ -307,55 +330,59 @@ bool bounded_case(qd_oracle::Tap &tap, const char *case_name,
   }
 
   mpfr_clears(a_mp, b_mp, exact_ref, (mpfr_ptr) 0);
-  return report_case<T>(tap, case_name, pass, diag);
+  return report_case<T>(tap, case_name, pass, diag, verbose);
 }
 
 // Class 1: unconditional exactness (non-overlapping arithmetic and zero identities).
 template <class T>
 bool run_exactness_cases(qd_oracle::Tap &tap,
-                        std::vector<RoundingCaseRecord> *records) {
+                        std::vector<RoundingCaseRecord> *records,
+                        bool verbose) {
   bool pass = true;
   pass &= exact_case<T>(
       tap, "sterbenz same-sign subtraction exact", qd_oracle::arith_sub,
-      T(1.5), T(0.75), records);
+      T(1.5), T(0.75), records, verbose);
   pass &= exact_case<T>(
       tap, "non-overlapping powers-of-two sum exact",
-      qd_oracle::arith_add, ldexp(T(1), 48), ldexp(T(1), -120), records);
+      qd_oracle::arith_add, ldexp(T(1), 48), ldexp(T(1), -120), records, verbose);
   pass &= exact_case<T>(
       tap, "exact scaling by power-of-two multiplication",
-      qd_oracle::arith_mul, T(1.25), ldexp(T(1), 37), records);
+      qd_oracle::arith_mul, T(1.25), ldexp(T(1), 37), records, verbose);
   pass &= exact_case<T>(
       tap, "exact square for low-precision input",
-      qd_oracle::arith_sqr, ldexp(T(1), -20), T(0), records);
+      qd_oracle::arith_sqr, ldexp(T(1), -20), T(0), records, verbose);
   pass &= exact_case<T>(
       tap, "positive signed zero for a+(-a)", qd_oracle::arith_add, T(1), -T(1),
-      records);
+      records, verbose);
   pass &= exact_case<T>(
-      tap, "positive signed zero for a-a", qd_oracle::arith_sub, T(1), T(1), records);
+      tap, "positive signed zero for a-a", qd_oracle::arith_sub, T(1), T(1), records, verbose);
   return pass;
 }
 
 // Class 2: tie / faithful rounding smoke tests.
 template <class T>
-bool run_tie_cases(qd_oracle::Tap &tap, std::vector<RoundingCaseRecord> *records) {
+bool run_tie_cases(qd_oracle::Tap &tap,
+                   std::vector<RoundingCaseRecord> *records,
+                   bool verbose) {
   bool pass = true;
   const T half_eps = T(T::_eps) / T(2);
 
   pass &= bounded_case<T>(
       tap, "add tie-guarded midpoint case",
       qd_oracle::arith_add, T(1), half_eps,
-      qd_oracle::stable_trig_bound("tie_add"), records);
+      qd_oracle::stable_trig_bound("tie_add"), records, verbose);
   pass &= bounded_case<T>(
       tap, "mul tie-guarded midpoint case",
       qd_oracle::arith_mul, T(1), T(1) + half_eps,
-      qd_oracle::stable_trig_bound("tie_mul"), records);
+      qd_oracle::stable_trig_bound("tie_mul"), records, verbose);
   return pass;
 }
 
 // Class 3: variant distinguishing cases across build variants.
 template <class T>
 bool run_add_variant_case(qd_oracle::Tap &tap,
-                        std::vector<RoundingCaseRecord> *records) {
+                        std::vector<RoundingCaseRecord> *records,
+                        bool verbose) {
   const T a = T(1.0) + ldexp(T(1.0), -40);
   const T b = -ldexp(T(1.0), -40) + ldexp(T(1.0), -100);
 
@@ -363,50 +390,51 @@ bool run_add_variant_case(qd_oracle::Tap &tap,
   return exact_case<T>(
       tap, "variant-distinguishing carry-ripple cancellation (IEEE)"
       " exact",
-      qd_oracle::arith_add, a, b, records);
+      qd_oracle::arith_add, a, b, records, verbose);
 #else
   return bounded_case<T>(
       tap, "variant-distinguishing carry-ripple cancellation (Cray)",
       qd_oracle::arith_add, a, b,
-      qd_oracle::add_sub_bound("carry_ripple"), records);
+      qd_oracle::add_sub_bound("carry_ripple"), records, verbose);
 #endif
 }
 
 template <class T>
 bool run_mul_variant_case(qd_oracle::Tap &tap,
-                        std::vector<RoundingCaseRecord> *records) {
+                        std::vector<RoundingCaseRecord> *records,
+                        bool verbose) {
   const T a = (T(1) + ldexp(T(1), -60)) + ldexp(T(1), -120);
   const T b = (T(1) + ldexp(T(1), -70)) + ldexp(T(1), -130);
 
 #if defined(QD_SLOPPY_MUL)
   return bounded_case<T>(
       tap, "qd mul variant distinguishing (sloppy)",
-      qd_oracle::arith_mul, a, b, qd_oracle::mul_bound("mul_variant"), records);
+      qd_oracle::arith_mul, a, b, qd_oracle::mul_bound("mul_variant"), records, verbose);
 #else
   return exact_case<T>(
       tap, "qd mul variant distinguishing (accurate) exact",
-      qd_oracle::arith_mul, a, b, records);
+      qd_oracle::arith_mul, a, b, records, verbose);
 #endif
 }
 
 template <class T>
 bool run_type(qd_oracle::Tap &tap,
-              std::vector<RoundingCaseRecord> *records) {
+              std::vector<RoundingCaseRecord> *records, bool verbose) {
   bool pass = true;
-  pass &= run_exactness_cases<T>(tap, records);
-  pass &= run_tie_cases<T>(tap, records);
-  pass &= run_add_variant_case<T>(tap, records);
+  pass &= run_exactness_cases<T>(tap, records, verbose);
+  pass &= run_tie_cases<T>(tap, records, verbose);
+  pass &= run_add_variant_case<T>(tap, records, verbose);
   return pass;
 }
 
 template <>
 bool run_type<qd_real>(qd_oracle::Tap &tap,
-                      std::vector<RoundingCaseRecord> *records) {
+                      std::vector<RoundingCaseRecord> *records, bool verbose) {
   bool pass = true;
-  pass &= run_exactness_cases<qd_real>(tap, records);
-  pass &= run_tie_cases<qd_real>(tap, records);
-  pass &= run_add_variant_case<qd_real>(tap, records);
-  pass &= run_mul_variant_case<qd_real>(tap, records);
+  pass &= run_exactness_cases<qd_real>(tap, records, verbose);
+  pass &= run_tie_cases<qd_real>(tap, records, verbose);
+  pass &= run_add_variant_case<qd_real>(tap, records, verbose);
+  pass &= run_mul_variant_case<qd_real>(tap, records, verbose);
   return pass;
 }
 
@@ -451,6 +479,9 @@ bool parse_args(int argc, char **argv, Options *options) {
 #endif
     } else if (std::strcmp(argv[i], "-all") == 0) {
       select_all(options);
+    } else if (std::strcmp(argv[i], "-v") == 0 ||
+               std::strcmp(argv[i], "-verbose") == 0) {
+      options->verbose = true;
     } else if (std::strncmp(argv[i], "--worst-report=", 15) == 0) {
       options->worst_report = argv[i] + 15;
     } else {
@@ -502,19 +533,19 @@ int main(int argc, char **argv) {
   fpu_fix_start(&old_cw);
 
   if (options.test_dd) {
-    pass &= run_type<dd_real>(tap, record_sink);
+    pass &= run_type<dd_real>(tap, record_sink, options.verbose);
   }
   if (options.test_td) {
-    pass &= run_type<td_real>(tap, record_sink);
+    pass &= run_type<td_real>(tap, record_sink, options.verbose);
   }
   if (options.test_qd) {
-    pass &= run_type<qd_real>(tap, record_sink);
+    pass &= run_type<qd_real>(tap, record_sink, options.verbose);
   }
 #ifdef QD_HAVE_EDD_REAL
   if (options.test_edd) {
     fpu_fix_end(&old_cw);
     fpu_fixed = false;
-    pass &= run_type<edd_real>(tap, record_sink);
+    pass &= run_type<edd_real>(tap, record_sink, options.verbose);
   }
 #endif
 

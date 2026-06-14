@@ -19,14 +19,15 @@ public:
   }
 
   void ok(bool pass, const std::string &name,
-          const std::vector<Diagnostic> &diag = std::vector<Diagnostic>()) {
+          const std::vector<Diagnostic> &diag = std::vector<Diagnostic>(),
+          bool emit_diag_on_pass = false) {
     ++count_;
     if (!pass) {
       ++failed_;
     }
 
     out_ << (pass ? "ok " : "not ok ") << count_ << " - " << name << "\n";
-    if (!pass && !diag.empty()) {
+    if ((!pass || emit_diag_on_pass) && !diag.empty()) {
       out_ << "  ---\n";
       for (std::vector<Diagnostic>::const_iterator it = diag.begin();
            it != diag.end(); ++it) {

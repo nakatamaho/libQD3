@@ -209,6 +209,34 @@ double relerr_in_eps(const T &got, mpfr_t ref) {
 }
 
 template <class T>
+std::string value_to_mpfr_string(const T &x) {
+  mpfr_t value;
+  mpfr_init2(value, acc_prec<T>());
+  to_mpfr(value, x);
+  std::string result = mpfr_to_string(value);
+  mpfr_clear(value);
+  return result;
+}
+
+template <class T>
+std::string abs_error_to_string(const T &got, mpfr_t ref) {
+  mpfr_t got_mp;
+  mpfr_t diff;
+  mpfr_inits2(ref_prec<T>(), got_mp, diff, (mpfr_ptr) 0);
+  to_mpfr(got_mp, got);
+  mpfr_sub(diff, got_mp, ref, MPFR_RNDN);
+  mpfr_abs(diff, diff, MPFR_RNDN);
+  std::string result = mpfr_to_string(diff);
+  mpfr_clears(got_mp, diff, (mpfr_ptr) 0);
+  return result;
+}
+
+template <class T>
+double ulp_error_estimate(const T &got, mpfr_t ref) {
+  return relerr_in_eps(got, ref);
+}
+
+template <class T>
 std::string limbs_hex(const T &x) {
   std::ostringstream os;
   os << "[";

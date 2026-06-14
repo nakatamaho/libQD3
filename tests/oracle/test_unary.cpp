@@ -765,7 +765,7 @@ bool run_unary_case(qd_oracle::Tap &tap,
   }
 
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>(entry.name, worst_iteration);
     diag.push_back(qd_oracle::Tap::Diagnostic("input_limbs",
                                               qd_oracle::limbs_hex(worst_input)));
@@ -775,8 +775,14 @@ bool run_unary_case(qd_oracle::Tap &tap,
                                               qd_oracle::mpfr_to_string(worst_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                               qd_oracle::limbs_hex(worst_got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                              qd_oracle::value_to_mpfr_string(worst_got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                              qd_oracle::abs_error_to_string(worst_got, worst_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                               double_text(worst)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                              double_text(qd_oracle::ulp_error_estimate(worst_got, worst_ref))));
     diag.push_back(qd_oracle::Tap::Diagnostic(
         "allowed_eps_multiplier", double_text(worst_allowed)));
     diag.push_back(qd_oracle::Tap::Diagnostic("bound_justification",
@@ -788,8 +794,8 @@ bool run_unary_case(qd_oracle::Tap &tap,
 
   std::string name = std::string(traits::name()) + " " + entry.name +
                      " random oracle";
-  tap.ok(pass, name, diag);
-  if (verbose || pass) {
+  tap.ok(pass, name, diag, verbose);
+  if (verbose || !pass) {
     std::cout << "# " << traits::name() << " " << entry.name
               << " worst_relerr_eps=" << worst
               << " allowed_eps=" << worst_allowed

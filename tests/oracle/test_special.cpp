@@ -21,11 +21,12 @@ struct Options {
   bool test_td;
   bool test_qd;
   bool test_edd;
+  bool verbose;
   bool has_seed;
   std::uint64_t seed;
   Options()
       : test_dd(false), test_td(false), test_qd(false), test_edd(false),
-        has_seed(false), seed(0) {}
+        verbose(false), has_seed(false), seed(0) {}
 };
 
 std::string double_text(double value) {
@@ -35,7 +36,7 @@ std::string double_text(double value) {
 }
 
 void print_usage() {
-  std::cout << "oracle_test_special [-dd] [-td] [-qd] [-edd] [-all]"
+  std::cout << "oracle_test_special [-dd] [-td] [-qd] [-edd] [-all] [-v]"
             << " [--seed=N]\n";
 }
 
@@ -97,32 +98,39 @@ std::vector<qd_oracle::Tap::Diagnostic> base_diag(const char *case_name) {
 
 template <class T>
 bool report(qd_oracle::Tap &tap, const char *case_name, bool pass,
-            const std::vector<qd_oracle::Tap::Diagnostic> &diag) {
+            const std::vector<qd_oracle::Tap::Diagnostic> &diag,
+            bool verbose = false) {
   typedef qd_oracle::TypeTraits<T> traits;
   std::string name = std::string(traits::name()) + " " + case_name;
-  tap.ok(pass, name, diag);
+  tap.ok(pass, name, diag, verbose);
   return pass;
 }
 
 template <class T>
 bool check_close(qd_oracle::Tap &tap, const char *case_name, const T &got,
-                 mpfr_t ref, double allowed_eps) {
+                 mpfr_t ref, double allowed_eps, bool verbose) {
   bool pass = true;
   double relerr = qd_oracle::relerr_in_eps(got, ref);
   if (!std::isfinite(relerr) || relerr > allowed_eps) pass = false;
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>(case_name);
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                               qd_oracle::limbs_hex(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                              qd_oracle::value_to_mpfr_string(got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(ref)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                              qd_oracle::abs_error_to_string(got, ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                               double_text(relerr)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                              double_text(qd_oracle::ulp_error_estimate(got, ref))));
     diag.push_back(qd_oracle::Tap::Diagnostic("allowed_eps_multiplier",
                                               double_text(allowed_eps)));
   }
-  return report<T>(tap, case_name, pass, diag);
+  return report<T>(tap, case_name, pass, diag, verbose);
 }
 
 template <class T>
@@ -150,28 +158,28 @@ bool run_domain_nan(qd_oracle::Tap &tap) {
 }
 
 template <class T>
-bool run_domain_edges(qd_oracle::Tap &tap) {
+bool run_domain_edges(qd_oracle::Tap &tap, bool verbose) {
   bool pass = true;
   mpfr_t a, b, ref;
   mpfr_inits2(qd_oracle::ref_prec<T>(), a, b, ref, (mpfr_ptr) 0);
 
   mpfr_set_ui(a, 1, MPFR_RNDN);
   mpfr_asin(ref, a, MPFR_RNDN);
-  pass &= check_close<T>(tap, "asin(+1) edge", asin(T(1)), ref, 8.0);
+  pass &= check_close<T>(tap, "asin(+1) edge", asin(T(1)), ref, 8.0, verbose);
 
   mpfr_set_si(a, -1, MPFR_RNDN);
   mpfr_acos(ref, a, MPFR_RNDN);
-  pass &= check_close<T>(tap, "acos(-1) edge", acos(T(-1)), ref, 8.0);
+  pass &= check_close<T>(tap, "acos(-1) edge", acos(T(-1)), ref, 8.0, verbose);
 
   mpfr_set_si(a, 1, MPFR_RNDN);
   mpfr_set_si(b, -1, MPFR_RNDN);
   mpfr_atan2(ref, a, b, MPFR_RNDN);
   pass &= check_close<T>(tap, "atan2 quadrant II", atan2(T(1), T(-1)), ref,
-                         16.0);
+                         16.0, verbose);
 
   mpfr_set_si(a, -8, MPFR_RNDN);
   mpfr_rootn_ui(ref, a, 3, MPFR_RNDN);
-  pass &= check_close<T>(tap, "nroot(-8,3)", nroot(T(-8), 3), ref, 16.0);
+  pass &= check_close<T>(tap, "nroot(-8,3)", nroot(T(-8), 3), ref, 16.0, verbose);
 
   mpfr_clears(a, b, ref, (mpfr_ptr) 0);
   return pass;
@@ -189,13 +197,13 @@ bool run_rounding(qd_oracle::Tap &tap) {
 }
 
 template <class T>
-bool run_ldexp_power(qd_oracle::Tap &tap) {
+bool run_ldexp_power(qd_oracle::Tap &tap, bool verbose) {
   mpfr_t ref;
   mpfr_init2(ref, qd_oracle::ref_prec<T>());
   mpfr_set_ui(ref, 1, MPFR_RNDN);
   mpfr_mul_2si(ref, ref, 10, MPFR_RNDN);
   bool pass = check_close<T>(tap, "ldexp power-of-two", ldexp(T(1), 10), ref,
-                             0.0);
+                             0.0, verbose);
   mpfr_clear(ref);
   return pass;
 }
@@ -223,37 +231,37 @@ bool run_floor_ceil_aint(qd_oracle::Tap &tap, qd_real tag) {
 }
 
 template <class T>
-bool run_common_type(qd_oracle::Tap &tap) {
+bool run_common_type(qd_oracle::Tap &tap, bool verbose) {
   bool pass = true;
   pass &= run_nan_inf<T>(tap);
   pass &= run_domain_nan<T>(tap);
-  pass &= run_domain_edges<T>(tap);
+  pass &= run_domain_edges<T>(tap, verbose);
   pass &= run_rounding<T>(tap);
-  pass &= run_ldexp_power<T>(tap);
+  pass &= run_ldexp_power<T>(tap, verbose);
   return pass;
 }
 
-template <class T> bool run_type(qd_oracle::Tap &tap);
+template <class T> bool run_type(qd_oracle::Tap &tap, bool verbose);
 
-template <> bool run_type<dd_real>(qd_oracle::Tap &tap) {
-  bool pass = run_common_type<dd_real>(tap);
+template <> bool run_type<dd_real>(qd_oracle::Tap &tap, bool verbose) {
+  bool pass = run_common_type<dd_real>(tap, verbose);
   pass &= run_floor_ceil_aint(tap, dd_real(0));
   return pass;
 }
 
-template <> bool run_type<td_real>(qd_oracle::Tap &tap) {
-  return run_common_type<td_real>(tap);
+template <> bool run_type<td_real>(qd_oracle::Tap &tap, bool verbose) {
+  return run_common_type<td_real>(tap, verbose);
 }
 
-template <> bool run_type<qd_real>(qd_oracle::Tap &tap) {
-  bool pass = run_common_type<qd_real>(tap);
+template <> bool run_type<qd_real>(qd_oracle::Tap &tap, bool verbose) {
+  bool pass = run_common_type<qd_real>(tap, verbose);
   pass &= run_floor_ceil_aint(tap, qd_real(0));
   return pass;
 }
 
 #ifdef QD_HAVE_EDD_REAL
-template <> bool run_type<edd_real>(qd_oracle::Tap &tap) {
-  return run_common_type<edd_real>(tap);
+template <> bool run_type<edd_real>(qd_oracle::Tap &tap, bool verbose) {
+  return run_common_type<edd_real>(tap, verbose);
 }
 #endif
 
@@ -298,6 +306,9 @@ bool parse_args(int argc, char **argv, Options *options) {
 #endif
     } else if (std::strcmp(argv[i], "-all") == 0) {
       select_all(options);
+    } else if (std::strcmp(argv[i], "-v") == 0 ||
+               std::strcmp(argv[i], "-verbose") == 0) {
+      options->verbose = true;
     } else {
       std::uint64_t seed = 0;
       if (qd_oracle::rng::parse_seed_arg(argv[i], &seed)) {
@@ -329,14 +340,14 @@ int main(int argc, char **argv) {
   unsigned int old_cw = 0;
   bool fpu_fixed = true;
   fpu_fix_start(&old_cw);
-  if (options.test_dd) pass &= run_type<dd_real>(tap);
-  if (options.test_td) pass &= run_type<td_real>(tap);
-  if (options.test_qd) pass &= run_type<qd_real>(tap);
+  if (options.test_dd) pass &= run_type<dd_real>(tap, options.verbose);
+  if (options.test_td) pass &= run_type<td_real>(tap, options.verbose);
+  if (options.test_qd) pass &= run_type<qd_real>(tap, options.verbose);
 #ifdef QD_HAVE_EDD_REAL
   if (options.test_edd) {
     fpu_fix_end(&old_cw);
     fpu_fixed = false;
-    pass &= run_type<edd_real>(tap);
+    pass &= run_type<edd_real>(tap, options.verbose);
   }
 #endif
   if (fpu_fixed) fpu_fix_end(&old_cw);

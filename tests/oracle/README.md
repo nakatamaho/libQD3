@@ -134,10 +134,14 @@ Seed precedence is:
 2. `--seed=N`
 3. the fixed default `0x9E3779B97F4A7C15`
 
-Every program prints TAP version 13 output. On failure, the diagnostic
-block includes the active seed, replay command, input limbs in C99 hex,
-the MPFR reference, result limbs, measured error in eps, allowed bound,
-and the bound justification.
+Every program prints TAP version 13 output. By default, passing cases stay
+compact and detailed diagnostics are emitted only for failures. Pass `-v` or
+`-verbose` to emit TAP YAML diagnostics for passing MPFR comparison cases too.
+Those verbose blocks include the active seed, replay command, input limbs in
+C99 hex, MPFR-formatted input values, the MPFR reference, result limbs, the
+result converted back to MPFR, absolute MPFR error, measured error in eps, an
+`ulp_error_estimate` alias for the eps-scaled error, the allowed bound, and
+the bound justification.
 
 Reproducibility and governance notes:
 

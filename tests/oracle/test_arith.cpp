@@ -73,14 +73,24 @@ void append_numeric_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
                          const qd_oracle::ErrorBound &bound) {
   diag->push_back(qd_oracle::Tap::Diagnostic("input_a_limbs",
                                              qd_oracle::limbs_hex(a)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("input_a_value",
+                                             qd_oracle::value_to_mpfr_string(a)));
   diag->push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
                                              qd_oracle::limbs_hex(b)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                             qd_oracle::value_to_mpfr_string(b)));
   diag->push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                              qd_oracle::mpfr_to_string(ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                              qd_oracle::limbs_hex(got)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                             qd_oracle::value_to_mpfr_string(got)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                             qd_oracle::abs_error_to_string(got, ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                              double_text(relerr)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                             double_text(qd_oracle::ulp_error_estimate(got, ref))));
   diag->push_back(qd_oracle::Tap::Diagnostic(
       "allowed_eps_multiplier", double_text(bound.eps_multiplier)));
   diag->push_back(qd_oracle::Tap::Diagnostic("bound_justification",
@@ -163,7 +173,7 @@ void make_inputs(qd_oracle::ArithOp op, T *a, T *b) {
 }
 
 template <class T>
-bool run_exact_add_smoke(qd_oracle::Tap &tap) {
+bool run_exact_add_smoke(qd_oracle::Tap &tap, bool verbose) {
   typedef qd_oracle::TypeTraits<T> traits;
 
   const T a = T(1.25);
@@ -184,13 +194,13 @@ bool run_exact_add_smoke(qd_oracle::Tap &tap) {
   const bool pass = relerr <= bound.eps_multiplier;
 
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>("test_arith", "exact add smoke", 0);
     append_numeric_diag(&diag, a, b, got, ref, relerr, bound);
   }
 
   std::string name = std::string(traits::name()) + " exact add smoke";
-  tap.ok(pass, name, diag);
+  tap.ok(pass, name, diag, verbose);
 
   mpfr_clears(a_mp, b_mp, ref, (mpfr_ptr) 0);
   return pass;
@@ -241,7 +251,7 @@ bool run_arith_case(qd_oracle::Tap &tap,
   }
 
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>("test_arith", entry.name, worst_iteration);
     append_numeric_diag(&diag, worst_a, worst_b, worst_got, worst_ref, worst,
                         entry.bound);
@@ -249,8 +259,8 @@ bool run_arith_case(qd_oracle::Tap &tap,
 
   std::string name = std::string(traits::name()) + " " + entry.name +
                      " random oracle";
-  tap.ok(pass, name, diag);
-  if (verbose || pass) {
+  tap.ok(pass, name, diag, verbose);
+  if (verbose || !pass) {
     std::cout << "# " << traits::name() << " " << entry.name
               << " worst_relerr_eps=" << worst << " samples=" << kSamples
               << "\n";
@@ -511,7 +521,7 @@ bool run_comparison_case(qd_oracle::Tap &tap) {
 template <class T>
 bool run_type(qd_oracle::Tap &tap, bool verbose) {
   bool pass = true;
-  pass &= run_exact_add_smoke<T>(tap);
+  pass &= run_exact_add_smoke<T>(tap, verbose);
 
   std::size_t count = 0;
   const qd_oracle::ArithRegistryEntry *entries =

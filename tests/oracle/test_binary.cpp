@@ -70,14 +70,24 @@ void append_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
                  double relerr, const qd_oracle::ErrorBound &bound) {
   diag->push_back(qd_oracle::Tap::Diagnostic("input_a_limbs",
                                              qd_oracle::limbs_hex(a)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("input_a_value",
+                                             qd_oracle::value_to_mpfr_string(a)));
   diag->push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
                                              qd_oracle::limbs_hex(b)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                             qd_oracle::value_to_mpfr_string(b)));
   diag->push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                              qd_oracle::mpfr_to_string(ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("got_limbs",
                                              qd_oracle::limbs_hex(got)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("got_value",
+                                             qd_oracle::value_to_mpfr_string(got)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
+                                             qd_oracle::abs_error_to_string(got, ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
                                              double_text(relerr)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("ulp_error_estimate",
+                                             double_text(qd_oracle::ulp_error_estimate(got, ref))));
   diag->push_back(qd_oracle::Tap::Diagnostic(
       "allowed_eps_multiplier", double_text(bound.eps_multiplier)));
   diag->push_back(qd_oracle::Tap::Diagnostic("bound_justification",
@@ -91,13 +101,13 @@ bool report_case(qd_oracle::Tap &tap, const char *case_name, bool pass,
                  const qd_oracle::ErrorBound &bound, bool verbose) {
   typedef qd_oracle::TypeTraits<T> traits;
   std::vector<qd_oracle::Tap::Diagnostic> diag;
-  if (!pass) {
+  if (!pass || verbose) {
     diag = base_diag<T>(case_name, worst_iteration);
     append_diag(&diag, worst_a, worst_b, worst_got, worst_ref, worst, bound);
   }
   std::string name = std::string(traits::name()) + " " + case_name;
-  tap.ok(pass, name, diag);
-  if (verbose || pass) {
+  tap.ok(pass, name, diag, verbose);
+  if (verbose || !pass) {
     std::cout << "# " << traits::name() << " " << case_name
               << " worst_relerr_eps=" << worst
               << " allowed_eps=" << bound.eps_multiplier
