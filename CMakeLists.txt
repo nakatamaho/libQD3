@@ -466,6 +466,34 @@ if(BUILD_TESTING)
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
     )
 
+    add_executable(oracle_test_io
+      tests/oracle/test_io.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_io)
+    target_include_directories(oracle_test_io BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_io PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_io PROPERTIES
+      OUTPUT_NAME test_io
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    add_executable(oracle_test_capi
+      tests/oracle/test_capi.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_capi)
+    target_include_directories(oracle_test_capi BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_capi PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_capi PROPERTIES
+      OUTPUT_NAME test_capi
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
     set(QD_ORACLE_TESTS
       oracle_test_arith_dd
       oracle_test_arith_td
@@ -482,6 +510,12 @@ if(BUILD_TESTING)
       oracle_test_identities_dd
       oracle_test_identities_td
       oracle_test_identities_qd
+      oracle_test_io_dd
+      oracle_test_io_td
+      oracle_test_io_qd
+      oracle_test_capi_dd
+      oracle_test_capi_td
+      oracle_test_capi_qd
     )
     add_test(NAME oracle_test_arith_dd COMMAND oracle_test_arith -dd)
     add_test(NAME oracle_test_arith_td COMMAND oracle_test_arith -td)
@@ -498,18 +532,28 @@ if(BUILD_TESTING)
     add_test(NAME oracle_test_identities_dd COMMAND oracle_test_identities -dd)
     add_test(NAME oracle_test_identities_td COMMAND oracle_test_identities -td)
     add_test(NAME oracle_test_identities_qd COMMAND oracle_test_identities -qd)
+    add_test(NAME oracle_test_io_dd COMMAND oracle_test_io -dd)
+    add_test(NAME oracle_test_io_td COMMAND oracle_test_io -td)
+    add_test(NAME oracle_test_io_qd COMMAND oracle_test_io -qd)
+    add_test(NAME oracle_test_capi_dd COMMAND oracle_test_capi -dd)
+    add_test(NAME oracle_test_capi_td COMMAND oracle_test_capi -td)
+    add_test(NAME oracle_test_capi_qd COMMAND oracle_test_capi -qd)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_arith_edd COMMAND oracle_test_arith -edd)
       add_test(NAME oracle_test_unary_edd COMMAND oracle_test_unary -edd)
       add_test(NAME oracle_test_binary_edd COMMAND oracle_test_binary -edd)
       add_test(NAME oracle_test_special_edd COMMAND oracle_test_special -edd)
       add_test(NAME oracle_test_identities_edd COMMAND oracle_test_identities -edd)
+      add_test(NAME oracle_test_io_edd COMMAND oracle_test_io -edd)
+      add_test(NAME oracle_test_capi_edd COMMAND oracle_test_capi -edd)
       list(APPEND QD_ORACLE_TESTS
         oracle_test_arith_edd
         oracle_test_unary_edd
         oracle_test_binary_edd
         oracle_test_special_edd
         oracle_test_identities_edd
+        oracle_test_io_edd
+        oracle_test_capi_edd
       )
     endif()
     set_tests_properties(${QD_ORACLE_TESTS} PROPERTIES
@@ -521,6 +565,8 @@ if(BUILD_TESTING)
       oracle_test_binary
       oracle_test_special
       oracle_test_identities
+      oracle_test_io
+      oracle_test_capi
     )
   endif()
 

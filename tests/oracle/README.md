@@ -42,6 +42,8 @@ tests/oracle/test_unary -all --seed=12345
 tests/oracle/test_binary -all --seed=12345
 tests/oracle/test_special -all --seed=12345
 tests/oracle/test_identities -all --seed=12345
+tests/oracle/test_io -all --seed=12345
+tests/oracle/test_capi -all --seed=12345
 ```
 
 `test_arith` checks `+`, `-`, `*`, `/`, `sqr`, compound assignment,
@@ -64,6 +66,12 @@ and `floor`/`ceil`/`aint` where those APIs exist.
 `log(exp(x))`, `sin^2(x)+cos^2(x)`, `sqrt(x)^2`, `nroot(x,3)^3`,
 `tan(x)` versus `sin(x)/cos(x)`, and inverse trig principal-branch
 round trips over bounded domains.
+`test_io` checks finite full-precision bounded string, stream, and
+`write` round trips, reduced-precision bounded round trips, format-grid invariants,
+and the type-specific special-string parse contract.
+`test_capi` checks the C wrappers against the C++ API with bit-identical
+limb comparisons for arithmetic, unary, transcendental, trigonometric,
+hyperbolic, comparison, constants, read, and swrite shims.
 
 Seed precedence is:
 

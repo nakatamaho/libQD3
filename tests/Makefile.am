@@ -22,9 +22,11 @@ endif
 
 if HAVE_MPFR
 TESTS += oracle_test_arith oracle_test_unary oracle_test_binary \
-         oracle_test_special oracle_test_identities
+         oracle_test_special oracle_test_identities oracle_test_io \
+         oracle_test_capi
 check_PROGRAMS += oracle_test_arith oracle_test_unary oracle_test_binary \
-                  oracle_test_special oracle_test_identities
+                  oracle_test_special oracle_test_identities oracle_test_io \
+                  oracle_test_capi
 
 ORACLE_COMMON_SOURCES = oracle/mpfr_oracle.cpp oracle/mpfr_oracle.h \
                         oracle/qd_rng.cpp oracle/qd_rng.h \
@@ -49,6 +51,14 @@ oracle_test_special_LDADD = $(LDADD) @MPFR_LIBS@
 oracle_test_identities_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
 oracle_test_identities_SOURCES = oracle/test_identities.cpp $(ORACLE_COMMON_SOURCES)
 oracle_test_identities_LDADD = $(LDADD) @MPFR_LIBS@
+
+oracle_test_io_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
+oracle_test_io_SOURCES = oracle/test_io.cpp $(ORACLE_COMMON_SOURCES)
+oracle_test_io_LDADD = $(LDADD) @MPFR_LIBS@
+
+oracle_test_capi_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
+oracle_test_capi_SOURCES = oracle/test_capi.cpp $(ORACLE_COMMON_SOURCES)
+oracle_test_capi_LDADD = $(LDADD) @MPFR_LIBS@
 endif
 
 CLEANFILES=qd_timer quadt_test huge
