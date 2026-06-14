@@ -36,11 +36,6 @@ public:
         if (should_shorten_value(it->first)) {
           value = trim_mantissa_digits(value, display_digits);
         }
-        if (it->first == "mpfr_reference") {
-          out_ << "  digit_ruler:    "
-               << yaml_quote(digit_ruler(display_digits))
-               << "\n";
-        }
         out_ << "  " << it->first << ": ";
         if (it->first == "got_value") {
           out_ << "     ";
@@ -70,20 +65,6 @@ private:
       return 39;
     }
     return 80;
-  }
-
-  static std::string digit_ruler(int digits) {
-    static const std::string base = "12345678901234567890";
-    if (digits <= 0) {
-      return "";
-    }
-    std::string ruler;
-    ruler.reserve(digits);
-    while (static_cast<int>(ruler.size()) < digits) {
-      ruler += base;
-    }
-    ruler.resize(digits);
-    return ruler;
   }
 
   static std::string yaml_quote(const std::string &text) {
