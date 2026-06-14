@@ -5,8 +5,16 @@
   if per-subtest Automake summaries are required
 * oracle QA follow-up: raise filtered lcov coverage from 69.7% line /
   75.2% function coverage toward the documented 90% function-body target
-* oracle QA follow-up: audit the oracle registry and special-value matrix
-  against every public unary, binary, rounding, I/O, and C API entry before release
+* oracle QA follow-up: add direct MPFR rows for `abs`/`fabs`, `asinh`,
+  `acosh`, `atanh`, `sincos`, and `sincosh`
+* oracle QA follow-up: extend rounding coverage for `nint`, `floor`, `ceil`,
+  `aint`, and `quick_nint` with MPFR tie and large-value grids
+* oracle QA follow-up: expand special-value coverage for signed zero,
+  arithmetic NaN/Inf propagation, `_min_normalized`, `_max`, `_safe_max`,
+  subnormal-like limb patterns, `log(0)`, `pow(0,0)`, and asin/acos
+  out-of-domain inputs
+* oracle QA follow-up: enumerate mixed dd/td/qd C++ overloads and mixed C API
+  shims instead of relying on representative smoke coverage
 * add integer format support
 * support complex types.
 * partial template specialization for complex divide.

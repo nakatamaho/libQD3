@@ -75,6 +75,53 @@ and the type-specific special-string parse contract.
 limb comparisons for arithmetic, unary, transcendental, trigonometric,
 hyperbolic, comparison, constants, read, and swrite shims.
 
+## Oracle Coverage Audit
+
+This audit compares the public C++ and C API surfaces in `include/qd/*.h`
+and `include/qd/c_*.h` with the current MPFR oracle programs.
+
+Legend: Covered means there is a direct MPFR oracle, exact expansion oracle,
+or bit-identical C shim oracle for the listed surface. Partial means the
+surface is sampled or represented, but not every overload, boundary, or
+parameter family is covered directly. TODO means the public surface still
+needs an explicit oracle row or special-value grid.
+
+### Registry and API Matrix
+
+| Surface | Current oracle | Status | Notes |
+| --- | --- | --- | --- |
+| `+`, `-`, `*`, `/`, `sqr` | `test_arith`, `test_rounding_corners` | Covered | Same-type random MPFR checks plus deterministic exactness, tie, and variant cases. |
+| Compound assignment | `test_arith` | Partial | Same-type compound operations are checked against the corresponding expression; mixed compound overloads still need a dedicated matrix. |
+| Comparisons | `test_arith`, `test_capi` | Partial | Same-type comparisons are randomized against MPFR ordering; mixed dd/td/qd comparison overloads are not exhaustively enumerated. |
+| `sqrt`, `sqr`, `exp`, `log`, `log10` | `fn_registry`, `test_unary` | Covered | Random domains are table-driven and report bound justification. |
+| `sin`, `cos`, `tan` | `fn_registry`, `test_unary` | Covered | Stable and conditioned domains are split; trig diagnostics include condition number, MPFR components, and td reduction sectors. |
+| `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh` | `fn_registry`, `test_unary` | Covered | Random bounded domains are covered for all enabled real types. |
+| `pow(T,int)` | `test_binary` | Covered | Covered for dd, td, qd, and edd. |
+| `pow(T,T)` | `test_binary` | Covered where available | Covered for dd, td, and qd; edd does not expose this overload. |
+| `nroot` | `test_binary`, `test_special`, `test_identities` | Partial | `n=3` is covered, including a negative cube-root edge; other integer roots remain TODO. |
+| `atan2` | `test_binary`, `test_special` | Covered | Random MPFR checks plus a quadrant-II endpoint case. |
+| `ldexp` | `test_binary`, `test_special` | Covered | Exact MPFR scaling with zero allowed error. |
+| `fmod`, `drem` | `test_binary` | Covered where available | Covered for dd and qd, matching the public C++ API. |
+| `abs`, `fabs` | `test_capi`, `test_special` | Partial | C shim equivalence and `abs(-inf)` are checked; direct MPFR absolute-value rows are still TODO. |
+| `nint`, `floor`, `ceil`, `aint`, `quick_nint` | `test_special`, `test_capi` | Partial | Half cases and C shim checks exist for exposed APIs; a direct MPFR rounding grid and `quick_nint` coverage remain TODO. |
+| `sincos`, `sincosh` | `test_identities` indirectly | TODO | `tan` versus `sin/cos` is checked, but the public pair-output APIs need direct bit or MPFR checks. |
+| `asinh`, `acosh`, `atanh` | none | TODO | Public C++ and C headers expose these for dd/td/qd; add direct MPFR rows. |
+| String construction, stream read/write, `to_string`, `to_digits`, `write` | `test_io`, `test_capi` | Partial | Round trips and format invariants are covered; exact decimal boundary and locale/width grids remain TODO. |
+| C API wrappers | `test_capi` | Partial | Core shims are compared to C++ API bit-identically; mixed C shim overloads, `sincos`, `sincosh`, inverse hyperbolic, and write/rand variants need more rows. |
+
+### Special-Value Matrix
+
+| Special class | Current coverage | Status | Remaining work |
+| --- | --- | --- | --- |
+| `NaN`, `+inf`, `-inf` constants | `test_special`, `test_io` | Partial | Constants, formatting, and selected domain-NaN contracts are covered; arithmetic propagation rows remain TODO. |
+| Signed zero | `test_rounding_corners`, `test_special` | Partial | Exact zero identities and `atan2(0,0)` domain behavior are covered; signed-zero propagation by operation remains TODO. |
+| Subnormal, min-normal, max, safe-max | none systematic | TODO | Add generator rows for `_min_normalized`, `_max`, `_safe_max`, nearby values, and subnormal-like limb patterns where representable. |
+| Powers of two | `test_binary`, `test_rounding_corners`, `test_special` | Covered | `ldexp` and exact scaling cases exercise power-of-two behavior. |
+| Domain endpoints | `test_special` | Partial | `asin(+1)`, `acos(-1)`, `atan2` quadrant II, `nroot(-8,3)`, `sqrt(-1)`, and `log(-1)` are covered; `log(0)`, `pow(0,0)`, and out-of-domain asin/acos need rows. |
+| Trig zeros and poles | `test_unary` | Partial | Conditioned random tests cover near-zero and near-pole cases statistically; deterministic grids around multiples of pi/2 remain TODO. |
+| Overflow and underflow | legacy `huge` plus constants | Partial | Add MPFR oracle rows for overflow, underflow, and safe max arithmetic once policy expectations are fixed. |
+
+
 ## Sanitizers, Coverage, and Matrix QA
 
 CMake sanitizer run:
