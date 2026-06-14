@@ -36,7 +36,7 @@ oracle_test_arith_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
 oracle_test_arith_SOURCES = oracle/test_arith.cpp $(ORACLE_COMMON_SOURCES)
 oracle_test_arith_LDADD = $(LDADD) @MPFR_LIBS@
 
-oracle_test_unary_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
+oracle_test_unary_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle -I$(top_srcdir)/src
 oracle_test_unary_SOURCES = oracle/test_unary.cpp $(ORACLE_COMMON_SOURCES)
 oracle_test_unary_LDADD = $(LDADD) @MPFR_LIBS@
 

@@ -95,6 +95,7 @@ set(QD_BASE_SOURCES
   src/dd_const.cpp
   src/td_real.cpp
   src/td_const.cpp
+  src/td_trig_reduce.h
   src/fpu.cpp
   src/qd_real.cpp
   src/qd_const.cpp
@@ -417,6 +418,7 @@ if(BUILD_TESTING)
     qd3_configure_internal_target(oracle_test_unary)
     target_include_directories(oracle_test_unary BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
+      "${CMAKE_SOURCE_DIR}/src"
     )
     target_link_libraries(oracle_test_unary PRIVATE qd PkgConfig::MPFR)
     set_target_properties(oracle_test_unary PROPERTIES

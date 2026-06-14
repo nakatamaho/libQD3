@@ -1,5 +1,5 @@
 SRC = c_dd.cpp c_qd.cpp c_td.cpp dd_real.cpp dd_const.cpp td_real.cpp td_const.cpp \
-      fpu.cpp qd_real.cpp qd_const.cpp util.cpp bits.cpp util.h
+      fpu.cpp qd_real.cpp qd_const.cpp util.cpp bits.cpp util.h td_trig_reduce.h
 
 if HAVE_EDD_REAL
 SRC += edd_real.cpp edd_const.cpp edd_trans.cpp c_edd.cpp
