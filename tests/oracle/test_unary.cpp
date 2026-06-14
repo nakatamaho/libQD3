@@ -495,6 +495,22 @@ void append_record(std::vector<UnaryCaseRecord> *records,
   records->push_back(record);
 }
 
+std::string csv_field(const std::string &value) {
+  std::string out;
+  out.reserve(value.size() + 2);
+  out.push_back('"');
+  for (std::size_t i = 0; i < value.size(); ++i) {
+    const char c = value[i];
+    if (c == '"') {
+      out += "\"\"";
+    } else {
+      out += c;
+    }
+  }
+  out.push_back('"');
+  return out;
+}
+
 void emit_worst_report(const std::string &path,
                        const std::vector<UnaryCaseRecord> &records) {
   std::ofstream out(path.c_str());
@@ -513,8 +529,8 @@ void emit_worst_report(const std::string &path,
 
     out << record.build_variant << "," << record.type << ","
         << record.function_name << "," << record.operation << ","
-        << record.domain << "," << record.input_mpfr << ","
-        << record.input_limbs << "," << std::setprecision(17)
+        << record.domain << "," << csv_field(record.input_mpfr) << ","
+        << csv_field(record.input_limbs) << "," << std::setprecision(17)
         << record.relerr << "," << std::setprecision(17) << record.allowed
         << "," << (record.pass ? "pass" : "fail") << ","
         << record.condition << "," << record.sin_ref << ","
