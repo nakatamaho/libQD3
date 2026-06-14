@@ -55,7 +55,8 @@ if(JOBS STREQUAL "")
   endif()
 endif()
 
-file(MAKE_DIRECTORY "${BUILD_ROOT}" "${LOG_DIR}")
+set(CORNER_REPORT_DIR "${BUILD_ROOT}/reports")
+file(MAKE_DIRECTORY "${BUILD_ROOT}" "${LOG_DIR}" "${CORNER_REPORT_DIR}")
 
 set(SUMMARY_OK "${BUILD_ROOT}/summary.ok")
 set(SUMMARY_NG "${BUILD_ROOT}/summary.ng")
@@ -108,6 +109,7 @@ endfunction()
 function(qd3_run_config tag)
   set(build_dir "${BUILD_ROOT}/${tag}")
   set(log_file "${LOG_DIR}/${tag}.log")
+  set(report_file "${CORNER_REPORT_DIR}/${tag}.rounding_corners.csv")
 
   if(NOT KEEP_BUILD STREQUAL "1")
     file(REMOVE_RECURSE "${build_dir}")
@@ -145,6 +147,15 @@ function(qd3_run_config tag)
     qd3_run_process("${log_file}"
       "${CMAKE_CMD}" -E env "QD_TEST_SEED=${QD_TEST_SEED}"
       "${CTEST_CMD}" --test-dir "${build_dir}" --output-on-failure
+    )
+    set(rc "${QD3_LAST_RC}")
+  endif()
+
+  if(rc EQUAL 0)
+    qd3_run_process("${log_file}"
+      "${build_dir}/tests/oracle/test_rounding" --all
+      --seed="${QD_TEST_SEED}"
+      --worst-report="${report_file}"
     )
     set(rc "${QD3_LAST_RC}")
   endif()
@@ -205,6 +216,16 @@ message("Logs      : ${LOG_DIR}")
 message("MPFR mode : ${ENABLE_MPFR_ORACLE}")
 message("Seed      : ${QD_TEST_SEED}")
 message("Failures  : ${fail_count}")
+
+if(EXISTS "${CORNER_REPORT_DIR}")
+  execute_process(
+    COMMAND python3 "${SRC_DIR}/qa/compare_rounding_matrix.py" "${CORNER_REPORT_DIR}"
+    RESULT_VARIABLE compare_rc
+  )
+  if(NOT compare_rc EQUAL 0)
+    message(FATAL_ERROR "CMake rounding matrix comparison failed")
+  endif()
+endif()
 
 if(NOT fail_count EQUAL 0)
   message(FATAL_ERROR "CMake matrix failed: ${fail_count} configuration(s)")

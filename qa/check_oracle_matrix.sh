@@ -25,6 +25,7 @@ set -u
 SRC_DIR="${SRC_DIR:-$(pwd)}"
 BUILD_ROOT="${BUILD_ROOT:-$SRC_DIR/_build_oracle_matrix}"
 LOG_DIR="$BUILD_ROOT/logs"
+REPORT_DIR="$BUILD_ROOT/reports"
 MAKE_CMD="${MAKE:-make}"
 KEEP_BUILD="${KEEP_BUILD:-0}"
 QD_TEST_SEED="${QD_TEST_SEED:-11400714819323198485}"
@@ -133,7 +134,7 @@ prepare_build_dir() {
     cp -R "$SRC_DIR/docs" "$build_dir/docs"
 }
 
-mkdir -p "$BUILD_ROOT" "$LOG_DIR"
+mkdir -p "$BUILD_ROOT" "$LOG_DIR" "$REPORT_DIR"
 
 SUMMARY_OK="$BUILD_ROOT/summary.ok"
 SUMMARY_NG="$BUILD_ROOT/summary.ng"
@@ -153,6 +154,7 @@ run_one() {
     tag="ieee_add-${ieee_add}__sloppy_mul-${sloppy_mul}__sloppy_div-${sloppy_div}__fma-${fma}"
     build_dir="$BUILD_ROOT/$tag"
     log_file="$LOG_DIR/$tag.log"
+    report_file="$REPORT_DIR/$tag.rounding_corners.csv"
 
     if [ "$KEEP_BUILD" != "1" ]; then
         rm -rf "$build_dir"
@@ -188,6 +190,7 @@ run_one() {
         QD_TEST_SEED="$QD_TEST_SEED" "$MAKE_CMD" check
         "$MAKE_CMD" -C tests huge
         ./tests/huge
+        ./tests/oracle/test_rounding -all --seed="${QD_TEST_SEED}" --worst-report="${report_file}"
     ) >"$log_file" 2>&1
 
     rc=$?
@@ -213,6 +216,7 @@ run_default() {
     tag="default"
     build_dir="$BUILD_ROOT/$tag"
     log_file="$LOG_DIR/$tag.log"
+    report_file="$REPORT_DIR/$tag.rounding_corners.csv"
 
     if [ "$KEEP_BUILD" != "1" ]; then
         rm -rf "$build_dir"
@@ -234,6 +238,7 @@ run_default() {
         QD_TEST_SEED="$QD_TEST_SEED" "$MAKE_CMD" check
         "$MAKE_CMD" -C tests huge
         ./tests/huge
+        ./tests/oracle/test_rounding -all --seed="${QD_TEST_SEED}" --worst-report="${report_file}"
     ) >"$log_file" 2>&1
 
     rc=$?
@@ -268,6 +273,10 @@ for ieee_add in no yes; do
         done
     done
 done
+
+if ! python3 "$SRC_DIR/qa/compare_rounding_matrix.py" "$REPORT_DIR"; then
+    fail_count=$((fail_count + 1))
+fi
 
 echo "========================================"
 echo "Finished."
