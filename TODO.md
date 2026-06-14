@@ -1,4 +1,6 @@
 * update documentation
+* replace td trig qd-assisted argument reduction with a native td reduction
+  that avoids the qd round-trip while preserving sub-eps reduced-argument accuracy
 * add integer format support
 * support complex types.
 * partial template specialization for complex divide.
