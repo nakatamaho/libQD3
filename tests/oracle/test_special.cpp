@@ -1,10 +1,8 @@
 #include "fn_registry.h"
 #include "mpfr_oracle.h"
-#include "qd_rng.h"
 #include "tap.h"
 
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -22,11 +20,9 @@ struct Options {
   bool test_qd;
   bool test_edd;
   bool verbose;
-  bool has_seed;
-  std::uint64_t seed;
   Options()
       : test_dd(false), test_td(false), test_qd(false), test_edd(false),
-        verbose(false), has_seed(false), seed(0) {}
+        verbose(false) {}
 };
 
 std::string double_text(double value) {
@@ -36,8 +32,7 @@ std::string double_text(double value) {
 }
 
 void print_usage() {
-  std::cout << "oracle_test_special [-dd] [-td] [-qd] [-edd] [-all] [-v]"
-            << " [--seed=N]\n";
+  std::cout << "oracle_test_special [-dd] [-td] [-qd] [-edd] [-all] [-v]\n";
 }
 
 template <class T> struct SuppressErrors;
@@ -87,10 +82,7 @@ std::vector<qd_oracle::Tap::Diagnostic> base_diag(const char *case_name) {
   typedef qd_oracle::TypeTraits<T> traits;
   std::vector<qd_oracle::Tap::Diagnostic> diag;
   std::ostringstream replay;
-  replay << "tests/oracle/test_special -" << traits::name()
-         << " --seed=" << qd_oracle::rng::active_seed();
-  diag.push_back(qd_oracle::Tap::Diagnostic(
-      "seed", std::to_string(qd_oracle::rng::active_seed())));
+  replay << "tests/oracle/test_special -" << traits::name();
   diag.push_back(qd_oracle::Tap::Diagnostic("replay", replay.str()));
   diag.push_back(qd_oracle::Tap::Diagnostic("case", case_name));
   return diag;
@@ -310,14 +302,8 @@ bool parse_args(int argc, char **argv, Options *options) {
                std::strcmp(argv[i], "-verbose") == 0) {
       options->verbose = true;
     } else {
-      std::uint64_t seed = 0;
-      if (qd_oracle::rng::parse_seed_arg(argv[i], &seed)) {
-        options->has_seed = true;
-        options->seed = seed;
-      } else {
-        std::cerr << "Unknown flag `" << argv[i] << "'.\n";
-        return false;
-      }
+      std::cerr << "Unknown flag: " << argv[i] << "\n";
+      return false;
     }
   }
   if (selected_count(*options) == 0) select_all(options);
@@ -332,9 +318,7 @@ int main(int argc, char **argv) {
     print_usage();
     return 2;
   }
-  qd_oracle::rng::configure(options.has_seed, options.seed);
   qd_oracle::Tap tap(selected_count(options));
-  std::cout << "# seed: " << qd_oracle::rng::active_seed() << "\n";
 
   bool pass = true;
   unsigned int old_cw = 0;

@@ -40,7 +40,7 @@ tests/oracle/test_unary -edd
 tests/oracle/test_unary -all --seed=12345
 
 tests/oracle/test_binary -all --seed=12345
-tests/oracle/test_special -all --seed=12345
+tests/oracle/test_special -all
 tests/oracle/test_identities -all --seed=12345
 tests/oracle/test_io -all --seed=12345
 tests/oracle/test_capi -all --seed=12345
@@ -61,7 +61,8 @@ obtained from the library's `sin(x) / cos(x)` path.
 `test_binary` checks two-input functions and parameterized operations:
 `pow(T,int)`, `pow(T,T)` where supported, `nroot`, `atan2`, `ldexp`,
 `fmod`, and `drem`.
-`test_special` checks NaN/Inf constants, documented domain-NaN behavior,
+`test_special` is deterministic and does not accept `--seed`; it checks
+NaN/Inf constants, documented domain-NaN behavior,
 selected endpoint values, `nint` half cases, exact power-of-two scaling,
 and `floor`/`ceil`/`aint` where those APIs exist.
 `test_identities` checks composed identities such as `exp(log(x))`,
@@ -175,16 +176,18 @@ qa/check_oracle_matrix_cmake.sh
 trees, `qa/check_oracle_matrix.sh` runs the MPFR oracle matrix through
 `./configure --enable-mpfr-tests`.
 
-Seed precedence is:
+For seeded oracle programs, seed precedence is:
 
 1. `QD_TEST_SEED`
 2. `--seed=N`
 3. the fixed default `0x9E3779B97F4A7C15`
 
-Every program prints TAP version 13 output. By default, passing cases stay
+Every oracle program prints TAP version 13 output. By default, passing cases stay
 compact and detailed diagnostics are emitted only for failures. Pass `-v` or
 `-verbose` to emit TAP YAML diagnostics for passing MPFR comparison cases too.
-Those verbose blocks include the active seed, replay command, input limbs in
+For seeded oracle programs, those verbose blocks include the active seed and
+replay command. For deterministic `test_special`, they include a replay command
+without seed. Verbose blocks also include input limbs in
 C99 hex, MPFR-formatted input values, the MPFR reference, result limbs, the
 result converted back to MPFR, absolute MPFR error, measured error in eps, an
 `ulp_error_estimate` alias for the eps-scaled error, the allowed bound, and
@@ -192,11 +195,13 @@ the bound justification.
 
 Reproducibility and governance notes:
 
-- Every oracle run prints the active seed in TAP output and test failure diagnostics.
-- `QD_TEST_SEED` has highest precedence, then `--seed=<N>`, and the fallback
-  default is `0x9E3779B97F4A7C15`.
-- The command to replay any failure is printed in diagnostics:
-  `tests/oracle/<prog> -<type> --seed=<N>`.
+- Seeded oracle programs print the active seed in TAP output and failure diagnostics.
+- `test_special` is deterministic: it does not accept `--seed`, does not read
+  `QD_TEST_SEED`, and prints replay commands without seed.
+- For seeded programs, `QD_TEST_SEED` has highest precedence, then
+  `--seed=<N>`, and the fallback default is `0x9E3779B97F4A7C15`.
+- The command to replay any failure is printed in diagnostics. Seeded programs
+  include `--seed=<N>`; deterministic `test_special` does not.
 - Seed handling and MPFR-suite commands are aligned across Autotools and
   CMake so CI and local runs are reproducible.
 
