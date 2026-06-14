@@ -44,6 +44,8 @@ tests/oracle/test_special -all --seed=12345
 tests/oracle/test_identities -all --seed=12345
 tests/oracle/test_io -all --seed=12345
 tests/oracle/test_capi -all --seed=12345
+
+tests/oracle/test_rounding_corners -all --seed=12345
 ```
 
 `test_arith` checks `+`, `-`, `*`, `/`, `sqr`, compound assignment,
@@ -145,9 +147,6 @@ Reproducibility and governance notes:
 - Seed handling and MPFR-suite commands are aligned across Autotools and
   CMake so CI and local runs are reproducible.
 
-Planned next phase:
+`test_rounding_corners.cpp` is implemented as a dedicated corner-case oracle
+and is wired into both Autotools and CMake oracle test matrices.
 
-- `test_rounding_corners.cpp` is still pending. It is expected in the next
-  milestone to cover tie/faithful-rounding and build-variant-distinguishing
-  corner cases for `+ - * /`, and to emit per-input worst-error records for
-  cross-variant matrix checks.

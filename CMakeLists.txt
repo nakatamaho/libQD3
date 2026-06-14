@@ -494,6 +494,21 @@ if(BUILD_TESTING)
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
     )
 
+    add_executable(oracle_test_rounding
+      tests/oracle/test_rounding_corners.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_rounding)
+    target_include_directories(oracle_test_rounding BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_rounding PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_rounding PROPERTIES
+      OUTPUT_NAME test_rounding
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+
     set(QD_ORACLE_TESTS
       oracle_test_arith_dd
       oracle_test_arith_td
@@ -516,6 +531,9 @@ if(BUILD_TESTING)
       oracle_test_capi_dd
       oracle_test_capi_td
       oracle_test_capi_qd
+      oracle_test_rounding_dd
+      oracle_test_rounding_td
+      oracle_test_rounding_qd
     )
     add_test(NAME oracle_test_arith_dd COMMAND oracle_test_arith -dd)
     add_test(NAME oracle_test_arith_td COMMAND oracle_test_arith -td)
@@ -538,6 +556,9 @@ if(BUILD_TESTING)
     add_test(NAME oracle_test_capi_dd COMMAND oracle_test_capi -dd)
     add_test(NAME oracle_test_capi_td COMMAND oracle_test_capi -td)
     add_test(NAME oracle_test_capi_qd COMMAND oracle_test_capi -qd)
+    add_test(NAME oracle_test_rounding_dd COMMAND oracle_test_rounding -dd)
+    add_test(NAME oracle_test_rounding_td COMMAND oracle_test_rounding -td)
+    add_test(NAME oracle_test_rounding_qd COMMAND oracle_test_rounding -qd)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_arith_edd COMMAND oracle_test_arith -edd)
       add_test(NAME oracle_test_unary_edd COMMAND oracle_test_unary -edd)
@@ -546,6 +567,7 @@ if(BUILD_TESTING)
       add_test(NAME oracle_test_identities_edd COMMAND oracle_test_identities -edd)
       add_test(NAME oracle_test_io_edd COMMAND oracle_test_io -edd)
       add_test(NAME oracle_test_capi_edd COMMAND oracle_test_capi -edd)
+      add_test(NAME oracle_test_rounding_edd COMMAND oracle_test_rounding -edd)
       list(APPEND QD_ORACLE_TESTS
         oracle_test_arith_edd
         oracle_test_unary_edd
@@ -554,6 +576,7 @@ if(BUILD_TESTING)
         oracle_test_identities_edd
         oracle_test_io_edd
         oracle_test_capi_edd
+        oracle_test_rounding_edd
       )
     endif()
     set_tests_properties(${QD_ORACLE_TESTS} PROPERTIES
@@ -567,6 +590,7 @@ if(BUILD_TESTING)
       oracle_test_identities
       oracle_test_io
       oracle_test_capi
+      oracle_test_rounding
     )
   endif()
 
