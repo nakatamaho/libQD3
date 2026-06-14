@@ -263,12 +263,12 @@ bool exact_case(qd_oracle::Tap &tap, const char *case_name,
     }
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("expected_limbs",
-                                              qd_oracle::limbs_hex(expected)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
-                                              qd_oracle::limbs_hex(got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
                                               qd_oracle::value_to_mpfr_string(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
+                                              qd_oracle::limbs_hex(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("expected_limbs",
+                                              qd_oracle::limbs_hex(expected)));
     diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
                                               qd_oracle::abs_error_to_string(got, exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
@@ -321,10 +321,10 @@ bool bounded_case(qd_oracle::Tap &tap, const char *case_name,
     }
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
-                                              qd_oracle::limbs_hex(got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
                                               qd_oracle::value_to_mpfr_string(got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
+                                              qd_oracle::limbs_hex(got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
                                               qd_oracle::abs_error_to_string(got, exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",

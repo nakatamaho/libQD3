@@ -188,10 +188,10 @@ compact and detailed diagnostics are emitted only for failures. Pass `-v` or
 For seeded oracle programs, those verbose blocks include the active seed and
 replay command. For deterministic `test_special`, they include a replay command
 without seed. Verbose blocks also include input limbs in
-C99 hex, MPFR-formatted input values, the MPFR reference, result limbs, the
-result converted back to MPFR, absolute MPFR error, measured error in eps, an
-`ulp_error_estimate` alias for the eps-scaled error, the allowed bound, and
-the bound justification.
+C99 hex, MPFR-formatted input values, a digit ruler above the MPFR reference,
+the MPFR reference, the result converted back to MPFR, result limbs, absolute
+MPFR error, measured error in eps, an `ulp_error_estimate` alias for the
+eps-scaled error, the allowed bound, and the bound justification.
 
 Reproducibility and governance notes:
 

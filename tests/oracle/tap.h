@@ -31,7 +31,14 @@ public:
       out_ << "  ---\n";
       for (std::vector<Diagnostic>::const_iterator it = diag.begin();
            it != diag.end(); ++it) {
-        out_ << "  " << it->first << ": " << yaml_quote(it->second) << "\n";
+        if (it->first == "mpfr_reference") {
+          out_ << "  digit_ruler:    " << yaml_quote(digit_ruler()) << "\n";
+        }
+        out_ << "  " << it->first << ": ";
+        if (it->first == "got_value") {
+          out_ << "     ";
+        }
+        out_ << yaml_quote(it->second) << "\n";
       }
       out_ << "  ...\n";
     }
@@ -42,6 +49,13 @@ public:
   }
 
 private:
+  static const std::string &digit_ruler() {
+    static const std::string ruler =
+        "12345678901234567890123456789012345678901234567890"
+        "12345678901234567890123456789012345678901234567890...";
+    return ruler;
+  }
+
   static std::string yaml_quote(const std::string &text) {
     std::string quoted = "'";
     for (std::string::const_iterator it = text.begin(); it != text.end(); ++it) {

@@ -773,10 +773,10 @@ bool run_unary_case(qd_oracle::Tap &tap,
                                               worst_input_mpfr));
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(worst_ref)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
-                                              qd_oracle::limbs_hex(worst_got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_value",
                                               qd_oracle::value_to_mpfr_string(worst_got)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
+                                              qd_oracle::limbs_hex(worst_got)));
     diag.push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
                                               qd_oracle::abs_error_to_string(worst_got, worst_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("relerr_eps",

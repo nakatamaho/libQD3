@@ -86,10 +86,10 @@ void append_numeric_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
   }
   diag->push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                              qd_oracle::mpfr_to_string(ref)));
-  diag->push_back(qd_oracle::Tap::Diagnostic("got_limbs",
-                                             qd_oracle::limbs_hex(got)));
   diag->push_back(qd_oracle::Tap::Diagnostic("got_value",
                                              qd_oracle::value_to_mpfr_string(got)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("got_limbs",
+                                             qd_oracle::limbs_hex(got)));
   diag->push_back(qd_oracle::Tap::Diagnostic("abs_error_mpfr",
                                              qd_oracle::abs_error_to_string(got, ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("relerr_eps",
