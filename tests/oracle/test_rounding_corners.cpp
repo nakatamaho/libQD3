@@ -253,10 +253,14 @@ bool exact_case(qd_oracle::Tap &tap, const char *case_name,
                                               qd_oracle::limbs_hex(a)));
     diag.push_back(qd_oracle::Tap::Diagnostic("input_a_value",
                                               qd_oracle::value_to_mpfr_string(a)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
-                                              qd_oracle::limbs_hex(b)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
-                                              qd_oracle::value_to_mpfr_string(b)));
+    if (op == qd_oracle::arith_sqr) {
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_unused", "true"));
+    } else {
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
+                                                qd_oracle::limbs_hex(b)));
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                                qd_oracle::value_to_mpfr_string(b)));
+    }
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("expected_limbs",
@@ -307,10 +311,14 @@ bool bounded_case(qd_oracle::Tap &tap, const char *case_name,
                                               qd_oracle::limbs_hex(a)));
     diag.push_back(qd_oracle::Tap::Diagnostic("input_a_value",
                                               qd_oracle::value_to_mpfr_string(a)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
-                                              qd_oracle::limbs_hex(b)));
-    diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
-                                              qd_oracle::value_to_mpfr_string(b)));
+    if (op == qd_oracle::arith_sqr) {
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_unused", "true"));
+    } else {
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
+                                                qd_oracle::limbs_hex(b)));
+      diag.push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                                qd_oracle::value_to_mpfr_string(b)));
+    }
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(exact_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",

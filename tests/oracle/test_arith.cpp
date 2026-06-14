@@ -70,15 +70,20 @@ template <class T>
 void append_numeric_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
                          const T &a, const T &b, const T &got,
                          mpfr_t ref, double relerr,
-                         const qd_oracle::ErrorBound &bound) {
+                         const qd_oracle::ErrorBound &bound,
+                         bool include_b = true) {
   diag->push_back(qd_oracle::Tap::Diagnostic("input_a_limbs",
                                              qd_oracle::limbs_hex(a)));
   diag->push_back(qd_oracle::Tap::Diagnostic("input_a_value",
                                              qd_oracle::value_to_mpfr_string(a)));
-  diag->push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
-                                             qd_oracle::limbs_hex(b)));
-  diag->push_back(qd_oracle::Tap::Diagnostic("input_b_value",
-                                             qd_oracle::value_to_mpfr_string(b)));
+  if (include_b) {
+    diag->push_back(qd_oracle::Tap::Diagnostic("input_b_limbs",
+                                               qd_oracle::limbs_hex(b)));
+    diag->push_back(qd_oracle::Tap::Diagnostic("input_b_value",
+                                               qd_oracle::value_to_mpfr_string(b)));
+  } else {
+    diag->push_back(qd_oracle::Tap::Diagnostic("input_b_unused", "true"));
+  }
   diag->push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                              qd_oracle::mpfr_to_string(ref)));
   diag->push_back(qd_oracle::Tap::Diagnostic("got_limbs",
@@ -254,7 +259,7 @@ bool run_arith_case(qd_oracle::Tap &tap,
   if (!pass || verbose) {
     diag = base_diag<T>("test_arith", entry.name, worst_iteration);
     append_numeric_diag(&diag, worst_a, worst_b, worst_got, worst_ref, worst,
-                        entry.bound);
+                        entry.bound, entry.op != qd_oracle::arith_sqr);
   }
 
   std::string name = std::string(traits::name()) + " " + entry.name +
