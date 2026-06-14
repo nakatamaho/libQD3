@@ -4,10 +4,10 @@ SUBDIRS = src include tests fortran
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = qd.pc
 
-BUILT_SOURCES = docs/qd.pdf docs/td.pdf
-dist_doc_DATA = README README.md docs/qd.pdf docs/td.pdf
+dist_doc_DATA = README README.md
+EXTRA_DIST = docs/qd.pdf docs/td.pdf docs/edd.pdf
 dist_noinst_DATA = docs/Makefile \
-  docs/qd.tex docs/td.tex docs/qd.bib \
+  docs/qd.tex docs/td.tex docs/edd.tex docs/qd.bib \
   docs/nine-two-sum.eps docs/nine-two-sum.fig \
   docs/normal_sum_prod.eps docs/normal_sum_prod.fig \
   docs/qd_add.eps docs/qd_add.fig \
@@ -23,13 +23,16 @@ dist_noinst_DATA = docs/Makefile \
   docs/two-prod.eps docs/two-prod.fig \
   docs/two-sum.eps docs/two-sum.fig
 
-doc: docs/qd.pdf docs/td.pdf
+doc: docs/qd.pdf docs/td.pdf docs/edd.pdf
 
 docs/qd.pdf:
 	$(MAKE) -C docs qd.pdf
 
 docs/td.pdf:
 	$(MAKE) -C docs td.pdf
+
+docs/edd.pdf:
+	$(MAKE) -C docs edd.pdf
 
 cpp-demo:
 	$(MAKE) -C tests demo
