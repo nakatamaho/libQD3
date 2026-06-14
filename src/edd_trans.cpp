@@ -27,23 +27,6 @@ inline edd_word exp_underflow_limit() {
   return to_float64x(edd_real::_log2) * (edd_word) -16445.0;
 }
 
-inline bool qd_safe_argument(const edd_real &a) {
-  return a.isfinite() && abs(a) <= to_edd_real(qd_real::_safe_max);
-}
-
-inline bool qd_safe_arguments(const edd_real &a, const edd_real &b) {
-  return qd_safe_argument(a) && qd_safe_argument(b);
-}
-
-inline edd_real qd_fallback_unary(const edd_real &a, qd_real (*fn)(const qd_real &)) {
-  return to_edd_real(fn(to_qd_real(a)));
-}
-
-inline edd_real qd_fallback_binary(const edd_real &a, const edd_real &b,
-    qd_real (*fn)(const qd_real &, const qd_real &)) {
-  return to_edd_real(fn(to_qd_real(a), to_qd_real(b)));
-}
-
 inline edd_real edd_nint_internal(const edd_real &a) {
   edd_word x0 = edd::nint(a[0]);
   edd_word x1 = (edd_word) 0.0;
@@ -333,15 +316,6 @@ void sincos(const edd_real &a, edd_real &s, edd_real &c) {
     return;
   }
 
-  if (qd_safe_argument(a)) {
-    qd_real qs;
-    qd_real qc;
-    ::sincos(to_qd_real(a), qs, qc);
-    s = to_edd_real(qs);
-    c = to_edd_real(qc);
-    return;
-  }
-
   sincos_native(a, s, c);
 }
 
@@ -360,9 +334,6 @@ edd_real cos(const edd_real &a) {
 }
 
 edd_real tan(const edd_real &a) {
-  if (qd_safe_argument(a))
-    return qd_fallback_unary(a, ::tan);
-
   edd_real s;
   edd_real c;
   sincos(a, s, c);
@@ -376,7 +347,7 @@ edd_real asin(const edd_real &a) {
     edd_real::error("(edd_real::asin): Argument out of domain.");
     return edd_real::_nan;
   }
-  return qd_fallback_unary(a, ::asin);
+  return atan2(a, sqrt((edd_word) 1.0 - sqr(a)));
 }
 
 edd_real acos(const edd_real &a) {
@@ -386,19 +357,16 @@ edd_real acos(const edd_real &a) {
     edd_real::error("(edd_real::acos): Argument out of domain.");
     return edd_real::_nan;
   }
-  return qd_fallback_unary(a, ::acos);
+  return atan2(sqrt((edd_word) 1.0 - sqr(a)), a);
 }
 
 edd_real atan(const edd_real &a) {
-  return qd_fallback_unary(a, ::atan);
+  return atan2(a, (edd_word) 1.0);
 }
 
 edd_real atan2(const edd_real &y, const edd_real &x) {
   if (x.isnan() || y.isnan())
     return edd_real::_nan;
-  if (qd_safe_arguments(y, x))
-    return qd_fallback_binary(y, x, ::atan2);
-
   if (x.is_zero()) {
     if (y.is_zero()) {
       edd_real::error("(edd_real::atan2): Both arguments zero.");
