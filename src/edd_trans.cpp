@@ -8,6 +8,8 @@
 
 #include "config.h"
 #include <qd/edd_real.h>
+#include <qd/td_real.h>
+#include "td_trig_reduce.h"
 
 #ifndef QD_INLINE
 #include <qd/edd_inline.h>
@@ -148,26 +150,35 @@ inline void sincos_taylor(const edd_real &a, edd_real &sin_a, edd_real &cos_a) {
   cos_a = cos_taylor(a);
 }
 
-inline void reduce_trig_arg_native(const edd_real &a, edd_real &t, int &j, int &k) {
-  edd_real z = edd_nint_internal(a / edd_real::_2pi);
-  edd_real r = a - edd_real::_2pi * z;
+inline void reduce_edd_trig_arg(const edd_real &a, edd_real &t, int &j, int &k) {
+  const qd_real a_qd = to_qd_real(a);
 
-  edd_word q = edd::floorx(r[0] / edd_real::_pi2[0] + (edd_word) 0.5);
-  t = r - edd_real::_pi2 * q;
-  j = static_cast<int>(q);
-  while (j > 2) j -= 4;
-  while (j < -2) j += 4;
+  if (!std::isfinite(to_double(a_qd))) {
+    edd_real z = edd_nint_internal(a / edd_real::_2pi);
+    edd_real r = a - edd_real::_2pi * z;
 
-  q = edd::floorx(t[0] / edd_pi16[0] + (edd_word) 0.5);
-  t -= edd_pi16 * q;
-  k = static_cast<int>(q);
+    edd_word q = edd::floorx(r[0] / edd_real::_pi2[0] + (edd_word) 0.5);
+    t = r - edd_real::_pi2 * q;
+    j = static_cast<int>(q);
+    while (j > 2) j -= 4;
+    while (j < -2) j += 4;
+
+    q = edd::floorx(t[0] / edd_pi16[0] + (edd_word) 0.5);
+    t -= edd_pi16 * q;
+    k = static_cast<int>(q);
+    return;
+  }
+
+  td_real t_td;
+  qd_internal::reduce_td_trig_arg(to_td_real(a_qd), t_td, j, k);
+  t = to_edd_real(to_qd_real(t_td));
 }
 
 inline void sincos_native(const edd_real &a, edd_real &s, edd_real &c) {
   edd_real t;
   int j;
   int k;
-  reduce_trig_arg_native(a, t, j, k);
+  reduce_edd_trig_arg(a, t, j, k);
 
   int abs_j = std::abs(j);
   int abs_k = std::abs(k);
