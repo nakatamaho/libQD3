@@ -425,11 +425,30 @@ inline dd_real dd_real::operator^(int n) {
 }
 
 
+/********** 64-bit Integer Constructors **********/
+inline dd_real::dd_real(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 2);
+}
+
+inline dd_real::dd_real(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 2);
+}
+
 /*********** Assignments ************/
 /* double-double = double */
 inline dd_real &dd_real::operator=(double a) {
   x[0] = a;
   x[1] = 0.0;
+  return *this;
+}
+
+inline dd_real &dd_real::operator=(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 2);
+  return *this;
+}
+
+inline dd_real &dd_real::operator=(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 2);
   return *this;
 }
 

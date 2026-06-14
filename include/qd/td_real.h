@@ -32,6 +32,7 @@
 #define _QD_TD_REAL_H
 
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -93,6 +94,8 @@ struct QD_API td_real {
     x[1] = 0.0;
     x[2] = 0.0;
   }
+  td_real(std::uint64_t i);
+  td_real(std::int64_t i);
 
   td_real(const dd_real &dd);
   explicit td_real(const qd_real &qd);
@@ -155,6 +158,8 @@ struct QD_API td_real {
   td_real &operator/=(const td_real &a);
 
   td_real &operator=(double a);
+  td_real &operator=(std::uint64_t a);
+  td_real &operator=(std::int64_t a);
   td_real &operator=(const dd_real &a);
   td_real &operator=(const qd_real &a);
   td_real &operator=(const char *s);

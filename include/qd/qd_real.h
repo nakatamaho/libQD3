@@ -23,6 +23,7 @@
 #ifndef _QD_QD_REAL_H
 #define _QD_QD_REAL_H
 
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <limits>
@@ -69,6 +70,8 @@ struct QD_API qd_real {
   qd_real(const dd_real &dd);
   qd_real(double d);
   qd_real(int i);
+  qd_real(std::uint64_t i);
+  qd_real(std::int64_t i);
 
   double operator[](int i) const;
   double &operator[](int i);
@@ -115,6 +118,8 @@ struct QD_API qd_real {
   qd_real operator-() const;
 
   qd_real &operator=(double a);
+  qd_real &operator=(std::uint64_t a);
+  qd_real &operator=(std::int64_t a);
   qd_real &operator=(const dd_real &a);
   qd_real &operator=(const char *s);
 

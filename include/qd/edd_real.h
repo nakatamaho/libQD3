@@ -8,6 +8,7 @@
 #define _QD_EDD_REAL_H
 
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -84,6 +85,16 @@ struct QD_API edd_real {
     x[1] = (edd_word) 0.0;
   }
 
+  edd_real(std::uint64_t i) {
+    x[0] = (edd_word) i;
+    x[1] = (edd_word) 0.0;
+  }
+
+  edd_real(std::int64_t i) {
+    x[0] = (edd_word) i;
+    x[1] = (edd_word) 0.0;
+  }
+
   edd_real(const char *s);
   edd_real(const dd_real &dd);
   explicit edd_real(const qd_real &qd);
@@ -138,6 +149,8 @@ struct QD_API edd_real {
   edd_real &operator=(edd_word a);
   edd_real &operator=(double a);
   edd_real &operator=(int a);
+  edd_real &operator=(std::uint64_t a);
+  edd_real &operator=(std::int64_t a);
   edd_real &operator=(const char *s);
   edd_real &operator=(const dd_real &a);
   edd_real &operator=(const qd_real &a);

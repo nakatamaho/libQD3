@@ -13,11 +13,14 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include <algorithm>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <qd/qd_real.h>
@@ -97,6 +100,138 @@ td_real polyroot(const td_real *c, int n, const td_real &x0,
 }
 
 namespace {
+
+bool test_dd_real_int64_constructor() {
+  cout << endl;
+  cout << "Test 10.  (dd_real int64_t / uint64_t constructors)." << endl;
+
+  const std::uint64_t umax = std::numeric_limits<std::uint64_t>::max();
+  const std::int64_t imin = std::numeric_limits<std::int64_t>::min();
+  const std::int64_t above_double = 9007199254740993LL;
+
+  const dd_real u(umax);
+  const dd_real s(imin);
+  const dd_real n(above_double);
+  dd_real assigned_u;
+  dd_real assigned_s;
+  assigned_u = umax;
+  assigned_s = imin;
+
+  bool pass = true;
+  pass &= (u._hi() == std::ldexp(1.0, 64));
+  pass &= (u._lo() == -1.0);
+  pass &= (assigned_u._hi() == u._hi());
+  pass &= (assigned_u._lo() == u._lo());
+  pass &= (s._hi() == -std::ldexp(1.0, 63));
+  pass &= (s._lo() == 0.0);
+  pass &= (assigned_s._hi() == s._hi());
+  pass &= (assigned_s._lo() == s._lo());
+  pass &= (n._hi() == std::ldexp(1.0, 53));
+  pass &= (n._lo() == 1.0);
+
+  bool rounded_path_threw = false;
+  try {
+    double rounded_only[1];
+    qd::uint64_to_double_expansion(umax, rounded_only, 1);
+  } catch (const std::range_error &) {
+    rounded_path_threw = true;
+  }
+  pass &= rounded_path_threw;
+
+  if (flag_verbose) {
+    cout << "uint64 max = [" << u._hi() << ", " << u._lo() << "]" << endl;
+    cout << "int64 min  = [" << s._hi() << ", " << s._lo() << "]" << endl;
+    cout << "2^53+1    = [" << n._hi() << ", " << n._lo() << "]" << endl;
+  }
+
+  return pass;
+}
+
+bool test_qd_real_int64_constructor() {
+  cout << endl;
+  cout << "Test 10.  (qd_real int64_t / uint64_t constructors)." << endl;
+
+  const std::uint64_t umax = std::numeric_limits<std::uint64_t>::max();
+  const std::int64_t imin = std::numeric_limits<std::int64_t>::min();
+  const qd_real u(umax);
+  const qd_real s(imin);
+  qd_real assigned;
+  assigned = umax;
+
+  bool pass = true;
+  pass &= (u[0] == std::ldexp(1.0, 64));
+  pass &= (u[1] == -1.0);
+  pass &= (u[2] == 0.0);
+  pass &= (u[3] == 0.0);
+  pass &= (s[0] == -std::ldexp(1.0, 63));
+  pass &= (s[1] == 0.0);
+  pass &= (s[2] == 0.0);
+  pass &= (s[3] == 0.0);
+  pass &= (assigned == u);
+
+  if (flag_verbose) {
+    cout << "uint64 max = [" << u[0] << ", " << u[1] << ", "
+         << u[2] << ", " << u[3] << "]" << endl;
+  }
+
+  return pass;
+}
+
+bool test_td_real_int64_constructor() {
+  cout << endl;
+  cout << "Test 23.  (td_real int64_t / uint64_t constructors)." << endl;
+
+  const std::uint64_t umax = std::numeric_limits<std::uint64_t>::max();
+  const std::int64_t imin = std::numeric_limits<std::int64_t>::min();
+  const td_real u(umax);
+  const td_real s(imin);
+  td_real assigned;
+  assigned = umax;
+
+  bool pass = true;
+  pass &= (u[0] == std::ldexp(1.0, 64));
+  pass &= (u[1] == -1.0);
+  pass &= (u[2] == 0.0);
+  pass &= (s[0] == -std::ldexp(1.0, 63));
+  pass &= (s[1] == 0.0);
+  pass &= (s[2] == 0.0);
+  pass &= (assigned == u);
+
+  if (flag_verbose) {
+    cout << "uint64 max = [" << u[0] << ", " << u[1] << ", "
+         << u[2] << "]" << endl;
+  }
+
+  return pass;
+}
+
+#ifdef QD_HAVE_EDD_REAL
+bool test_edd_real_int64_constructor() {
+  cout << endl;
+  cout << "Test 19.  (edd_real int64_t / uint64_t constructors)." << endl;
+
+  const std::uint64_t umax = std::numeric_limits<std::uint64_t>::max();
+  const std::int64_t imin = std::numeric_limits<std::int64_t>::min();
+  const edd_real u(umax);
+  const edd_real s(imin);
+  edd_real assigned;
+  assigned = umax;
+
+  bool pass = true;
+  pass &= (to_qd_real(u) == qd_real(umax));
+  pass &= (to_qd_real(s) == qd_real(imin));
+  pass &= (to_qd_real(assigned) == qd_real(umax));
+  pass &= (u[1] == (_Float64x) 0.0);
+  pass &= (s[1] == (_Float64x) 0.0);
+
+  if (flag_verbose) {
+    cout << "uint64 max = " << to_qd_real(u) << endl;
+    cout << "int64 min  = " << to_qd_real(s) << endl;
+  }
+
+  return pass;
+}
+#endif
 
 #ifdef QD_HAVE_EDD_REAL
 
@@ -1677,6 +1812,7 @@ int main(int argc, char *argv[]) {
       cout << "sizeof(dd_real) = " << sizeof(dd_real) << endl;
     pass &= dd_test.testall();
     pass &= print_result(test_dd_real_comparison());
+    pass &= print_result(test_dd_real_int64_constructor());
   }
 
   if (flag_test_qd) {
@@ -1688,6 +1824,7 @@ int main(int argc, char *argv[]) {
       cout << "sizeof(qd_real) = " << sizeof(qd_real) << endl;
     pass &= qd_test.testall();
     pass &= print_result(test_qd_real_comparison());
+    pass &= print_result(test_qd_real_int64_constructor());
   }
 
   if (flag_test_td) {
@@ -1701,6 +1838,7 @@ int main(int argc, char *argv[]) {
     pass &= td_base_test.testall();
     pass &= td_test.testall();
     pass &= print_result(test_td_real_comparison());
+    pass &= print_result(test_td_real_int64_constructor());
   }
 
 #ifdef QD_HAVE_EDD_REAL
@@ -1718,6 +1856,7 @@ int main(int argc, char *argv[]) {
       cout << "sizeof(edd_real) = " << sizeof(edd_real) << endl;
     pass &= edd_test.testall();
     pass &= print_result(test_edd_real_comparison());
+    pass &= print_result(test_edd_real_int64_constructor());
   }
 #endif
 

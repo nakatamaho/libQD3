@@ -521,6 +521,18 @@ inline edd_real &edd_real::operator=(int a) {
   return *this;
 }
 
+inline edd_real &edd_real::operator=(std::uint64_t a) {
+  x[0] = (edd_word) a;
+  x[1] = (edd_word) 0.0;
+  return *this;
+}
+
+inline edd_real &edd_real::operator=(std::int64_t a) {
+  x[0] = (edd_word) a;
+  x[1] = (edd_word) 0.0;
+  return *this;
+}
+
 inline edd_real &edd_real::operator=(const dd_real &a) {
   x[0] = (edd_word) a._hi();
   x[1] = (edd_word) a._lo();

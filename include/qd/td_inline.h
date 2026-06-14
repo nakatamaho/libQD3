@@ -212,10 +212,28 @@ inline td_real::td_real(const qd_real &qd) {
   *this = td::from_qd_truncate(qd);
 }
 
+inline td_real::td_real(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 3);
+}
+
+inline td_real::td_real(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 3);
+}
+
 inline td_real &td_real::operator=(double a) {
   x[0] = a;
   x[1] = 0.0;
   x[2] = 0.0;
+  return *this;
+}
+
+inline td_real &td_real::operator=(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 3);
+  return *this;
+}
+
+inline td_real &td_real::operator=(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 3);
   return *this;
 }
 

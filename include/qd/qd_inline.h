@@ -58,6 +58,14 @@ inline qd_real::qd_real(int i) {
   x[1] = x[2] = x[3] = 0.0;
 }
 
+inline qd_real::qd_real(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 4);
+}
+
+inline qd_real::qd_real(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 4);
+}
+
 /********** Accessors **********/
 inline double qd_real::operator[](int i) const {
   return x[i];
@@ -807,6 +815,16 @@ inline qd_real quick_nint(const qd_real &a) {
 inline qd_real &qd_real::operator=(double a) {
   x[0] = a;
   x[1] = x[2] = x[3] = 0.0;
+  return *this;
+}
+
+inline qd_real &qd_real::operator=(std::uint64_t a) {
+  qd::uint64_to_double_expansion(a, x, 4);
+  return *this;
+}
+
+inline qd_real &qd_real::operator=(std::int64_t a) {
+  qd::int64_to_double_expansion(a, x, 4);
   return *this;
 }
 

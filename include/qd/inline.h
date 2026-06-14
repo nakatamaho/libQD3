@@ -24,7 +24,9 @@
 #endif
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <stdexcept>
 
 namespace qd {
 
@@ -60,6 +62,45 @@ inline double two_diff(double a, double b, double &err) {
   double bb = s - a;
   err = (a - (s - bb)) - (b + bb);
   return s;
+}
+
+inline void uint64_to_double_expansion(std::uint64_t value, double *out,
+                                       int limbs) {
+  const double hi =
+      std::ldexp(static_cast<double>(value >> 32), 32);
+  const double lo = static_cast<double>(
+      value & static_cast<std::uint64_t>(0xffffffffu));
+  double err = 0.0;
+  const double sum = qd::two_sum(hi, lo, err);
+
+  if (limbs < 2 && err != 0.0) {
+    throw std::range_error("uint64_t constructor would round");
+  }
+
+  if (limbs > 0) {
+    out[0] = sum;
+  }
+  if (limbs > 1) {
+    out[1] = err;
+  }
+  for (int i = 2; i < limbs; i++) {
+    out[i] = 0.0;
+  }
+}
+
+inline void int64_to_double_expansion(std::int64_t value, double *out,
+                                      int limbs) {
+  const bool negative = value < 0;
+  const std::uint64_t magnitude = negative
+      ? static_cast<std::uint64_t>(-(value + 1)) + 1u
+      : static_cast<std::uint64_t>(value);
+
+  qd::uint64_to_double_expansion(magnitude, out, limbs);
+  if (negative) {
+    for (int i = 0; i < limbs; i++) {
+      out[i] = -out[i];
+    }
+  }
 }
 
 #ifndef QD_FMS

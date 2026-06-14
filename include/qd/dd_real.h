@@ -30,6 +30,7 @@
 #define _QD_DD_REAL_H
 
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <limits>
@@ -71,6 +72,8 @@ struct QD_API dd_real {
     x[0] = (static_cast<double>(h));
     x[1] = 0.0;
   }
+  dd_real(std::uint64_t h);
+  dd_real(std::int64_t h);
 
   dd_real (const char *s);
   explicit dd_real (const double *d) {
@@ -134,6 +137,8 @@ struct QD_API dd_real {
   dd_real &operator/=(const td_real &a);
 
   dd_real &operator=(double a);
+  dd_real &operator=(std::uint64_t a);
+  dd_real &operator=(std::int64_t a);
   dd_real &operator=(const char *s);
 
   dd_real operator^(int n);
