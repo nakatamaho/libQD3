@@ -12,7 +12,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include <qd/fpu.h>
@@ -44,13 +43,21 @@ struct TrigContext {
   double tan_via_sin_cos_relerr;
   int td_j_sector;
   int td_k_sector;
+  int td_ref_j_sector;
+  int td_ref_k_sector;
+  std::string td_reduced_arg;
+  std::string td_reduced_ref;
+  double td_reduction_abs_err_eps;
+  double td_reduction_relerr_eps;
   std::string sin_ref;
   std::string cos_ref;
   std::string tan_ref;
 
   TrigContext()
       : condition(0.0), sin_component_relerr(0.0), cos_component_relerr(0.0),
-        tan_via_sin_cos_relerr(0.0), td_j_sector(999), td_k_sector(999) {}
+        tan_via_sin_cos_relerr(0.0), td_j_sector(999), td_k_sector(999),
+        td_ref_j_sector(999), td_ref_k_sector(999),
+        td_reduction_abs_err_eps(0.0), td_reduction_relerr_eps(0.0) {}
 };
 
 struct UnaryCaseRecord {
@@ -73,6 +80,12 @@ struct UnaryCaseRecord {
   double tan_via_sin_cos_relerr;
   int td_j_sector;
   int td_k_sector;
+  int td_ref_j_sector;
+  int td_ref_k_sector;
+  std::string td_reduced_arg;
+  std::string td_reduced_ref;
+  double td_reduction_abs_err_eps;
+  double td_reduction_relerr_eps;
 };
 
 const char *unary_op_id(qd_oracle::UnaryOp op) {
@@ -361,8 +374,10 @@ double trig_condition_number(qd_oracle::UnaryOp op, mpfr_t input,
 }
 
 template <class T>
-void set_td_trig_sector(TrigContext *context, const T &input);
-void set_td_trig_sector(TrigContext *context, const td_real &input);
+void set_td_trig_reduction_context(TrigContext *context, const T &input,
+                                   mpfr_t input_mp);
+void set_td_trig_reduction_context(TrigContext *context, const td_real &input,
+                                   mpfr_t input_mp);
 
 template <class T>
 TrigContext make_trig_context(qd_oracle::UnaryOp op, const T &input,
@@ -387,7 +402,7 @@ TrigContext make_trig_context(qd_oracle::UnaryOp op, const T &input,
   context.cos_component_relerr = qd_oracle::relerr_in_eps(got_cos, cos_ref);
   context.tan_via_sin_cos_relerr =
       qd_oracle::relerr_in_eps(got_tan_via_sin_cos, tan_ref);
-  set_td_trig_sector(&context, input);
+  set_td_trig_reduction_context(&context, input, input_mp);
 
   mpfr_clears(sin_ref, cos_ref, tan_ref, (mpfr_ptr) 0);
   return context;
@@ -448,7 +463,73 @@ T make_input(qd_oracle::InputDomain domain) {
 }
 
 
-void td_reduce_trig_arg_for_oracle(const td_real &a, int &j, int &k) {
+void mpfr_nint_floor_half_up(mpfr_t out, mpfr_t in) {
+  mpfr_t tmp;
+  mpfr_init2(tmp, mpfr_get_prec(in));
+  mpfr_add_d(tmp, in, 0.5, MPFR_RNDN);
+  mpfr_floor(out, tmp);
+  mpfr_clear(tmp);
+}
+
+void mpfr_reduce_trig_arg_for_oracle(mpfr_t t, int &j, int &k, mpfr_t input) {
+  const mpfr_prec_t prec = mpfr_get_prec(t);
+  mpfr_t pi;
+  mpfr_t two_pi;
+  mpfr_t pi2;
+  mpfr_t pi16;
+  mpfr_t quotient;
+  mpfr_t q;
+  mpfr_t r;
+  mpfr_inits2(prec, pi, two_pi, pi2, pi16, quotient, q, r, (mpfr_ptr) 0);
+
+  mpfr_const_pi(pi, MPFR_RNDN);
+  mpfr_mul_ui(two_pi, pi, 2, MPFR_RNDN);
+  mpfr_div_ui(pi2, pi, 2, MPFR_RNDN);
+  mpfr_div_ui(pi16, pi, 16, MPFR_RNDN);
+
+  mpfr_div(quotient, input, two_pi, MPFR_RNDN);
+  mpfr_nint_floor_half_up(q, quotient);
+  mpfr_mul(r, two_pi, q, MPFR_RNDN);
+  mpfr_sub(r, input, r, MPFR_RNDN);
+
+  mpfr_div(quotient, r, pi2, MPFR_RNDN);
+  mpfr_nint_floor_half_up(q, quotient);
+  mpfr_mul(t, pi2, q, MPFR_RNDN);
+  mpfr_sub(t, r, t, MPFR_RNDN);
+  j = static_cast<int>(mpfr_get_si(q, MPFR_RNDN));
+  while (j > 2) j -= 4;
+  while (j < -2) j += 4;
+
+  mpfr_div(quotient, t, pi16, MPFR_RNDN);
+  mpfr_nint_floor_half_up(q, quotient);
+  mpfr_mul(r, pi16, q, MPFR_RNDN);
+  mpfr_sub(t, t, r, MPFR_RNDN);
+  k = static_cast<int>(mpfr_get_si(q, MPFR_RNDN));
+
+  mpfr_clears(pi, two_pi, pi2, pi16, quotient, q, r, (mpfr_ptr) 0);
+}
+
+double td_abs_err_in_eps(const td_real &got, mpfr_t ref) {
+  mpfr_t got_mp;
+  mpfr_t diff;
+  mpfr_t eps;
+  mpfr_t scaled;
+  mpfr_inits2(qd_oracle::ref_prec<td_real>(), got_mp, diff, eps, scaled,
+              (mpfr_ptr) 0);
+
+  qd_oracle::to_mpfr(got_mp, got);
+  mpfr_sub(diff, got_mp, ref, MPFR_RNDN);
+  mpfr_abs(diff, diff, MPFR_RNDN);
+  qd_oracle::TypeTraits<td_real>::set_eps(eps);
+  mpfr_div(scaled, diff, eps, MPFR_RNDN);
+  const double result = mpfr_get_d(scaled, MPFR_RNDN);
+
+  mpfr_clears(got_mp, diff, eps, scaled, (mpfr_ptr) 0);
+  return result;
+}
+
+void td_reduce_trig_arg_for_oracle(const td_real &a, td_real &t, int &j,
+                                   int &k) {
   static const td_real td_pi16(1.963495408493620697e-01,
                                7.654042494670957545e-18,
                                -1.871731131073962291e-34);
@@ -457,23 +538,40 @@ void td_reduce_trig_arg_for_oracle(const td_real &a, int &j, int &k) {
   td_real r = a - td_real::_2pi * z;
 
   td_real q = nint(r / td_real::_pi2);
-  td_real t = r - td_real::_pi2 * q;
+  t = r - td_real::_pi2 * q;
   j = static_cast<int>(q[0]);
   while (j > 2) j -= 4;
   while (j < -2) j += 4;
 
   q = nint(t / td_pi16);
+  t -= td_pi16 * q;
   k = static_cast<int>(q[0]);
 }
 
 template <class T>
-void set_td_trig_sector(TrigContext *context, const T &) {
-  context->td_j_sector = 999;
-  context->td_k_sector = 999;
-}
+void set_td_trig_reduction_context(TrigContext *, const T &, mpfr_t) {}
 
-void set_td_trig_sector(TrigContext *context, const td_real &input) {
-  td_reduce_trig_arg_for_oracle(input, context->td_j_sector, context->td_k_sector);
+void set_td_trig_reduction_context(TrigContext *context, const td_real &input,
+                                   mpfr_t input_mp) {
+  td_real reduced;
+  td_reduce_trig_arg_for_oracle(input, reduced, context->td_j_sector,
+                                context->td_k_sector);
+
+  mpfr_t reduced_mp;
+  mpfr_t reduced_ref;
+  mpfr_inits2(qd_oracle::ref_prec<td_real>(), reduced_mp, reduced_ref,
+              (mpfr_ptr) 0);
+  qd_oracle::to_mpfr(reduced_mp, reduced);
+  mpfr_reduce_trig_arg_for_oracle(reduced_ref, context->td_ref_j_sector,
+                                  context->td_ref_k_sector, input_mp);
+
+  context->td_reduced_arg = qd_oracle::mpfr_to_string(reduced_mp);
+  context->td_reduced_ref = qd_oracle::mpfr_to_string(reduced_ref);
+  context->td_reduction_abs_err_eps = td_abs_err_in_eps(reduced, reduced_ref);
+  context->td_reduction_relerr_eps =
+      qd_oracle::relerr_in_eps(reduced, reduced_ref);
+
+  mpfr_clears(reduced_mp, reduced_ref, (mpfr_ptr) 0);
 }
 
 void append_trig_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
@@ -494,6 +592,20 @@ void append_trig_diag(std::vector<qd_oracle::Tap::Diagnostic> *diag,
                                             int_text(context.td_j_sector)));
   diag->push_back(qd_oracle::Tap::Diagnostic("td_k_sector",
                                             int_text(context.td_k_sector)));
+  diag->push_back(qd_oracle::Tap::Diagnostic(
+      "td_ref_j_sector", int_text(context.td_ref_j_sector)));
+  diag->push_back(qd_oracle::Tap::Diagnostic(
+      "td_ref_k_sector", int_text(context.td_ref_k_sector)));
+  diag->push_back(qd_oracle::Tap::Diagnostic("td_reduced_arg",
+                                            context.td_reduced_arg));
+  diag->push_back(qd_oracle::Tap::Diagnostic("td_reduced_ref",
+                                            context.td_reduced_ref));
+  diag->push_back(qd_oracle::Tap::Diagnostic(
+      "td_reduction_abs_err_eps",
+      double_text(context.td_reduction_abs_err_eps)));
+  diag->push_back(qd_oracle::Tap::Diagnostic(
+      "td_reduction_relerr_eps",
+      double_text(context.td_reduction_relerr_eps)));
 }
 
 std::string trig_comment_suffix(const TrigContext &context) {
@@ -506,7 +618,15 @@ std::string trig_comment_suffix(const TrigContext &context) {
      << " cos_component_relerr_eps=" << context.cos_component_relerr
      << " tan_via_sin_cos_relerr_eps=" << context.tan_via_sin_cos_relerr
      << " td_j=" << context.td_j_sector
-     << " td_k=" << context.td_k_sector;
+     << " td_k=" << context.td_k_sector
+     << " td_ref_j=" << context.td_ref_j_sector
+     << " td_ref_k=" << context.td_ref_k_sector
+     << " td_reduced_arg=" << context.td_reduced_arg
+     << " td_reduced_ref=" << context.td_reduced_ref
+     << " td_reduction_abs_err_eps="
+     << context.td_reduction_abs_err_eps
+     << " td_reduction_relerr_eps="
+     << context.td_reduction_relerr_eps;
   return os.str();
 }
 
@@ -539,6 +659,12 @@ void append_record(std::vector<UnaryCaseRecord> *records,
   record.tan_via_sin_cos_relerr = trig_context.tan_via_sin_cos_relerr;
   record.td_j_sector = trig_context.td_j_sector;
   record.td_k_sector = trig_context.td_k_sector;
+  record.td_ref_j_sector = trig_context.td_ref_j_sector;
+  record.td_ref_k_sector = trig_context.td_ref_k_sector;
+  record.td_reduced_arg = trig_context.td_reduced_arg;
+  record.td_reduced_ref = trig_context.td_reduced_ref;
+  record.td_reduction_abs_err_eps = trig_context.td_reduction_abs_err_eps;
+  record.td_reduction_relerr_eps = trig_context.td_reduction_relerr_eps;
   records->push_back(record);
 }
 
@@ -566,7 +692,7 @@ void emit_worst_report(const std::string &path,
     std::exit(1);
   }
 
-  out << "build_variant,type,function,operation,domain,input_mpfr,input_limbs,relerr,allowed,pass,condition_number,mpfr_sin,mpfr_cos,mpfr_tan,sin_component_relerr_eps,cos_component_relerr_eps,tan_via_sin_cos_relerr_eps,td_j_sector,td_k_sector,seed,ieee_add,sloppy_mul,sloppy_div,fma\n";
+  out << "build_variant,type,function,operation,domain,input_mpfr,input_limbs,relerr,allowed,pass,condition_number,mpfr_sin,mpfr_cos,mpfr_tan,sin_component_relerr_eps,cos_component_relerr_eps,tan_via_sin_cos_relerr_eps,td_j_sector,td_k_sector,td_ref_j_sector,td_ref_k_sector,td_reduced_arg,td_reduced_ref,td_reduction_abs_err_eps,td_reduction_relerr_eps,seed,ieee_add,sloppy_mul,sloppy_div,fma\n";
   for (std::size_t i = 0; i < records.size(); ++i) {
     const UnaryCaseRecord &record = records[i];
     const std::string ieee_add = extract_flag_from_variant(record.build_variant, "ieee_add=");
@@ -586,6 +712,10 @@ void emit_worst_report(const std::string &path,
         << std::setprecision(17) << record.cos_component_relerr << ","
         << std::setprecision(17) << record.tan_via_sin_cos_relerr << ","
         << record.td_j_sector << "," << record.td_k_sector << ","
+        << record.td_ref_j_sector << "," << record.td_ref_k_sector << ","
+        << record.td_reduced_arg << "," << record.td_reduced_ref << ","
+        << std::setprecision(17) << record.td_reduction_abs_err_eps << ","
+        << std::setprecision(17) << record.td_reduction_relerr_eps << ","
         << qd_oracle::rng::active_seed() << "," << ieee_add << ","
         << sloppy_mul << "," << sloppy_div << "," << fma << "\n";
   }
