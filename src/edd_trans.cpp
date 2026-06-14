@@ -8,8 +8,6 @@
 
 #include "config.h"
 #include <qd/edd_real.h>
-#include <qd/td_real.h>
-#include "td_trig_reduce.h"
 
 #ifndef QD_INLINE
 #include <qd/edd_inline.h>
@@ -169,22 +167,21 @@ inline void reduce_edd_trig_arg(const edd_real &a, edd_real &t, int &j, int &k) 
     return;
   }
 
-  td_real t_td;
-  qd_internal::reduce_td_trig_arg(to_td_real(a_qd), t_td, j, k);
-  t = to_edd_real(to_qd_real(t_td));
+  qd_real z = nint(a_qd / qd_real::_2pi);
+  qd_real r = a_qd - qd_real::_2pi * z;
+
+  double q = std::floor(r[0] / qd_real::_pi2[0] + 0.5);
+  qd_real t_qd = r - qd_real::_pi2 * q;
+  j = static_cast<int>(q);
+  while (j > 2) j -= 4;
+  while (j < -2) j += 4;
+
+  q = std::floor(t_qd[0] / edd_pi16[0] + 0.5);
+  t = to_edd_real(t_qd - to_qd_real(edd_pi16) * q);
+  k = static_cast<int>(q);
 }
 
 inline void sincos_native(const edd_real &a, edd_real &s, edd_real &c) {
-  const edd_real abs_a = edd::fabsx(a[0]);
-  const edd_word qd_fallback_edd_arg_limit = std::ldexp((edd_word) 1.0, 100);
-
-  if (abs_a > qd_fallback_edd_arg_limit) {
-    const qd_real qd_a = to_qd_real(a);
-    s = to_edd_real(sin(qd_a));
-    c = to_edd_real(cos(qd_a));
-    return;
-  }
-
   edd_real t;
   int j;
   int k;
