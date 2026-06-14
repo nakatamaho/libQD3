@@ -84,18 +84,21 @@ autoreconf -fi
 make -j"$(nproc)"
 make check
 
-cmake -S . -B build
-cmake --build build -j"$(nproc)"
-ctest --test-dir build --output-on-failure
+cmake --preset default
+cmake --build --preset default -j"$(nproc)"
+ctest --preset default
 
-cmake -S . -B build-ninja -G Ninja
-cmake --build build-ninja -j"$(nproc)"
-ctest --test-dir build-ninja --output-on-failure
+cmake --preset ninja
+cmake --build --preset ninja -j"$(nproc)"
+ctest --preset ninja
 
 bash qa/check_16_builds_cmake.sh
+ctest -S qa/cmake_matrix.cmake -DSRC_DIR="$PWD" -DBUILD_ROOT="$PWD/_build_matrix_cmake"
 bash qa/compare_install_trees.sh
 bash qa/check_version_sync.sh
 ```
+
+`qa/check_16_builds_cmake.sh` is intentionally a thin compatibility wrapper. The matrix policy and configure/build/test orchestration live in `qa/cmake_matrix.cmake`; common one-off configurations live in `CMakePresets.json`. The original `qa/check_16_builds.sh` remains the Autotools matrix runner until a future Autotools removal phase.
 
 Downstream smoke tests after installing to a prefix:
 

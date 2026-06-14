@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default CMake build",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "ninja",
+      "displayName": "Default Ninja build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-ninja"
+    },
+    {
+      "name": "fortran-on",
+      "displayName": "Fortran enabled",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-fortran-on",
+      "cacheVariables": {
+        "QD_BUILD_FORTRAN": "ON"
+      }
+    },
+    {
+      "name": "fortran-off",
+      "displayName": "Fortran disabled",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-fortran-off",
+      "cacheVariables": {
+        "QD_BUILD_FORTRAN": "OFF"
+      }
+    },
+    {
+      "name": "edd-on",
+      "displayName": "edd_real enabled",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-edd-on",
+      "cacheVariables": {
+        "QD_ENABLE_EDD_REAL": "ON"
+      }
+    },
+    {
+      "name": "edd-off",
+      "displayName": "edd_real disabled",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-edd-off",
+      "cacheVariables": {
+        "QD_ENABLE_EDD_REAL": "OFF"
+      }
+    },
+    {
+      "name": "matrix-fma-enabled",
+      "displayName": "Matrix-style FMA enabled baseline",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/_build_matrix_cmake/preset-fma-enabled",
+      "cacheVariables": {
+        "QD_FMA": "auto",
+        "QD_ARCH": "x86-64-v3"
+      }
+    },
+    {
+      "name": "matrix-fma-disabled",
+      "displayName": "Matrix-style FMA disabled baseline",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/_build_matrix_cmake/preset-fma-disabled",
+      "cacheVariables": {
+        "QD_FMA": "no",
+        "QD_ARCH": "generic"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" },
+    { "name": "ninja", "configurePreset": "ninja" },
+    { "name": "fortran-on", "configurePreset": "fortran-on" },
+    { "name": "fortran-off", "configurePreset": "fortran-off" },
+    { "name": "edd-on", "configurePreset": "edd-on" },
+    { "name": "edd-off", "configurePreset": "edd-off" }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "ninja",
+      "configurePreset": "ninja",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "fortran-on",
+      "configurePreset": "fortran-on",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "fortran-off",
+      "configurePreset": "fortran-off",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "edd-on",
+      "configurePreset": "edd-on",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "edd-off",
+      "configurePreset": "edd-off",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
