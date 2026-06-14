@@ -73,6 +73,57 @@ and the type-specific special-string parse contract.
 limb comparisons for arithmetic, unary, transcendental, trigonometric,
 hyperbolic, comparison, constants, read, and swrite shims.
 
+## Sanitizers, Coverage, and Matrix QA
+
+CMake sanitizer run:
+
+```sh
+cmake -S . -B build-sanitize \
+  -DQD3_ENABLE_MPFR_TESTS=ON \
+  -DQD3_ENABLE_ASAN=ON \
+  -DQD3_ENABLE_UBSAN=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-sanitize -j
+ctest --test-dir build-sanitize --output-on-failure
+```
+
+Autotools sanitizer run:
+
+```sh
+./configure --enable-mpfr-tests --enable-sanitizers=address,undefined
+make check
+```
+
+CMake coverage run:
+
+```sh
+cmake -S . -B build-coverage \
+  -DQD3_ENABLE_MPFR_TESTS=ON \
+  -DQD3_ENABLE_COVERAGE=ON \
+  -DBUILD_TESTING=ON
+cmake --build build-coverage --target coverage -j
+```
+
+The coverage target writes `coverage.filtered.info` and
+`coverage-html/index.html` under the build directory. The latest local M5
+run with GCC 15.2.0 and MPFR 4.2.2 passed 37/37 tests under
+ASan+UBSan. Filtered lcov coverage over `src/*` and `include/qd/*_inline.h`
+was 69.0% line coverage and 74.8% function coverage. The follow-up target
+is to raise exercised arithmetic/transcendental function-body coverage to
+at least 90% as the remaining corner-case tests are added.
+
+Build-matrix QA:
+
+```sh
+qa/check_16_builds_cmake.sh
+qa/check_oracle_matrix_cmake.sh
+```
+
+`qa/check_oracle_matrix_cmake.sh` runs the same CMake matrix with
+`QD3_ENABLE_MPFR_TESTS=ON` in every configuration. For Autotools-generated
+trees, `qa/check_oracle_matrix.sh` runs the MPFR oracle matrix through
+`./configure --enable-mpfr-tests`.
+
 Seed precedence is:
 
 1. `QD_TEST_SEED`
