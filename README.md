@@ -126,6 +126,37 @@ This performs out-of-tree builds for the default configuration plus all
 16 combinations of `ieee_add`, `sloppy_mul`, `sloppy_div`, and `fma`.
 It writes logs and summaries under `_build_matrix/` by default.
 
+Additional QA-only builds are opt-in and do not affect the default test path:
+
+```
+$ ./configure --enable-sanitizers=address,undefined
+$ make check
+
+$ ./configure --enable-coverage
+$ make coverage
+
+$ cmake -S . -B build-qa -DQD3_ENABLE_ASAN=ON -DQD3_ENABLE_UBSAN=ON
+$ cmake --build build-qa -j
+$ ctest --test-dir build-qa --output-on-failure
+
+$ cmake -S . -B build-coverage -DQD3_ENABLE_COVERAGE=ON
+$ cmake --build build-coverage --target coverage
+```
+
+The optional MPFR oracle suite is guarded by `--enable-mpfr-tests` for
+Autotools and `-DQD3_ENABLE_MPFR_TESTS=ON` for CMake. When enabled,
+configuration fails immediately if MPFR/GMP cannot be found. The oracle
+build matrix runner is:
+
+```
+$ bash qa/check_oracle_matrix.sh
+$ ENABLE_MPFR_ORACLE=ON bash qa/check_16_builds_cmake.sh
+```
+
+Both commands export a deterministic `QD_TEST_SEED` by default. The Autotools
+script stores logs under `_build_oracle_matrix/`; the CMake wrapper keeps its
+existing `_build_matrix_cmake/` default unless `BUILD_ROOT` is set.
+
 ### Making a release
 
 There are several steps that need to be performed when making a new

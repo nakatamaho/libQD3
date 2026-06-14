@@ -130,6 +130,58 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/bits.h"
 )
 
+if(QD3_ENABLE_MPFR_TESTS)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(MPFR REQUIRED IMPORTED_TARGET mpfr)
+endif()
+
+set(QD3_QA_COMPILE_OPTIONS "")
+set(QD3_QA_LINK_OPTIONS "")
+
+if(QD3_ENABLE_ASAN OR QD3_ENABLE_UBSAN OR QD3_ENABLE_COVERAGE)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang|IntelLLVM")
+    message(FATAL_ERROR "QD3 QA instrumentation requires a GCC/Clang-compatible compiler")
+  endif()
+endif()
+
+if(QD3_ENABLE_ASAN)
+  list(APPEND QD3_QA_COMPILE_OPTIONS -fsanitize=address)
+  list(APPEND QD3_QA_LINK_OPTIONS -fsanitize=address)
+endif()
+
+if(QD3_ENABLE_UBSAN)
+  list(APPEND QD3_QA_COMPILE_OPTIONS -fsanitize=undefined -fno-sanitize-recover=all)
+  list(APPEND QD3_QA_LINK_OPTIONS -fsanitize=undefined -fno-sanitize-recover=all)
+endif()
+
+if(QD3_ENABLE_COVERAGE)
+  if(NOT BUILD_TESTING)
+    message(FATAL_ERROR "QD3_ENABLE_COVERAGE requires BUILD_TESTING=ON")
+  endif()
+  list(APPEND QD3_QA_COMPILE_OPTIONS --coverage -O0 -g)
+  list(APPEND QD3_QA_LINK_OPTIONS --coverage)
+endif()
+
+function(qd3_add_qa_options target)
+  if(NOT QD3_QA_COMPILE_OPTIONS AND NOT QD3_QA_LINK_OPTIONS)
+    return()
+  endif()
+
+  foreach(opt IN LISTS QD3_QA_COMPILE_OPTIONS)
+    target_compile_options(${target} PRIVATE
+      "$<$<COMPILE_LANGUAGE:C>:${opt}>"
+      "$<$<COMPILE_LANGUAGE:CXX>:${opt}>"
+    )
+  endforeach()
+
+  get_target_property(qd3_target_type ${target} TYPE)
+  if(NOT qd3_target_type STREQUAL "STATIC_LIBRARY")
+    foreach(opt IN LISTS QD3_QA_LINK_OPTIONS)
+      target_link_options(${target} PRIVATE "${opt}")
+    endforeach()
+  endif()
+endfunction()
+
 function(qd3_add_cxx_private_options target)
   foreach(opt IN LISTS QD_FP_CONTRACT_COMPILE_OPTIONS QD_ARCH_COMPILE_OPTIONS)
     if(opt)
@@ -158,6 +210,7 @@ function(qd3_configure_qd_library target output_name)
   )
   target_compile_features(${target} PUBLIC cxx_std_11)
   qd3_add_cxx_private_options(${target})
+  qd3_add_qa_options(${target})
   qd3_add_public_fp_contract_option(${target})
   target_link_libraries(${target} PUBLIC ${QD_SYSTEM_LIBS})
   set_target_properties(${target} PROPERTIES OUTPUT_NAME ${output_name})
@@ -172,6 +225,7 @@ function(qd3_configure_internal_target target)
   )
   target_compile_features(${target} PRIVATE cxx_std_11)
   qd3_add_cxx_private_options(${target})
+  qd3_add_qa_options(${target})
 endfunction()
 
 set(QD3_INSTALL_TARGETS "")
@@ -295,6 +349,7 @@ if(BUILD_TESTING)
     "${CMAKE_BINARY_DIR}/include"
     "${CMAKE_SOURCE_DIR}/include"
   )
+  qd3_add_qa_options(c_test)
   set_target_properties(c_test PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(c_test PRIVATE qd)
   add_test(NAME c_test COMMAND c_test)
@@ -324,6 +379,7 @@ if(BUILD_TESTING)
       "${CMAKE_BINARY_DIR}/include"
       "${CMAKE_SOURCE_DIR}/include"
     )
+    qd3_add_qa_options(f_test)
     set_target_properties(f_test PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(f_test PRIVATE qdmod qd_f_main qd)
     add_test(NAME f_test COMMAND f_test)
@@ -335,6 +391,31 @@ if(BUILD_TESTING)
     COMMAND qd_timer
     DEPENDS qd_timer
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  )
+endif()
+
+if(QD3_ENABLE_COVERAGE)
+  find_program(LCOV_EXECUTABLE lcov REQUIRED)
+  find_program(GENHTML_EXECUTABLE genhtml REQUIRED)
+
+  add_custom_target(coverage
+    COMMAND "${LCOV_EXECUTABLE}" --zerocounters --directory "${CMAKE_BINARY_DIR}"
+    COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" --output-on-failure
+    COMMAND "${LCOV_EXECUTABLE}" --capture --directory "${CMAKE_BINARY_DIR}" --output-file "${CMAKE_BINARY_DIR}/coverage.info"
+    COMMAND "${LCOV_EXECUTABLE}" --extract "${CMAKE_BINARY_DIR}/coverage.info"
+            "${CMAKE_SOURCE_DIR}/src/*"
+            "${CMAKE_SOURCE_DIR}/include/qd/*_inline.h"
+            --output-file "${CMAKE_BINARY_DIR}/coverage.filtered.info"
+            --ignore-errors unused
+    COMMAND "${GENHTML_EXECUTABLE}" "${CMAKE_BINARY_DIR}/coverage.filtered.info" --output-directory "${CMAKE_BINARY_DIR}/coverage-html"
+    DEPENDS ${QD_DEMO_DEPS}
+    BYPRODUCTS
+      "${CMAKE_BINARY_DIR}/coverage.info"
+      "${CMAKE_BINARY_DIR}/coverage.filtered.info"
+      "${CMAKE_BINARY_DIR}/coverage-html/index.html"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    USES_TERMINAL
+    COMMENT "Running tests and generating lcov HTML coverage"
   )
 endif()
 
@@ -405,4 +486,8 @@ message(STATUS "  edd_real status            = ${QD_EDD_STATUS}")
 message(STATUS "  BUILD_SHARED_LIBS          = ${BUILD_SHARED_LIBS}")
 message(STATUS "  QD_BUILD_STATIC            = ${QD_BUILD_STATIC}")
 message(STATUS "  tests enabled              = ${BUILD_TESTING}")
+message(STATUS "  MPFR oracle tests          = ${QD3_ENABLE_MPFR_TESTS}")
+message(STATUS "  AddressSanitizer           = ${QD3_ENABLE_ASAN}")
+message(STATUS "  UndefinedBehaviorSanitizer = ${QD3_ENABLE_UBSAN}")
+message(STATUS "  coverage instrumentation   = ${QD3_ENABLE_COVERAGE}")
 message(STATUS "")

@@ -35,6 +35,16 @@ if(KEEP_BUILD STREQUAL "")
   set(KEEP_BUILD "0")
 endif()
 
+set(ENABLE_MPFR_ORACLE "$ENV{ENABLE_MPFR_ORACLE}")
+if(ENABLE_MPFR_ORACLE STREQUAL "")
+  set(ENABLE_MPFR_ORACLE "OFF")
+endif()
+
+set(QD_TEST_SEED "$ENV{QD_TEST_SEED}")
+if(QD_TEST_SEED STREQUAL "")
+  set(QD_TEST_SEED "11400714819323198485")
+endif()
+
 set(JOBS "$ENV{JOBS}")
 if(JOBS STREQUAL "")
   cmake_host_system_information(RESULT JOBS QUERY NUMBER_OF_LOGICAL_CORES)
@@ -112,8 +122,13 @@ function(qd3_run_config tag)
     list(APPEND generator_args -G "${GENERATOR}")
   endif()
 
+  set(qa_config_args "")
+  if(ENABLE_MPFR_ORACLE)
+    list(APPEND qa_config_args -DQD3_ENABLE_MPFR_TESTS=ON)
+  endif()
+
   qd3_run_process("${log_file}"
-    "${CMAKE_CMD}" -S "${SRC_DIR}" -B "${build_dir}" ${generator_args} ${ARGN}
+    "${CMAKE_CMD}" -S "${SRC_DIR}" -B "${build_dir}" ${generator_args} ${qa_config_args} ${ARGN}
   )
   set(rc "${QD3_LAST_RC}")
 
@@ -126,6 +141,7 @@ function(qd3_run_config tag)
 
   if(rc EQUAL 0)
     qd3_run_process("${log_file}"
+      "${CMAKE_CMD}" -E env "QD_TEST_SEED=${QD_TEST_SEED}"
       "${CTEST_CMD}" --test-dir "${build_dir}" --output-on-failure
     )
     set(rc "${QD3_LAST_RC}")
@@ -184,6 +200,8 @@ message("PASS list : ${SUMMARY_OK}")
 message("FAIL list : ${SUMMARY_NG}")
 message("TSV       : ${SUMMARY_TSV}")
 message("Logs      : ${LOG_DIR}")
+message("MPFR mode : ${ENABLE_MPFR_ORACLE}")
+message("Seed      : ${QD_TEST_SEED}")
 message("Failures  : ${fail_count}")
 
 if(NOT fail_count EQUAL 0)

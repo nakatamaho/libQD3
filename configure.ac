@@ -23,6 +23,20 @@ AC_CONFIG_HEADERS([include/qd/qd_config.h])
 
 AC_CANONICAL_HOST
 
+AC_DEFUN([QD3_REQUIRE_CXX_LINK_FLAGS], [
+  AC_MSG_CHECKING([whether $CXX supports $1])
+  qd3_save_CXXFLAGS="$CXXFLAGS"
+  qd3_save_LDFLAGS="$LDFLAGS"
+  CXXFLAGS="$CXXFLAGS $1"
+  LDFLAGS="$LDFLAGS $1"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([], [return 0;])],
+    [AC_MSG_RESULT([yes])],
+    [AC_MSG_RESULT([no])
+     AC_MSG_ERROR([$CXX does not support required QA flags: $1])])
+  CXXFLAGS="$qd3_save_CXXFLAGS"
+  LDFLAGS="$qd3_save_LDFLAGS"
+])
+
 # Checks for arguments
 # --enable-inline
 AC_ARG_ENABLE([inline], AS_HELP_STRING(--enable-inline, [inline commonly used functions.  [[default=yes]]]))
@@ -66,6 +80,64 @@ AC_MSG_RESULT($enable_sloppy_div)
 AC_LANG(C++)
 AC_PROG_CXX
 AC_PROG_CC
+
+# --enable-sanitizers
+AC_ARG_ENABLE([sanitizers],
+  [AS_HELP_STRING([--enable-sanitizers@<:@=LIST@:>@],
+    [build with sanitizer instrumentation: yes, address, undefined, or address,undefined @<:@default=no@:>@])],
+  [],
+  [enable_sanitizers=no])
+SANITIZER_FLAGS=""
+if test "x$enable_sanitizers" != "xno"; then
+  if test "x$enable_sanitizers" = "xyes"; then
+    enable_sanitizers="address,undefined"
+  fi
+  as_save_IFS=$IFS
+  IFS=,
+  for qd3_sanitizer in $enable_sanitizers; do
+    case "$qd3_sanitizer" in
+      address|asan)
+        SANITIZER_FLAGS="$SANITIZER_FLAGS -fsanitize=address"
+        ;;
+      undefined|ubsan)
+        SANITIZER_FLAGS="$SANITIZER_FLAGS -fsanitize=undefined -fno-sanitize-recover=all"
+        ;;
+      "")
+        ;;
+      *)
+        AC_MSG_ERROR([invalid --enable-sanitizers value: $qd3_sanitizer])
+        ;;
+    esac
+  done
+  IFS=$as_save_IFS
+  if test "x$SANITIZER_FLAGS" != "x"; then
+    QD3_REQUIRE_CXX_LINK_FLAGS([$SANITIZER_FLAGS])
+    CXXFLAGS="$CXXFLAGS $SANITIZER_FLAGS"
+    CFLAGS="$CFLAGS $SANITIZER_FLAGS"
+    LDFLAGS="$LDFLAGS $SANITIZER_FLAGS"
+  fi
+fi
+AC_SUBST([SANITIZER_FLAGS])
+
+# --enable-coverage
+AC_ARG_ENABLE([coverage],
+  [AS_HELP_STRING([--enable-coverage], [build with gcov/lcov coverage instrumentation @<:@default=no@:>@])],
+  [],
+  [enable_coverage=no])
+if test "x$enable_coverage" = "xyes"; then
+  QD3_REQUIRE_CXX_LINK_FLAGS([--coverage])
+  CXXFLAGS="$CXXFLAGS -O0 -g --coverage"
+  CFLAGS="$CFLAGS -O0 -g --coverage"
+  LDFLAGS="$LDFLAGS --coverage"
+  AC_PATH_PROG([LCOV], [lcov])
+  AC_PATH_PROG([GENHTML], [genhtml])
+  if test -z "$LCOV" || test -z "$GENHTML"; then
+    AC_MSG_ERROR([--enable-coverage requires lcov and genhtml])
+  fi
+elif test "x$enable_coverage" != "xno"; then
+  AC_MSG_ERROR([invalid --enable-coverage value: $enable_coverage])
+fi
+AM_CONDITIONAL([ENABLE_COVERAGE], [test "x$enable_coverage" = "xyes"])
 
 
 # --enable-fma
@@ -223,6 +295,34 @@ fi
 AC_SUBST([ARCH_CXXFLAGS], [$arch_cxxflags])
 
 # Checks for libraries.
+
+# --enable-mpfr-tests
+AC_ARG_ENABLE([mpfr-tests],
+  [AS_HELP_STRING([--enable-mpfr-tests], [build optional MPFR oracle tests @<:@default=no@:>@])],
+  [],
+  [enable_mpfr_tests=no])
+HAVE_MPFR=no
+MPFR_CFLAGS=""
+MPFR_LIBS=""
+if test "x$enable_mpfr_tests" = "xyes"; then
+  AC_CHECK_HEADER([mpfr.h], [],
+    [AC_MSG_ERROR([--enable-mpfr-tests requires the MPFR headers])])
+  qd3_save_LIBS="$LIBS"
+  AC_CHECK_LIB([gmp], [__gmpz_init],
+    [GMP_LIBS="-lgmp"],
+    [AC_MSG_ERROR([--enable-mpfr-tests requires libgmp])])
+  LIBS="$qd3_save_LIBS $GMP_LIBS"
+  AC_CHECK_LIB([mpfr], [mpfr_init2],
+    [MPFR_LIBS="-lmpfr $GMP_LIBS"],
+    [AC_MSG_ERROR([--enable-mpfr-tests requires libmpfr])])
+  LIBS="$qd3_save_LIBS"
+  HAVE_MPFR=yes
+elif test "x$enable_mpfr_tests" != "xno"; then
+  AC_MSG_ERROR([invalid --enable-mpfr-tests value: $enable_mpfr_tests])
+fi
+AC_SUBST([MPFR_CFLAGS])
+AC_SUBST([MPFR_LIBS])
+AM_CONDITIONAL([HAVE_MPFR], [test "x$HAVE_MPFR" = "xyes"])
 
 # Checks for header files.
 AC_CHECK_HEADERS([ieeefp.h])
@@ -412,6 +512,9 @@ echo "  fma               = $ax_cxx_fma"
 echo "  fms               = $ax_cxx_fms"
 echo "  fma cxxflags      = $fma_added_cxxflags"
 echo "  arch              = $with_arch ($arch_cxxflags)"
+echo "  mpfr tests        = $HAVE_MPFR"
+echo "  sanitizers        = ${SANITIZER_FLAGS:-none}"
+echo "  coverage          = $enable_coverage"
 echo "  edd_real          = $edd_real_status"
 echo "  _Float64x mantdig = $edd_float64x_mant_dig"
 echo "  _Float64x max exp = $edd_float64x_max_exp"
