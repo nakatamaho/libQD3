@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -27,10 +29,11 @@ struct Options {
   bool verbose;
   bool has_seed;
   std::uint64_t seed;
+  std::string worst_report;
 
   Options()
       : test_dd(false), test_td(false), test_qd(false), test_edd(false),
-        verbose(false), has_seed(false), seed(0) {}
+        verbose(false), has_seed(false), seed(0), worst_report("") {}
 };
 
 struct TrigContext {
@@ -47,9 +50,138 @@ struct TrigContext {
         tan_via_sin_cos_relerr(0.0) {}
 };
 
+struct UnaryCaseRecord {
+  std::string type;
+  std::string function_name;
+  std::string operation;
+  std::string domain;
+  std::string build_variant;
+  std::string input_mpfr;
+  std::string input_limbs;
+  double relerr;
+  double allowed;
+  bool pass;
+  double condition;
+  std::string sin_ref;
+  std::string cos_ref;
+  std::string tan_ref;
+  double sin_component_relerr;
+  double cos_component_relerr;
+  double tan_via_sin_cos_relerr;
+};
+
+const char *unary_op_id(qd_oracle::UnaryOp op) {
+  switch (op) {
+  case qd_oracle::unary_sqrt:
+    return "sqrt";
+  case qd_oracle::unary_sqr:
+    return "sqr";
+  case qd_oracle::unary_exp:
+    return "exp";
+  case qd_oracle::unary_log:
+    return "log";
+  case qd_oracle::unary_log10:
+    return "log10";
+  case qd_oracle::unary_sin:
+    return "sin";
+  case qd_oracle::unary_cos:
+    return "cos";
+  case qd_oracle::unary_tan:
+    return "tan";
+  case qd_oracle::unary_asin:
+    return "asin";
+  case qd_oracle::unary_acos:
+    return "acos";
+  case qd_oracle::unary_atan:
+    return "atan";
+  case qd_oracle::unary_sinh:
+    return "sinh";
+  case qd_oracle::unary_cosh:
+    return "cosh";
+  case qd_oracle::unary_tanh:
+    return "tanh";
+  }
+  return "unknown";
+}
+
+const char *input_domain_name(qd_oracle::InputDomain domain) {
+  switch (domain) {
+  case qd_oracle::domain_all_moderate:
+    return "all_moderate";
+  case qd_oracle::domain_nonnegative:
+    return "nonnegative";
+  case qd_oracle::domain_positive:
+    return "positive";
+  case qd_oracle::domain_unit:
+    return "unit";
+  case qd_oracle::domain_exp_moderate:
+    return "exp_moderate";
+  case qd_oracle::domain_trig_moderate:
+    return "trig_moderate";
+  case qd_oracle::domain_trig_stable:
+    return "trig_stable";
+  case qd_oracle::domain_trig_conditioned:
+    return "trig_conditioned";
+  case qd_oracle::domain_hyperbolic_moderate:
+    return "hyperbolic_moderate";
+  }
+  return "unknown";
+}
+
+std::string variant_signature() {
+  std::ostringstream os;
+#ifdef QD_IEEE_ADD
+  os << "ieee_add=1";
+#else
+  os << "ieee_add=0";
+#endif
+#ifdef QD_SLOPPY_MUL
+  os << "|sloppy_mul=1";
+#else
+  os << "|sloppy_mul=0";
+#endif
+#ifdef QD_SLOPPY_DIV
+  os << "|sloppy_div=1";
+#else
+  os << "|sloppy_div=0";
+#endif
+#ifdef QD_FMA
+  os << "|fma=1";
+#else
+  os << "|fma=0";
+#endif
+  return os.str();
+}
+
+std::string csv_safe(std::string value) {
+  for (std::string::iterator it = value.begin(); it != value.end(); ++it) {
+    if (*it == ' ' || *it == '/' || *it == '-' || *it == ',') {
+      *it = '_';
+    }
+  }
+  return value;
+}
+
+std::string extract_flag_from_variant(const std::string &variant,
+                                     const char *key) {
+  const std::size_t pos = variant.find(key);
+  if (pos == std::string::npos) {
+    return "0";
+  }
+  const std::size_t value_pos = pos + std::strlen(key);
+  if (value_pos >= variant.size()) {
+    return "0";
+  }
+  const char value = variant[value_pos];
+  if (value == '0' || value == '1') {
+    return std::string(1, value);
+  }
+  return "0";
+}
+
 void print_usage() {
   std::cout << "oracle_test_unary [-dd] [-td] [-qd] [-edd] [-all] [-v]"
-            << " [--seed=N]\n";
+            << " [--seed=N] [--worst-report=FILE]\n";
 }
 
 std::string double_text(double value) {
@@ -333,6 +465,68 @@ std::string trig_comment_suffix(const TrigContext &context) {
   return os.str();
 }
 
+template <class T>
+void append_record(std::vector<UnaryCaseRecord> *records,
+                  const qd_oracle::UnaryRegistryEntry &entry,
+                  double relerr, double allowed, bool pass,
+                  const T &worst_input, const std::string &worst_input_mpfr,
+                  const TrigContext &trig_context) {
+  if (!records) {
+    return;
+  }
+  UnaryCaseRecord record;
+  record.type = qd_oracle::TypeTraits<T>::name();
+  record.function_name = csv_safe(entry.name);
+  record.operation = unary_op_id(entry.op);
+  record.domain = input_domain_name(entry.domain);
+  record.build_variant = variant_signature();
+  record.input_mpfr = worst_input_mpfr;
+  record.input_limbs = qd_oracle::limbs_hex(worst_input);
+  record.relerr = relerr;
+  record.allowed = allowed;
+  record.pass = pass;
+  record.condition = trig_context.condition;
+  record.sin_ref = trig_context.sin_ref;
+  record.cos_ref = trig_context.cos_ref;
+  record.tan_ref = trig_context.tan_ref;
+  record.sin_component_relerr = trig_context.sin_component_relerr;
+  record.cos_component_relerr = trig_context.cos_component_relerr;
+  record.tan_via_sin_cos_relerr = trig_context.tan_via_sin_cos_relerr;
+  records->push_back(record);
+}
+
+void emit_worst_report(const std::string &path,
+                       const std::vector<UnaryCaseRecord> &records) {
+  std::ofstream out(path.c_str());
+  if (!out) {
+    std::cerr << "Failed to open worst report: " << path << "\n";
+    std::exit(1);
+  }
+
+  out << "build_variant,type,function,operation,domain,input_mpfr,input_limbs,relerr,allowed,pass,condition_number,mpfr_sin,mpfr_cos,mpfr_tan,sin_component_relerr_eps,cos_component_relerr_eps,tan_via_sin_cos_relerr_eps,seed,ieee_add,sloppy_mul,sloppy_div,fma\n";
+  for (std::size_t i = 0; i < records.size(); ++i) {
+    const UnaryCaseRecord &record = records[i];
+    const std::string ieee_add = extract_flag_from_variant(record.build_variant, "ieee_add=");
+    const std::string sloppy_mul = extract_flag_from_variant(record.build_variant, "sloppy_mul=");
+    const std::string sloppy_div = extract_flag_from_variant(record.build_variant, "sloppy_div=");
+    const std::string fma = extract_flag_from_variant(record.build_variant, "fma=");
+
+    out << record.build_variant << "," << record.type << ","
+        << record.function_name << "," << record.operation << ","
+        << record.domain << "," << record.input_mpfr << ","
+        << record.input_limbs << "," << std::setprecision(17)
+        << record.relerr << "," << std::setprecision(17) << record.allowed
+        << "," << (record.pass ? "pass" : "fail") << ","
+        << record.condition << "," << record.sin_ref << ","
+        << record.cos_ref << "," << record.tan_ref << ","
+        << std::setprecision(17) << record.sin_component_relerr << ","
+        << std::setprecision(17) << record.cos_component_relerr << ","
+        << std::setprecision(17) << record.tan_via_sin_cos_relerr << ","
+        << qd_oracle::rng::active_seed() << "," << ieee_add << ","
+        << sloppy_mul << "," << sloppy_div << "," << fma << "\n";
+  }
+}
+
 bool worse_relerr(double relerr, double worst) {
   return relerr > worst || !std::isfinite(relerr);
 }
@@ -340,7 +534,8 @@ bool worse_relerr(double relerr, double worst) {
 template <class T>
 bool run_unary_case(qd_oracle::Tap &tap,
                     const qd_oracle::UnaryRegistryEntry &entry,
-                    bool verbose) {
+                    bool verbose,
+                    std::vector<UnaryCaseRecord> *records) {
   typedef qd_oracle::TypeTraits<T> traits;
 
   bool pass = true;
@@ -351,6 +546,7 @@ bool run_unary_case(qd_oracle::Tap &tap,
   T worst_got;
   TrigContext worst_trig_context;
   mpfr_t worst_ref;
+  std::string worst_input_mpfr;
   mpfr_init2(worst_ref, qd_oracle::ref_prec<T>());
 
   mpfr_t input_mp;
@@ -378,6 +574,7 @@ bool run_unary_case(qd_oracle::Tap &tap,
       worst_allowed = allowed;
       worst_iteration = i;
       worst_input = input;
+      worst_input_mpfr = qd_oracle::mpfr_to_string(input_mp);
       worst_got = got;
       worst_trig_context = trig_context;
       mpfr_set(worst_ref, ref, MPFR_RNDN);
@@ -392,6 +589,8 @@ bool run_unary_case(qd_oracle::Tap &tap,
     diag = base_diag<T>(entry.name, worst_iteration);
     diag.push_back(qd_oracle::Tap::Diagnostic("input_limbs",
                                               qd_oracle::limbs_hex(worst_input)));
+    diag.push_back(qd_oracle::Tap::Diagnostic("input_value",
+                                              worst_input_mpfr));
     diag.push_back(qd_oracle::Tap::Diagnostic("mpfr_reference",
                                               qd_oracle::mpfr_to_string(worst_ref)));
     diag.push_back(qd_oracle::Tap::Diagnostic("got_limbs",
@@ -415,12 +614,16 @@ bool run_unary_case(qd_oracle::Tap &tap,
               << " worst_relerr_eps=" << worst
               << " allowed_eps=" << worst_allowed
               << " samples=" << kSamples
-              << " worst_input_limbs=" << qd_oracle::limbs_hex(worst_input);
+              << " worst_input_limbs=" << qd_oracle::limbs_hex(worst_input)
+              << " worst_input=" << worst_input_mpfr;
     if (is_trig_op(entry.op)) {
       std::cout << trig_comment_suffix(worst_trig_context);
     }
     std::cout << "\n";
   }
+
+  append_record(records, entry, worst, worst_allowed, pass,
+               worst_input, worst_input_mpfr, worst_trig_context);
 
   mpfr_clears(input_mp, ref, (mpfr_ptr) 0);
   mpfr_clear(worst_ref);
@@ -428,12 +631,13 @@ bool run_unary_case(qd_oracle::Tap &tap,
 }
 
 template <class T>
-bool run_type(qd_oracle::Tap &tap, bool verbose) {
+bool run_type(qd_oracle::Tap &tap, bool verbose,
+             std::vector<UnaryCaseRecord> *records) {
   bool pass = true;
   std::size_t count = 0;
   const qd_oracle::UnaryRegistryEntry *entries = qd_oracle::unary_registry(&count);
   for (std::size_t i = 0; i < count; ++i) {
-    pass &= run_unary_case<T>(tap, entries[i], verbose);
+    pass &= run_unary_case<T>(tap, entries[i], verbose, records);
   }
   return pass;
 }
@@ -488,6 +692,8 @@ bool parse_args(int argc, char **argv, Options *options) {
     } else if (std::strcmp(argv[i], "-v") == 0 ||
                std::strcmp(argv[i], "-verbose") == 0) {
       options->verbose = true;
+    } else if (std::strncmp(argv[i], "--worst-report=", 15) == 0) {
+      options->worst_report = argv[i] + 15;
     } else {
       std::uint64_t seed = 0;
       if (qd_oracle::rng::parse_seed_arg(argv[i], &seed)) {
@@ -504,6 +710,13 @@ bool parse_args(int argc, char **argv, Options *options) {
     select_all(options);
   }
 
+  if (options->worst_report.empty()) {
+    const char *env_report = std::getenv("QD_ORACLE_WORST_REPORT");
+    if (env_report != 0 && *env_report != '\0') {
+      options->worst_report = env_report;
+    }
+  }
+
   return true;
 }
 
@@ -518,6 +731,10 @@ int main(int argc, char **argv) {
 
   qd_oracle::rng::configure(options.has_seed, options.seed);
 
+  std::vector<UnaryCaseRecord> records;
+  std::vector<UnaryCaseRecord> *record_sink =
+      options.worst_report.empty() ? 0 : &records;
+
   qd_oracle::Tap tap(selected_count(options) * planned_per_type());
   std::cout << "# seed: " << qd_oracle::rng::active_seed() << "\n";
 
@@ -527,25 +744,29 @@ int main(int argc, char **argv) {
   fpu_fix_start(&old_cw);
 
   if (options.test_dd) {
-    pass &= run_type<dd_real>(tap, options.verbose);
+    pass &= run_type<dd_real>(tap, options.verbose, record_sink);
   }
   if (options.test_td) {
-    pass &= run_type<td_real>(tap, options.verbose);
+    pass &= run_type<td_real>(tap, options.verbose, record_sink);
   }
   if (options.test_qd) {
-    pass &= run_type<qd_real>(tap, options.verbose);
+    pass &= run_type<qd_real>(tap, options.verbose, record_sink);
   }
 
 #ifdef QD_HAVE_EDD_REAL
   if (options.test_edd) {
     fpu_fix_end(&old_cw);
     fpu_fixed = false;
-    pass &= run_type<edd_real>(tap, options.verbose);
+    pass &= run_type<edd_real>(tap, options.verbose, record_sink);
   }
 #endif
 
   if (fpu_fixed) {
     fpu_fix_end(&old_cw);
+  }
+
+  if (!options.worst_report.empty()) {
+    emit_worst_report(options.worst_report, records);
   }
 
   return pass ? tap.exit_status() : 1;
