@@ -26,19 +26,26 @@ public:
       ++failed_;
     }
 
+    const int display_digits = display_digits_for_test(name);
     out_ << (pass ? "ok " : "not ok ") << count_ << " - " << name << "\n";
     if ((!pass || emit_diag_on_pass) && !diag.empty()) {
       out_ << "  ---\n";
       for (std::vector<Diagnostic>::const_iterator it = diag.begin();
            it != diag.end(); ++it) {
+        std::string value = it->second;
+        if (should_shorten_value(it->first)) {
+          value = trim_mantissa_digits(value, display_digits);
+        }
         if (it->first == "mpfr_reference") {
-          out_ << "  digit_ruler:    " << yaml_quote(digit_ruler()) << "\n";
+          out_ << "  digit_ruler:    "
+               << yaml_quote(digit_ruler(display_digits))
+               << "\n";
         }
         out_ << "  " << it->first << ": ";
         if (it->first == "got_value") {
           out_ << "     ";
         }
-        out_ << yaml_quote(it->second) << "\n";
+        out_ << yaml_quote(value) << "\n";
       }
       out_ << "  ...\n";
     }
@@ -49,24 +56,100 @@ public:
   }
 
 private:
-  static const std::string &digit_ruler() {
-    static const std::string ruler =
-        "12345678901234567890123456789012345678901234567890"
-        "12345678901234567890123456789012345678901234567890...";
+  static int display_digits_for_test(const std::string &name) {
+    if (name.compare(0, 2, "dd") == 0) {
+      return 33;
+    }
+    if (name.compare(0, 2, "td") == 0) {
+      return 49;
+    }
+    if (name.compare(0, 2, "qd") == 0) {
+      return 65;
+    }
+    if (name.compare(0, 3, "edd") == 0) {
+      return 39;
+    }
+    return 80;
+  }
+
+  static std::string digit_ruler(int digits) {
+    static const std::string base = "12345678901234567890";
+    if (digits <= 0) {
+      return "";
+    }
+    std::string ruler;
+    ruler.reserve(digits);
+    while (static_cast<int>(ruler.size()) < digits) {
+      ruler += base;
+    }
+    ruler.resize(digits);
     return ruler;
   }
 
   static std::string yaml_quote(const std::string &text) {
-    std::string quoted = "'";
+    std::string quoted(1, static_cast<char>(39));
     for (std::string::const_iterator it = text.begin(); it != text.end(); ++it) {
-      if (*it == '\'') {
-        quoted += "''";
+      if (*it == 39) {
+        quoted += static_cast<char>(39);
+        quoted += static_cast<char>(39);
       } else {
         quoted += *it;
       }
     }
-    quoted += "'";
+    quoted += static_cast<char>(39);
     return quoted;
+  }
+
+  static bool should_shorten_value(const std::string &name) {
+    return name == "mpfr_reference" || name == "got_value" ||
+           name == "input_value" || name == "input_a_value" ||
+           name == "input_b_value" || name == "mpfr_sin" ||
+           name == "mpfr_cos" || name == "mpfr_tan" ||
+           name == "abs_error_mpfr" || name == "td_reduced_arg" ||
+           name == "td_reduced_ref";
+  }
+
+  static std::string trim_mantissa_digits(const std::string &text,
+                                         int max_significant_digits) {
+    if (max_significant_digits <= 0 || text.empty()) {
+      return text;
+    }
+
+    const std::string::size_type e_pos = text.find_first_of("eE");
+    if (e_pos == std::string::npos) {
+      return text;
+    }
+
+    const std::string::size_type dot_pos = text.find(static_cast<char>(46));
+    if (dot_pos == std::string::npos || dot_pos >= e_pos) {
+      return text;
+    }
+
+    std::size_t sign_pos = 0;
+    if (!text.empty() && (text[0] == static_cast<char>(45) || text[0] == static_cast<char>(43)) {
+      sign_pos = 1;
+    }
+    if (sign_pos >= e_pos) {
+      return text;
+    }
+
+    const int current_digits = static_cast<int>(e_pos - sign_pos);
+    if (current_digits <= max_significant_digits) {
+      return text;
+    }
+
+    const int max_fraction_digits = max_significant_digits - 1;
+    if (max_fraction_digits <= 0) {
+      return text.substr(0, dot_pos) + text.substr(e_pos);
+    }
+
+    const std::string::size_type max_len =
+        static_cast<std::string::size_type>(dot_pos + 1 + max_fraction_digits);
+    if (max_len >= e_pos) {
+      return text;
+    }
+
+    return text.substr(0, max_len) + text.substr(e_pos);
   }
 
   std::ostream &out_;
