@@ -126,7 +126,7 @@ private:
     }
 
     std::size_t sign_pos = 0;
-    if (!text.empty() && (text[0] == static_cast<char>(45) || text[0] == static_cast<char>(43)) {
+    if (!text.empty() && (text[0] == '-' || text[0] == '+')) {
       sign_pos = 1;
     }
     if (sign_pos >= e_pos) {
