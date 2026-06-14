@@ -386,6 +386,144 @@ if(BUILD_TESTING)
     list(APPEND QD_DEMO_DEPS f_test)
   endif()
 
+  if(QD3_ENABLE_MPFR_TESTS)
+    set(QD_ORACLE_COMMON_SOURCES
+      tests/oracle/mpfr_oracle.cpp
+      tests/oracle/mpfr_oracle.h
+      tests/oracle/qd_rng.cpp
+      tests/oracle/qd_rng.h
+      tests/oracle/tap.h
+      tests/oracle/fn_registry.h
+    )
+
+    add_executable(oracle_test_arith
+      tests/oracle/test_arith.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_arith)
+    target_include_directories(oracle_test_arith BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_arith PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_arith PROPERTIES
+      OUTPUT_NAME test_arith
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    add_executable(oracle_test_unary
+      tests/oracle/test_unary.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_unary)
+    target_include_directories(oracle_test_unary BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_unary PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_unary PROPERTIES
+      OUTPUT_NAME test_unary
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    add_executable(oracle_test_binary
+      tests/oracle/test_binary.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_binary)
+    target_include_directories(oracle_test_binary BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_binary PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_binary PROPERTIES
+      OUTPUT_NAME test_binary
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    add_executable(oracle_test_special
+      tests/oracle/test_special.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_special)
+    target_include_directories(oracle_test_special BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_special PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_special PROPERTIES
+      OUTPUT_NAME test_special
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    add_executable(oracle_test_identities
+      tests/oracle/test_identities.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_identities)
+    target_include_directories(oracle_test_identities BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_identities PRIVATE qd PkgConfig::MPFR)
+    set_target_properties(oracle_test_identities PROPERTIES
+      OUTPUT_NAME test_identities
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    set(QD_ORACLE_TESTS
+      oracle_test_arith_dd
+      oracle_test_arith_td
+      oracle_test_arith_qd
+      oracle_test_unary_dd
+      oracle_test_unary_td
+      oracle_test_unary_qd
+      oracle_test_binary_dd
+      oracle_test_binary_td
+      oracle_test_binary_qd
+      oracle_test_special_dd
+      oracle_test_special_td
+      oracle_test_special_qd
+      oracle_test_identities_dd
+      oracle_test_identities_td
+      oracle_test_identities_qd
+    )
+    add_test(NAME oracle_test_arith_dd COMMAND oracle_test_arith -dd)
+    add_test(NAME oracle_test_arith_td COMMAND oracle_test_arith -td)
+    add_test(NAME oracle_test_arith_qd COMMAND oracle_test_arith -qd)
+    add_test(NAME oracle_test_unary_dd COMMAND oracle_test_unary -dd)
+    add_test(NAME oracle_test_unary_td COMMAND oracle_test_unary -td)
+    add_test(NAME oracle_test_unary_qd COMMAND oracle_test_unary -qd)
+    add_test(NAME oracle_test_binary_dd COMMAND oracle_test_binary -dd)
+    add_test(NAME oracle_test_binary_td COMMAND oracle_test_binary -td)
+    add_test(NAME oracle_test_binary_qd COMMAND oracle_test_binary -qd)
+    add_test(NAME oracle_test_special_dd COMMAND oracle_test_special -dd)
+    add_test(NAME oracle_test_special_td COMMAND oracle_test_special -td)
+    add_test(NAME oracle_test_special_qd COMMAND oracle_test_special -qd)
+    add_test(NAME oracle_test_identities_dd COMMAND oracle_test_identities -dd)
+    add_test(NAME oracle_test_identities_td COMMAND oracle_test_identities -td)
+    add_test(NAME oracle_test_identities_qd COMMAND oracle_test_identities -qd)
+    if(QD_HAVE_EDD_REAL)
+      add_test(NAME oracle_test_arith_edd COMMAND oracle_test_arith -edd)
+      add_test(NAME oracle_test_unary_edd COMMAND oracle_test_unary -edd)
+      add_test(NAME oracle_test_binary_edd COMMAND oracle_test_binary -edd)
+      add_test(NAME oracle_test_special_edd COMMAND oracle_test_special -edd)
+      add_test(NAME oracle_test_identities_edd COMMAND oracle_test_identities -edd)
+      list(APPEND QD_ORACLE_TESTS
+        oracle_test_arith_edd
+        oracle_test_unary_edd
+        oracle_test_binary_edd
+        oracle_test_special_edd
+        oracle_test_identities_edd
+      )
+    endif()
+    set_tests_properties(${QD_ORACLE_TESTS} PROPERTIES
+      ENVIRONMENT "QD_TEST_SEED=11400714819323198485"
+    )
+    list(APPEND QD_DEMO_DEPS
+      oracle_test_arith
+      oracle_test_unary
+      oracle_test_binary
+      oracle_test_special
+      oracle_test_identities
+    )
+  endif()
+
   add_custom_target(demo DEPENDS ${QD_DEMO_DEPS})
   add_custom_target(time
     COMMAND qd_timer

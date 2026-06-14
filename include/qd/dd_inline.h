@@ -93,8 +93,7 @@ inline dd_real &dd_real::operator+=(const dd_real &a) {
 #ifndef QD_IEEE_ADD
   double s, e;
   s = qd::two_sum(x[0], a.x[0], e);
-  e += x[1];
-  e += a.x[1];
+  e += (x[1] + a.x[1]);
   x[0] = qd::quick_two_sum(s, e, x[1]);
   return *this;
 #else
@@ -249,8 +248,7 @@ inline dd_real &dd_real::operator*=(double a) {
 inline dd_real &dd_real::operator*=(const dd_real &a) {
   double p1, p2;
   p1 = qd::two_prod(x[0], a.x[0], p2);
-  p2 += a.x[1] * x[0];
-  p2 += a.x[0] * x[1];
+  p2 += (a.x[1] * x[0] + a.x[0] * x[1]);
   x[0] = qd::quick_two_sum(p1, p2, x[1]);
   return *this;
 }

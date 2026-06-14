@@ -17,7 +17,7 @@ AC_DEFINE_UNQUOTED([PATCH_VERSION],$PATCH_VERSION,[qd patch number (sub minor ve
 echo "configuring $PACKAGE $VERSION..."
 
 AC_CONFIG_AUX_DIR([config])
-AM_INIT_AUTOMAKE([foreign tar-ustar dist-xz no-dist-gzip])
+AM_INIT_AUTOMAKE([foreign tar-ustar dist-xz no-dist-gzip subdir-objects])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_HEADERS([include/qd/qd_config.h])
 
