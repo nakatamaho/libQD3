@@ -981,6 +981,22 @@ bool TdTestSuite::test20() {
   td_real sh;
   td_real ch;
 
+  struct TdTrigRegressionCase {
+    const char *name;
+    td_real input;
+  };
+
+  const TdTrigRegressionCase trig_regressions[] = {
+      {"tan_conditioned_seed2026061401",
+       td_real(-0xe.9a8b013bfe008p-7, -0xe.45e0495da8958p-63,
+               0xa.bdc27e4a9938p-117)},
+      {"tan_conditioned_seed777",
+       td_real(0xb.d4db0d11f39dp+1, -0x8.a1d8a76b1aa08p-53,
+               0xb.f6a914b7a3f98p-107)},
+      {"tan_stable_seed777",
+       td_real(0xe.9cc5967edc268p-1, 0xd.0ad64f8c3a9c8p-56,
+               -0xa.10646deab5e6p-110)}};
+
   sincos(near_pi2, s, c);
   sincosh(x, sh, ch);
 
@@ -1004,11 +1020,24 @@ bool TdTestSuite::test20() {
   pass &= td_check_close(acosh(td_real("1.5")), acosh(qd_real("1.5")), 128.0);
   pass &= td_check_close(atanh(td_real("0.125")), atanh(qd_real("0.125")), 96.0);
 
+  for (int i = 0; i < static_cast<int>(sizeof(trig_regressions) /
+                                       sizeof(trig_regressions[0])); i++) {
+    const td_real &angle = trig_regressions[i].input;
+    pass &= td_check_close(sin(angle), sin(td_to_qd(angle)), 8.0);
+    pass &= td_check_close(cos(angle), cos(td_to_qd(angle)), 8.0);
+    pass &= td_check_close(tan(angle), tan(td_to_qd(angle)), 8.0);
+  }
+
   if (flag_verbose) {
     cout << "sin(pi/2 - 1e-20) = " << s << endl;
     cout << "cos(pi/2 - 1e-20) = " << c << endl;
     cout << "sin(large)        = " << sin(large_angle) << endl;
     cout << "atan2(y, x)       = " << atan2(y, x) << endl;
+    for (int i = 0; i < static_cast<int>(sizeof(trig_regressions) /
+                                         sizeof(trig_regressions[0])); i++) {
+      cout << trig_regressions[i].name << " = "
+           << trig_regressions[i].input << endl;
+    }
   }
 
   return pass;
