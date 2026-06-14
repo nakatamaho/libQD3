@@ -236,16 +236,40 @@ double ulp_error_estimate(const T &got, mpfr_t ref) {
   return relerr_in_eps(got, ref);
 }
 
+template <class Limb>
+std::string hexfloat_fixed_precision(const Limb &value, int fraction_digits) {
+  std::ostringstream text;
+  text << std::showpoint << std::hexfloat << std::setprecision(fraction_digits)
+       << value;
+  std::string result = text.str();
+
+  const std::string::size_type p_pos = result.find('p');
+  if (p_pos == std::string::npos) {
+    return result;
+  }
+  const std::string::size_type dot_pos = result.rfind('.', p_pos);
+  if (dot_pos == std::string::npos) {
+    return result;
+  }
+
+  const int digits = static_cast<int>(p_pos - dot_pos - 1);
+  if (digits < fraction_digits) {
+    result.insert(dot_pos + 1 + digits, fraction_digits - digits, '0');
+  }
+  return result;
+}
+
 template <class T>
 std::string limbs_hex(const T &x) {
   std::ostringstream os;
+  constexpr int limb_precision =
+      (std::numeric_limits<typename TypeTraits<T>::limb_type>::digits - 1 + 3) / 4;
   os << "[";
   for (int i = 0; i < TypeTraits<T>::limbs; ++i) {
     if (i != 0) {
       os << ", ";
     }
-    os << std::hexfloat
-       << static_cast<long double>(TypeTraits<T>::limb(x, i));
+    os << hexfloat_fixed_precision(TypeTraits<T>::limb(x, i), limb_precision);
   }
   os << "]";
   return os.str();
