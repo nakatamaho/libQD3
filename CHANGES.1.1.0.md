@@ -1,5 +1,19 @@
 # Changes for libQD3 1.1.0
 
+## Testing and Quality Infrastructure
+
+- Added an optional MPFR-backed oracle test suite under `tests/oracle` and wired it
+  into both CMake and Autotools as the opt-in MPFR test path.
+- Added seeded TAP execution with machine-parseable diagnostics, including
+  seed-replay command and hex-limb inputs for reproducibility.
+- Added sanitizer and coverage runs for the oracle programs (`-DQD3_ENABLE_ASAN`,
+  `-DQD3_ENABLE_UBSAN`, `-DQD3_ENABLE_COVERAGE`) and documented the workflow in
+  `tests/oracle/README.md`.
+- Added QA matrix scripts for oracle builds to validate arithmetic-variant
+  coverage across `ieee-add` and `sloppy-mul`/`sloppy-div` configurations.
+- Added `AGENTS.md` with concrete commands for default and MPFR test flows and
+  seed control.
+
 ## Release Highlights
 
 - Added `edd_real`, a native two-limb extended-double type based on binary80

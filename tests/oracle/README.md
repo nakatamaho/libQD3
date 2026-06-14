@@ -134,3 +134,20 @@ Every program prints TAP version 13 output. On failure, the diagnostic
 block includes the active seed, replay command, input limbs in C99 hex,
 the MPFR reference, result limbs, measured error in eps, allowed bound,
 and the bound justification.
+
+Reproducibility and governance notes:
+
+- Every oracle run prints the active seed in TAP output and test failure diagnostics.
+- `QD_TEST_SEED` has highest precedence, then `--seed=<N>`, and the fallback
+  default is `0x9E3779B97F4A7C15`.
+- The command to replay any failure is printed in diagnostics:
+  `tests/oracle/<prog> -<type> --seed=<N>`.
+- Seed handling and MPFR-suite commands are aligned across Autotools and
+  CMake so CI and local runs are reproducible.
+
+Planned next phase:
+
+- `test_rounding_corners.cpp` is still pending. It is expected in the next
+  milestone to cover tie/faithful-rounding and build-variant-distinguishing
+  corner cases for `+ - * /`, and to emit per-input worst-error records for
+  cross-variant matrix checks.

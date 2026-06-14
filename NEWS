@@ -1,3 +1,12 @@
+Changes for 1.1.1
+    Added an optional MPFR-backed oracle test suite under tests/oracle and wired
+    it into CMake/Autotools test flows when MPFR testing is enabled.
+    Added seeded TAP diagnostics, optional JUnit output, and reproducibility notes
+    for oracle test runs (seed precedence: QD_TEST_SEED -> --seed -> fixed default).
+    Added coverage and sanitizer coverage workflows for the oracle suite, including
+    an oracle matrix entry point in qa scripts.
+    Added AGENTS.md with test-workflow guidance for optional MPFR oracle runs.
+
 Changes for 2.3.24
 	Installed a patch suggested by Sharlatan Hellseher to improve the accuracy
 	of a spherical geometry application.
