@@ -11,6 +11,9 @@
 #cmakedefine QD_INLINE 1
 #define QD_HAVE_STD 1
 #cmakedefine QD_IEEE_ADD 1
+#cmakedefine QD_BF 1
+#cmakedefine QD_BF_ADD 1
+#cmakedefine QD_BF_MUL 1
 #cmakedefine QD_SLOPPY_MUL 1
 #cmakedefine QD_SLOPPY_DIV 1
 #cmakedefine QD_HAVE_EDD_REAL 1

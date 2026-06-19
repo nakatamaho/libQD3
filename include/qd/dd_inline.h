@@ -64,11 +64,25 @@ inline dd_real dd_real::sloppy_add(const dd_real &a, const dd_real &b) {
   return dd_real(s, e);
 }
 
+/* Kouya Algorithm 6 -- DWBFAdd. Branch-free accurate DW addition. */
+inline dd_real dd_real::bf_add(const dd_real &a, const dd_real &b) {
+  double g1, g1e, g2, g2e, g3, g3e, g4, g5, c0, c1;
+  g1 = qd::two_sum(a.x[0], b.x[0], g1e);
+  g2 = qd::two_sum(a.x[1], b.x[1], g2e);
+  g3 = qd::quick_two_sum(g1, g2, g3e);
+  g4 = g1e + g2e;
+  g5 = g4 + g3e;
+  c0 = qd::quick_two_sum(g3, g5, c1);
+  return dd_real(c0, c1);
+}
+
 inline dd_real operator+(const dd_real &a, const dd_real &b) {
-#ifndef QD_IEEE_ADD
-  return dd_real::sloppy_add(a, b);
-#else
+#if defined(QD_BF_ADD)
+  return dd_real::bf_add(a, b);
+#elif defined(QD_IEEE_ADD)
   return dd_real::ieee_add(a, b);
+#else
+  return dd_real::sloppy_add(a, b);
 #endif
 }
 
@@ -90,7 +104,10 @@ inline dd_real &dd_real::operator+=(double a) {
 
 /* double-double += double-double */
 inline dd_real &dd_real::operator+=(const dd_real &a) {
-#ifndef QD_IEEE_ADD
+#if defined(QD_BF_ADD)
+  *this = dd_real::bf_add(*this, a);
+  return *this;
+#elif !defined(QD_IEEE_ADD)
   double s, e;
   s = qd::two_sum(x[0], a.x[0], e);
   e += (x[1] + a.x[1]);
@@ -127,7 +144,9 @@ inline dd_real operator-(const dd_real &a, double b) {
 
 /* double-double - double-double */
 inline dd_real operator-(const dd_real &a, const dd_real &b) {
-#ifndef QD_IEEE_ADD
+#if defined(QD_BF_ADD)
+  return dd_real::bf_add(a, -b);
+#elif !defined(QD_IEEE_ADD)
   double s, e;
   s = qd::two_diff(a.x[0], b.x[0], e);
   e += a.x[1];
@@ -167,7 +186,10 @@ inline dd_real &dd_real::operator-=(double a) {
 
 /* double-double -= double-double */
 inline dd_real &dd_real::operator-=(const dd_real &a) {
-#ifndef QD_IEEE_ADD
+#if defined(QD_BF_ADD)
+  *this = dd_real::bf_add(*this, -a);
+  return *this;
+#elif !defined(QD_IEEE_ADD)
   double s, e;
   s = qd::two_diff(x[0], a.x[0], e);
   e += x[1];
@@ -197,6 +219,18 @@ inline dd_real dd_real::mul(double a, double b) {
   double p, e;
   p = qd::two_prod(a, b, e);
   return dd_real(p, e);
+}
+
+/* Kouya Algorithm 8 -- DWBFMul. This is the current DD operator* dataflow. */
+inline dd_real dd_real::bf_mul(const dd_real &a, const dd_real &b) {
+  double p00, pe00, p01, p10, g1, g2, c0, c1;
+  p00 = qd::two_prod(a.x[0], b.x[0], pe00);
+  p01 = a.x[0] * b.x[1];
+  p10 = a.x[1] * b.x[0];
+  g1 = p01 + p10;
+  g2 = pe00 + g1;
+  c0 = qd::quick_two_sum(p00, g2, c1);
+  return dd_real(c0, c1);
 }
 
 /* double-double * (2.0 ^ exp) */

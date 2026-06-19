@@ -283,6 +283,30 @@ inline td_real td_real::sloppy_add(const td_real &a, const td_real &b) {
   return td_real(s0, s1, s2);
 }
 
+/* Kouya Algorithm 11 -- TWBFAdd. */
+inline td_real td_real::bf_add(const td_real &a, const td_real &b) {
+  double a1, b1, c1, d1, e1, f1;
+  double a2, b2, c2, d2, e2, a3, d3;
+  double b3, c3, c4, c5, d5, b6, c6, b7, c7;
+  double c0, c1out, c2out;
+
+  a1 = qd::two_sum(a[0], b[0], b1);
+  c1 = qd::two_sum(a[1], b[1], d1);
+  e1 = qd::two_sum(a[2], b[2], f1);
+  a2 = qd::quick_two_sum(a1, c1, c2);
+  b2 = b1 + f1;
+  d2 = qd::two_sum(d1, e1, e2);
+  a3 = qd::quick_two_sum(a2, d2, d3);
+  b3 = qd::two_sum(b2, c2, c3);
+  c4 = c3 + e2;
+  c5 = qd::two_sum(c4, d3, d5);
+  b6 = qd::two_sum(b3, c5, c6);
+  c0 = qd::quick_two_sum(a3, b6, b7);
+  c7 = c6 + d5;
+  c1out = qd::quick_two_sum(b7, c7, c2out);
+  return td_real(c0, c1out, c2out);
+}
+
 /* IEEE addition: merge-based, data-dependent.
    Satisfies IEEE-style error bound.
    Cost: 55--68 flops (data-dependent). */
@@ -360,10 +384,12 @@ inline qd_real operator+(const qd_real &a, const td_real &b) {
 }
 
 inline td_real operator+(const td_real &a, const td_real &b) {
-#ifndef QD_IEEE_ADD
-  return td_real::sloppy_add(a, b);
-#else
+#if defined(QD_BF_ADD)
+  return td_real::bf_add(a, b);
+#elif defined(QD_IEEE_ADD)
   return td_real::ieee_add(a, b);
+#else
+  return td_real::sloppy_add(a, b);
 #endif
 }
 
@@ -421,7 +447,9 @@ inline qd_real operator-(const qd_real &a, const td_real &b) {
 }
 
 inline td_real operator-(const td_real &a, const td_real &b) {
-#ifndef QD_IEEE_ADD
+#if defined(QD_BF_ADD)
+  return td_real::bf_add(a, -b);
+#elif !defined(QD_IEEE_ADD)
   /* Sloppy subtraction: deterministic, component-wise.
      Cost: 3 TwoDiff + 1 TwoSum + 2 add + renorm4 = 41 flops. */
   double s0, s1, s2, t0, t1, t2;
@@ -505,6 +533,9 @@ inline qd_real operator*(const qd_real &a, const td_real &b) {
 }
 
 inline td_real operator*(const td_real &a, const td_real &b) {
+#if defined(QD_BF_MUL)
+  return td_real::bf_mul(a, b);
+#else
   double p0, p1, p2, p3, p4, p5;
   double q0, q1, q2, q3, q4, q5;
   double t0, t1, s0, s1, s2;
@@ -529,6 +560,34 @@ inline td_real operator*(const td_real &a, const td_real &b) {
   s1 += a[1] * b[2] + a[2] * b[1] + q0 + q3 + q4 + q5;
   td::renorm(p0, p1, s0, s1, s2);
   return td_real(p0, p1, s0);
+#endif
+}
+
+/* Kouya Algorithm 12 -- TWBFMul. */
+inline td_real td_real::bf_mul(const td_real &a, const td_real &b) {
+  double a0, b0, c0, e0, d0, f0, g0, h0, i0;
+  double c1, d1, e1, g1, b2, c2, g2, a3, b3;
+  double c3, e3, c4, b5, c5, b6, c1out, c2out;
+
+  a0 = qd::two_prod(a[0], b[0], b0);
+  c0 = qd::two_prod(a[0], b[1], e0);
+  d0 = qd::two_prod(a[1], b[0], f0);
+  g0 = a[0] * b[2];
+  h0 = a[1] * b[1];
+  i0 = a[2] * b[0];
+  c1 = qd::two_sum(c0, d0, d1);
+  e1 = e0 + f0;
+  g1 = g0 + i0;
+  b2 = qd::two_sum(b0, c1, c2);
+  g2 = g1 + h0;
+  a3 = qd::quick_two_sum(a0, b2, b3);
+  c3 = c2 + d1;
+  e3 = e1 + g2;
+  c4 = c3 + e3;
+  b5 = qd::quick_two_sum(b3, c4, c5);
+  a0 = qd::quick_two_sum(a3, b5, b6);
+  c1out = qd::quick_two_sum(b6, c5, c2out);
+  return td_real(a0, c1out, c2out);
 }
 
 inline td_real sqr(const td_real &a) {

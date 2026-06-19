@@ -30,6 +30,15 @@
 #include <qd/qd_config.h>
 #include <qd/dd_real.h>
 
+#if defined(QD_BF)
+#  if !defined(QD_BF_ADD)
+#    define QD_BF_ADD
+#  endif
+#  if !defined(QD_BF_MUL)
+#    define QD_BF_MUL
+#  endif
+#endif
+
 struct td_real;
 
 struct QD_API qd_real {
@@ -84,6 +93,7 @@ struct QD_API qd_real {
 
   static qd_real ieee_add(const qd_real &a, const qd_real &b);
   static qd_real sloppy_add(const qd_real &a, const qd_real &b);
+  static qd_real bf_add(const qd_real &a, const qd_real &b);
 
   qd_real &operator+=(double a);
   qd_real &operator+=(const dd_real &a);
@@ -97,6 +107,7 @@ struct QD_API qd_real {
 
   static qd_real sloppy_mul(const qd_real &a, const qd_real &b);
   static qd_real accurate_mul(const qd_real &a, const qd_real &b);
+  static qd_real bf_mul(const qd_real &a, const qd_real &b);
 
   qd_real &operator*=(double a);
   qd_real &operator*=(const dd_real &a);

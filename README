@@ -82,6 +82,12 @@ To build the library, first run the included configure script by typing
 
        ./configure
 
+Branch-free arithmetic can be selected at build time for dd_real, td_real, and
+qd_real.  Configure with --enable-bf-mul to use the scalar-friendly BF
+multiplication path, or --enable-bf to enable both BF addition and
+multiplication.  CMake builds use -DQD_ENABLE_BF_MUL=ON or -DQD_ENABLE_BF=ON.
+The default build is unchanged.
+
 This script automatically generates makefiles for building the library and selects compilers 
 and necessary flags and libraries to include. If the user wishes to specify compilers or flags 
 they may use the following options. 

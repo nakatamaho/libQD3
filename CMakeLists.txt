@@ -63,6 +63,9 @@ qd3_check_fortran()
 
 set(QD_INLINE ${QD_ENABLE_INLINE})
 set(QD_IEEE_ADD ${QD_ENABLE_IEEE_ADD})
+set(QD_BF ${QD_ENABLE_BF})
+set(QD_BF_ADD ${QD_ENABLE_BF_ADD})
+set(QD_BF_MUL ${QD_ENABLE_BF_MUL})
 set(QD_SLOPPY_MUL ${QD_ENABLE_SLOPPY_MUL})
 set(QD_SLOPPY_DIV ${QD_ENABLE_SLOPPY_DIV})
 set(HAVE_FORTRAN ${QD_HAVE_FORTRAN})
@@ -134,6 +137,7 @@ set(QD_PUBLIC_HEADERS
 if(QD3_ENABLE_MPFR_TESTS)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(MPFR REQUIRED IMPORTED_TARGET mpfr)
+  pkg_check_modules(GMP REQUIRED IMPORTED_TARGET gmp)
 endif()
 
 set(QD3_QA_COMPILE_OPTIONS "")
@@ -388,6 +392,9 @@ if(BUILD_TESTING)
   endif()
 
   if(QD3_ENABLE_MPFR_TESTS)
+    set(QD_ORACLE_LIBS qd PkgConfig::MPFR PkgConfig::GMP)
+    set(QD_ORACLE_LINK_DIRS ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+
     set(QD_ORACLE_COMMON_SOURCES
       tests/oracle/mpfr_oracle.cpp
       tests/oracle/mpfr_oracle.h
@@ -405,7 +412,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_arith BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_arith PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_arith PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_arith PROPERTIES
       OUTPUT_NAME test_arith
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -420,7 +427,7 @@ if(BUILD_TESTING)
       "${CMAKE_SOURCE_DIR}/tests/oracle"
       "${CMAKE_SOURCE_DIR}/src"
     )
-    target_link_libraries(oracle_test_unary PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_unary PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_unary PROPERTIES
       OUTPUT_NAME test_unary
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -434,7 +441,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_binary BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_binary PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_binary PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_binary PROPERTIES
       OUTPUT_NAME test_binary
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -448,7 +455,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_special BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_special PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_special PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_special PROPERTIES
       OUTPUT_NAME test_special
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -462,7 +469,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_identities BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_identities PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_identities PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_identities PROPERTIES
       OUTPUT_NAME test_identities
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -476,7 +483,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_io BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_io PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_io PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_io PROPERTIES
       OUTPUT_NAME test_io
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -490,7 +497,7 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_capi BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_capi PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_capi PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_capi PROPERTIES
       OUTPUT_NAME test_capi
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
@@ -504,12 +511,38 @@ if(BUILD_TESTING)
     target_include_directories(oracle_test_rounding BEFORE PRIVATE
       "${CMAKE_SOURCE_DIR}/tests/oracle"
     )
-    target_link_libraries(oracle_test_rounding PRIVATE qd PkgConfig::MPFR)
+    target_link_libraries(oracle_test_rounding PRIVATE ${QD_ORACLE_LIBS})
     set_target_properties(oracle_test_rounding PROPERTIES
       OUTPUT_NAME test_rounding
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
     )
 
+    add_executable(oracle_test_bf_commutativity
+      tests/oracle/test_bf_commutativity.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_bf_commutativity)
+    target_include_directories(oracle_test_bf_commutativity BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_bf_commutativity PRIVATE ${QD_ORACLE_LIBS})
+    set_target_properties(oracle_test_bf_commutativity PROPERTIES
+      OUTPUT_NAME test_bf_commutativity
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
+    foreach(qd_oracle_target
+        oracle_test_arith
+        oracle_test_unary
+        oracle_test_binary
+        oracle_test_special
+        oracle_test_identities
+        oracle_test_io
+        oracle_test_capi
+        oracle_test_rounding
+        oracle_test_bf_commutativity)
+      target_link_directories(${qd_oracle_target} PRIVATE ${QD_ORACLE_LINK_DIRS})
+    endforeach()
 
     set(QD_ORACLE_TESTS
       oracle_test_arith_dd
@@ -536,6 +569,9 @@ if(BUILD_TESTING)
       oracle_test_rounding_dd
       oracle_test_rounding_td
       oracle_test_rounding_qd
+      oracle_test_bf_commutativity_dd
+      oracle_test_bf_commutativity_td
+      oracle_test_bf_commutativity_qd
     )
     add_test(NAME oracle_test_arith_dd COMMAND oracle_test_arith -dd)
     add_test(NAME oracle_test_arith_td COMMAND oracle_test_arith -td)
@@ -561,6 +597,9 @@ if(BUILD_TESTING)
     add_test(NAME oracle_test_rounding_dd COMMAND oracle_test_rounding -dd)
     add_test(NAME oracle_test_rounding_td COMMAND oracle_test_rounding -td)
     add_test(NAME oracle_test_rounding_qd COMMAND oracle_test_rounding -qd)
+    add_test(NAME oracle_test_bf_commutativity_dd COMMAND oracle_test_bf_commutativity -dd)
+    add_test(NAME oracle_test_bf_commutativity_td COMMAND oracle_test_bf_commutativity -td)
+    add_test(NAME oracle_test_bf_commutativity_qd COMMAND oracle_test_bf_commutativity -qd)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_arith_edd COMMAND oracle_test_arith -edd)
       add_test(NAME oracle_test_unary_edd COMMAND oracle_test_unary -edd)
@@ -593,6 +632,7 @@ if(BUILD_TESTING)
       oracle_test_io
       oracle_test_capi
       oracle_test_rounding
+      oracle_test_bf_commutativity
     )
   endif()
 
@@ -697,6 +737,9 @@ message(STATUS "  edd_real status            = ${QD_EDD_STATUS}")
 message(STATUS "  BUILD_SHARED_LIBS          = ${BUILD_SHARED_LIBS}")
 message(STATUS "  QD_BUILD_STATIC            = ${QD_BUILD_STATIC}")
 message(STATUS "  tests enabled              = ${BUILD_TESTING}")
+message(STATUS "  Branch-free arithmetic     = ${QD_ENABLE_BF}")
+message(STATUS "  Branch-free addition       = ${QD_ENABLE_BF_ADD}")
+message(STATUS "  Branch-free multiplication = ${QD_ENABLE_BF_MUL}")
 message(STATUS "  MPFR oracle tests          = ${QD3_ENABLE_MPFR_TESTS}")
 message(STATUS "  AddressSanitizer           = ${QD3_ENABLE_ASAN}")
 message(STATUS "  UndefinedBehaviorSanitizer = ${QD3_ENABLE_UBSAN}")

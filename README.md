@@ -73,6 +73,15 @@ $ make
 $ make check
 ```
 
+
+### Optional branch-free arithmetic
+
+Branch-free addition and multiplication for `dd_real`, `td_real`, and `qd_real`
+can be enabled at compile time. Use `./configure --enable-bf-mul` or CMake
+`-DQD_ENABLE_BF_MUL=ON` for the scalar TD/QD multiply speedup; use
+`--enable-bf` or `-DQD_ENABLE_BF=ON` to enable both BF add and BF mul for
+SIMD-oriented or deterministic dataflow builds. BF is off by default.
+
 ### Running the test suite
 
 The libQD3 library comes with an automated test suite that should always

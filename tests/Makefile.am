@@ -23,10 +23,10 @@ endif
 if HAVE_MPFR
 TESTS += oracle_test_arith oracle_test_unary oracle_test_binary \
          oracle_test_special oracle_test_identities oracle_test_io \
-         oracle_test_capi oracle_test_rounding
+         oracle_test_capi oracle_test_rounding oracle_test_bf_commutativity
 check_PROGRAMS += oracle_test_arith oracle_test_unary oracle_test_binary \
                   oracle_test_special oracle_test_identities oracle_test_io \
-                  oracle_test_capi oracle_test_rounding
+                  oracle_test_capi oracle_test_rounding oracle_test_bf_commutativity
 
 ORACLE_COMMON_SOURCES = oracle/mpfr_oracle.cpp oracle/mpfr_oracle.h \
                         oracle/qd_rng.cpp oracle/qd_rng.h \
@@ -63,6 +63,10 @@ oracle_test_capi_LDADD = $(LDADD) @MPFR_LIBS@
 oracle_test_rounding_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
 oracle_test_rounding_SOURCES = oracle/test_rounding_corners.cpp $(ORACLE_COMMON_SOURCES)
 oracle_test_rounding_LDADD = $(LDADD) @MPFR_LIBS@
+
+oracle_test_bf_commutativity_CPPFLAGS = $(AM_CPPFLAGS) @MPFR_CFLAGS@ -I$(srcdir)/oracle
+oracle_test_bf_commutativity_SOURCES = oracle/test_bf_commutativity.cpp $(ORACLE_COMMON_SOURCES)
+oracle_test_bf_commutativity_LDADD = $(LDADD) @MPFR_LIBS@
 endif
 
 CLEANFILES=qd_timer quadt_test huge

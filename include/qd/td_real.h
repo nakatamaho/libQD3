@@ -42,6 +42,15 @@
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 
+#if defined(QD_BF)
+#  if !defined(QD_BF_ADD)
+#    define QD_BF_ADD
+#  endif
+#  if !defined(QD_BF_MUL)
+#    define QD_BF_MUL
+#  endif
+#endif
+
 #ifdef isnan
 #undef isnan
 #endif
@@ -131,6 +140,8 @@ struct QD_API td_real {
 
   static td_real ieee_add(const td_real &a, const td_real &b);
   static td_real sloppy_add(const td_real &a, const td_real &b);
+  static td_real bf_add(const td_real &a, const td_real &b);
+  static td_real bf_mul(const td_real &a, const td_real &b);
 
   static td_real accurate_div(const td_real &a, const td_real &b);
   static td_real sloppy_div(const td_real &a, const td_real &b);

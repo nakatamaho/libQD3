@@ -412,12 +412,51 @@ inline qd_real qd_real::sloppy_add(const qd_real &a, const qd_real &b) {
   return qd_real(s0, s1, s2, s3);
 }
 
+/* Kouya Algorithm 13 -- QWBFAdd. */
+inline qd_real qd_real::bf_add(const qd_real &a, const qd_real &b) {
+  double a1, b1, c1, d1, e1, f1, g1, h1;
+  double a2, b2, c2, d2, e2, f2, g2, b3, g3;
+  double c3, d3, e3, f3, a4, c4, d4, e4, b5, d5, e5;
+  double b6, c6, d6, e6, a7, b7, c7, d7, e8, b8, c8;
+  double d9, b10, c10, d10, c11, c0, c1out, c2out, c3out;
+
+  a1 = qd::two_sum(a[0], b[0], b1);
+  c1 = qd::two_sum(a[1], b[1], d1);
+  e1 = qd::two_sum(a[2], b[2], f1);
+  g1 = qd::two_sum(a[3], b[3], h1);
+  a2 = qd::quick_two_sum(a1, c1, c2);
+  b2 = b1 + h1;
+  d2 = qd::two_sum(d1, e1, e2);
+  f2 = qd::two_sum(f1, g1, g2);
+  b3 = qd::two_sum(b2, g2, g3);
+  c3 = qd::quick_two_sum(c2, d2, d3);
+  e3 = qd::two_sum(e2, f2, f3);
+  a4 = qd::quick_two_sum(a2, c3, c4);
+  d4 = qd::quick_two_sum(d3, e3, e4);
+  b5 = qd::two_sum(b3, d4, d5);
+  e5 = e4 + f3;
+  b6 = qd::two_sum(b5, c4, c6);
+  d6 = qd::two_sum(d5, e5, e6);
+  a7 = qd::quick_two_sum(a4, b6, b7);
+  c7 = qd::quick_two_sum(c6, d6, d7);
+  e8 = e6 + g3;
+  b8 = qd::quick_two_sum(b7, c7, c8);
+  d9 = d7 + e8;
+  c0 = qd::quick_two_sum(a7, b8, b10);
+  c10 = qd::quick_two_sum(c8, d9, d10);
+  c1out = qd::quick_two_sum(b10, c10, c11);
+  c2out = qd::quick_two_sum(c11, d10, c3out);
+  return qd_real(c0, c1out, c2out, c3out);
+}
+
 /* quad-double + quad-double */
 inline qd_real operator+(const qd_real &a, const qd_real &b) {
-#ifndef QD_IEEE_ADD
-  return qd_real::sloppy_add(a, b);
-#else
+#if defined(QD_BF_ADD)
+  return qd_real::bf_add(a, b);
+#elif defined(QD_IEEE_ADD)
   return qd_real::ieee_add(a, b);
+#else
+  return qd_real::sloppy_add(a, b);
 #endif
 }
 
@@ -668,8 +707,59 @@ inline qd_real qd_real::accurate_mul(const qd_real &a, const qd_real &b) {
   return qd_real(p0, p1, s0, t0);
 }
 
+/* Kouya Algorithm 14 -- QDBFMul. */
+inline qd_real qd_real::bf_mul(const qd_real &a, const qd_real &b) {
+  double a0, b0, c0, e0, d0, f0, g0, j0, h0, k0, i0, l0;
+  double m0, n0, o0, p0, c1, d1, e1, f1, g1, i1;
+  double j1, m1, n1, b2, c2, e2, h2, f2, i2, m2;
+  double a3, b3, c3, d3, e3, g3, f3, h3, c4, e4, d4, f4;
+  double d5, c6, d6, b7, c7, d7, b8, c8, d8, c9;
+  double c0out, c1out, c2out, c3out;
+
+  a0 = qd::two_prod(a[0], b[0], b0);
+  c0 = qd::two_prod(a[0], b[1], e0);
+  d0 = qd::two_prod(a[1], b[0], f0);
+  g0 = qd::two_prod(a[0], b[2], j0);
+  h0 = qd::two_prod(a[1], b[1], k0);
+  i0 = qd::two_prod(a[2], b[0], l0);
+  m0 = a[0] * b[3];
+  n0 = a[1] * b[2];
+  o0 = a[2] * b[1];
+  p0 = a[3] * b[0];
+  c1 = qd::two_sum(c0, d0, d1);
+  e1 = qd::two_sum(e0, f0, f1);
+  g1 = qd::two_sum(g0, i0, i1);
+  j1 = j0 + l0;
+  m1 = m0 + p0;
+  n1 = n0 + o0;
+  b2 = qd::two_sum(b0, c1, c2);
+  e2 = qd::two_sum(e1, h0, h2);
+  f2 = f1 + j1;
+  i2 = i1 + k0;
+  m2 = m1 + n1;
+  a3 = qd::quick_two_sum(a0, b2, b3);
+  c3 = qd::quick_two_sum(c2, d1, d3);
+  e3 = qd::two_sum(e2, g1, g3);
+  f3 = f2 + m2;
+  h3 = h2 + i2;
+  c4 = qd::two_sum(c3, e3, e4);
+  d4 = d3 + h3;
+  f4 = f3 + g3;
+  d5 = d4 + e4;
+  c6 = qd::two_sum(c4, d5, d6);
+  b7 = qd::two_sum(b3, c6, c7);
+  d7 = d6 + f4;
+  c0out = qd::quick_two_sum(a3, b7, b8);
+  c8 = qd::two_sum(c7, d7, d8);
+  c1out = qd::two_sum(b8, c8, c9);
+  c2out = qd::quick_two_sum(c9, d8, c3out);
+  return qd_real(c0out, c1out, c2out, c3out);
+}
+
 inline qd_real operator*(const qd_real &a, const qd_real &b) {
-#ifdef QD_SLOPPY_MUL
+#if defined(QD_BF_MUL)
+  return qd_real::bf_mul(a, b);
+#elif defined(QD_SLOPPY_MUL)
   return qd_real::sloppy_mul(a, b);
 #else
   return qd_real::accurate_mul(a, b);

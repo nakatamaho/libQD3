@@ -37,6 +37,15 @@
 #include <qd/qd_config.h>
 #include <qd/fpu.h>
 
+#if defined(QD_BF)
+#  if !defined(QD_BF_ADD)
+#    define QD_BF_ADD
+#  endif
+#  if !defined(QD_BF_MUL)
+#    define QD_BF_MUL
+#  endif
+#endif
+
 // Some compilers define isnan, isfinite, and isinf as macros, even for
 // C++ codes, which cause havoc when overloading these functions.  We undef
 // them here.
@@ -109,6 +118,7 @@ struct QD_API dd_real {
   static dd_real add(double a, double b);
   static dd_real ieee_add(const dd_real &a, const dd_real &b);
   static dd_real sloppy_add(const dd_real &a, const dd_real &b);
+  static dd_real bf_add(const dd_real &a, const dd_real &b);
 
   dd_real &operator+=(double a);
   dd_real &operator+=(const dd_real &a);
@@ -123,6 +133,7 @@ struct QD_API dd_real {
   dd_real operator-() const;
 
   static dd_real mul(double a, double b);
+  static dd_real bf_mul(const dd_real &a, const dd_real &b);
 
   dd_real &operator*=(double a);
   dd_real &operator*=(const dd_real &a);

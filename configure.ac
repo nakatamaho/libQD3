@@ -57,6 +57,38 @@ else
 fi
 AC_MSG_RESULT($enable_ieee_add)
 
+# --enable-bf
+AC_ARG_ENABLE([bf], AS_HELP_STRING(--enable-bf, [use branch-free addition and multiplication.  [[default=no]]]))
+AC_MSG_CHECKING([if branch-free addition and multiplication are to be used])
+if test "$enable_bf" = "yes"; then
+  AC_DEFINE([QD_BF], [1], [Define to 1 to use branch-free addition and multiplication.])
+else
+  enable_bf="no"
+fi
+AC_MSG_RESULT($enable_bf)
+
+# --enable-bf-add
+AC_ARG_ENABLE([bf-add], AS_HELP_STRING(--enable-bf-add, [use branch-free addition.  [[default=no]]]))
+AC_MSG_CHECKING([if branch-free addition is to be used])
+if test "$enable_bf" = "yes" || test "$enable_bf_add" = "yes"; then
+  enable_bf_add="yes"
+  AC_DEFINE([QD_BF_ADD], [1], [Define to 1 to use branch-free addition.])
+else
+  enable_bf_add="no"
+fi
+AC_MSG_RESULT($enable_bf_add)
+
+# --enable-bf-mul
+AC_ARG_ENABLE([bf-mul], AS_HELP_STRING(--enable-bf-mul, [use branch-free multiplication.  [[default=no]]]))
+AC_MSG_CHECKING([if branch-free multiplication is to be used])
+if test "$enable_bf" = "yes" || test "$enable_bf_mul" = "yes"; then
+  enable_bf_mul="yes"
+  AC_DEFINE([QD_BF_MUL], [1], [Define to 1 to use branch-free multiplication.])
+else
+  enable_bf_mul="no"
+fi
+AC_MSG_RESULT($enable_bf_mul)
+
 # --enable-sloppy-mul
 AC_ARG_ENABLE([sloppy-mul], AS_HELP_STRING(--enable-sloppy-mul, [use fast but slightly inaccurate multiplication.  [[default=yes]]]))
 AC_MSG_CHECKING([if sloppy multiplication is to be used])
@@ -305,17 +337,39 @@ HAVE_MPFR=no
 MPFR_CFLAGS=""
 MPFR_LIBS=""
 if test "x$enable_mpfr_tests" = "xyes"; then
-  AC_CHECK_HEADER([mpfr.h], [],
-    [AC_MSG_ERROR([--enable-mpfr-tests requires the MPFR headers])])
-  qd3_save_LIBS="$LIBS"
-  AC_CHECK_LIB([gmp], [__gmpz_init],
-    [GMP_LIBS="-lgmp"],
-    [AC_MSG_ERROR([--enable-mpfr-tests requires libgmp])])
-  LIBS="$qd3_save_LIBS $GMP_LIBS"
-  AC_CHECK_LIB([mpfr], [mpfr_init2],
-    [MPFR_LIBS="-lmpfr $GMP_LIBS"],
-    [AC_MSG_ERROR([--enable-mpfr-tests requires libmpfr])])
-  LIBS="$qd3_save_LIBS"
+  PKG_PROG_PKG_CONFIG
+  qd3_have_mpfr_pkg=no
+  if test "x$PKG_CONFIG" != "x"; then
+    PKG_CHECK_MODULES([MPFR], [mpfr gmp],
+      [qd3_have_mpfr_pkg=yes],
+      [qd3_have_mpfr_pkg=no])
+  fi
+
+  if test "x$qd3_have_mpfr_pkg" = "xyes"; then
+    qd3_save_CPPFLAGS="$CPPFLAGS"
+    qd3_save_LIBS="$LIBS"
+    CPPFLAGS="$CPPFLAGS $MPFR_CFLAGS"
+    LIBS="$MPFR_LIBS $LIBS"
+    AC_CHECK_HEADER([mpfr.h], [],
+      [AC_MSG_ERROR([--enable-mpfr-tests requires the MPFR headers])])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <mpfr.h>]], [[mpfr_t x; mpfr_init2(x, 53); mpfr_clear(x);]])],
+      [],
+      [AC_MSG_ERROR([--enable-mpfr-tests requires linkable MPFR/GMP libraries])])
+    CPPFLAGS="$qd3_save_CPPFLAGS"
+    LIBS="$qd3_save_LIBS"
+  else
+    AC_CHECK_HEADER([mpfr.h], [],
+      [AC_MSG_ERROR([--enable-mpfr-tests requires the MPFR headers])])
+    qd3_save_LIBS="$LIBS"
+    AC_CHECK_LIB([gmp], [__gmpz_init],
+      [GMP_LIBS="-lgmp"],
+      [AC_MSG_ERROR([--enable-mpfr-tests requires libgmp])])
+    LIBS="$qd3_save_LIBS $GMP_LIBS"
+    AC_CHECK_LIB([mpfr], [mpfr_init2],
+      [MPFR_LIBS="-lmpfr $GMP_LIBS"],
+      [AC_MSG_ERROR([--enable-mpfr-tests requires libmpfr])])
+    LIBS="$qd3_save_LIBS"
+  fi
   HAVE_MPFR=yes
 elif test "x$enable_mpfr_tests" != "xno"; then
   AC_MSG_ERROR([invalid --enable-mpfr-tests value: $enable_mpfr_tests])
@@ -506,6 +560,9 @@ echo "  enable fortran    = $enable_fortran"
 echo "  enable inline     = $enable_inline"
 echo "  enable x86 fix    = $x86_fix"
 echo "  enable ieee add   = $enable_ieee_add"
+echo "  enable bf         = $enable_bf"
+echo "  enable bf add     = $enable_bf_add"
+echo "  enable bf mul     = $enable_bf_mul"
 echo "  enable sloppy mul = $enable_sloppy_mul"
 echo "  enable sloppy div = $enable_sloppy_div"
 echo "  fma               = $ax_cxx_fma"

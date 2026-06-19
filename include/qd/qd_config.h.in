@@ -56,6 +56,21 @@
 #undef QD_IEEE_ADD
 #endif
 
+/* Set the following to 1 to use branch-free addition and multiplication. */
+#ifndef QD_BF
+#undef QD_BF
+#endif
+
+/* Set the following to 1 to use branch-free addition. */
+#ifndef QD_BF_ADD
+#undef QD_BF_ADD
+#endif
+
+/* Set the following to 1 to use branch-free multiplication. */
+#ifndef QD_BF_MUL
+#undef QD_BF_MUL
+#endif
+
 /* Set the following to 1 to use slightly inaccurate but faster
    version of multiplication. */
 #ifndef QD_SLOPPY_MUL

@@ -1941,6 +1941,27 @@ Key design decisions include:
 The source code is available under a BSD 2-clause license as part
 of the extended QD library.
 
+\subsection*{Optional Branch-Free Algorithms}
+
+libQD3 also provides compile-time optional branch-free (BF) addition and
+multiplication for DD, TD, and QD arithmetic, following Kouya's transcription of
+Zhang and Aiken's FPAN algorithms (arXiv:2603.14926v2).  These paths are not
+enabled by default.  `QD_BF_ADD' selects BF addition, `QD_BF_MUL' selects BF
+multiplication, and `QD_BF' selects both.
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+Type & Operation & BF algorithm & Notes \\
+\hline
+DD & add & DWBFAdd, Alg. 6 & about 20 flops, error about $2u^2$ \\
+DD & mul & DWBFMul, Alg. 8 & same dataflow as the existing DD multiply \\
+TD & add & TWBFAdd, Alg. 11 & branch-free add, slower scalar than default \\
+TD & mul & TWBFMul, Alg. 12 & branch-free multiply, exactly commutative \\
+QD & add & QWBFAdd, Alg. 13 & branch-free add, slower scalar than default \\
+QD & mul & QDBFMul, Alg. 14 & branch-free multiply, exactly commutative
+\end{tabular}
+\end{center}
+
 \begin{thebibliography}{9}
 \bibitem{HLB2001}
 Y.~Hida, X.~S.~Li, and D.~H.~Bailey,
