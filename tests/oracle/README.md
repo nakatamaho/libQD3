@@ -6,15 +6,6 @@ requested explicitly.
 
 ## Build
 
-Autotools:
-
-```sh
-./configure --enable-mpfr-tests
-make check
-```
-
-CMake:
-
 ```sh
 cmake -S . -B build-mpfr -DQD3_ENABLE_MPFR_TESTS=ON
 cmake --build build-mpfr -j
@@ -137,13 +128,6 @@ cmake --build build-sanitize -j
 ctest --test-dir build-sanitize --output-on-failure
 ```
 
-Autotools sanitizer run:
-
-```sh
-./configure --enable-mpfr-tests --enable-sanitizers=address,undefined
-make check
-```
-
 CMake coverage run:
 
 ```sh
@@ -208,10 +192,8 @@ qa/check_16_builds_cmake.sh
 qa/check_oracle_matrix_cmake.sh
 ```
 
-`qa/check_oracle_matrix_cmake.sh` runs the same CMake matrix with
-`QD3_ENABLE_MPFR_TESTS=ON` in every configuration. For Autotools-generated
-trees, `qa/check_oracle_matrix.sh` runs the MPFR oracle matrix through
-`./configure --enable-mpfr-tests`.
+`qa/check_oracle_matrix_cmake.sh` runs the CMake matrix with
+`QD3_ENABLE_MPFR_TESTS=ON` in every configuration.
 
 For seeded oracle programs, seed precedence is:
 
@@ -239,9 +221,9 @@ Reproducibility and governance notes:
   `--seed=<N>`, and the fallback default is `0x9E3779B97F4A7C15`.
 - The command to replay any failure is printed in diagnostics. Seeded programs
   include `--seed=<N>`; deterministic `test_special` does not.
-- Seed handling and MPFR-suite commands are aligned across Autotools and
-  CMake so CI and local runs are reproducible.
+- Seed handling and MPFR-suite commands are aligned across CI and local CMake
+  runs so results are reproducible.
 
 `test_rounding_corners.cpp` is implemented as a dedicated corner-case oracle
-and is wired into both Autotools and CMake oracle test matrices.
+and is wired into the CMake oracle test matrix.
 

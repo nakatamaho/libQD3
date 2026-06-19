@@ -24,8 +24,8 @@ qd3_define_options()
 qd3_normalize_options()
 qd3_assert_version_sync()
 
-# Preserve Autotools ordering: FMA run probes happen before adding the
-# contraction-suppression flag and before QD_ARCH target flags are applied.
+# Keep FMA run probes before adding the contraction-suppression flag and
+# before QD_ARCH target flags are applied.
 qd3_check_fma()
 qd3_check_fp_contract()
 qd3_check_arch()

@@ -7,8 +7,9 @@
 libQD3 now has optional branch-free (BF) addition and multiplication for
 `dd_real`, `td_real`, and `qd_real`, based on Kouya's transcription of Zhang and
 Aiken's algorithms in arXiv:2603.14926v2. BF arithmetic is off by default. Enable
-it with `QD_BF`, or separately with `QD_BF_ADD` and `QD_BF_MUL`; Autotools also
-accepts `--enable-bf`, `--enable-bf-add`, and `--enable-bf-mul`.
+it with `QD_BF`, or separately with `QD_BF_ADD` and `QD_BF_MUL`. CMake
+options are `-DQD_ENABLE_BF=ON`, `-DQD_ENABLE_BF_ADD=ON`, and
+`-DQD_ENABLE_BF_MUL=ON`.
 
 | Type | Op | Default (unchanged) | With BF macro | Effect, scalar |
 |------|----|---------------------|---------------|----------------|

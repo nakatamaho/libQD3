@@ -19,7 +19,7 @@ numbers DE-AC03-76SF00098 and DE-AC02-05CH11231.
 *** IMPORTANT NOTES:
 
 See the file COPYING for modified BSD license information.
-See the file INSTALL for installation instructions.
+See README.md for current CMake build instructions.
 See the file NEWS for recent revisions.
 See the file README.pdf for additional information. The file is mostly identical, but 
 	but includes additional tables on constructors and constants. 
@@ -65,8 +65,7 @@ tests	This directory contains some simple (not comprehensive) tests.
 
 docs 	This directory contains two papers describing the algorithms.
 
-config   This directory contains various scripts used by the configure
- 		script and the Makefile.
+cmake    This directory contains CMake modules and package templates.
 
 
 	
@@ -78,58 +77,39 @@ Linux using the bash shell.
 
 A. Building
 
-To build the library, first run the included configure script by typing 
+To build the library with CMake, run:
 
-       ./configure
+       cmake -S . -B build
+       cmake --build build -j
 
 Branch-free arithmetic can be selected at build time for dd_real, td_real, and
-qd_real.  Configure with --enable-bf-mul to use the scalar-friendly BF
-multiplication path, or --enable-bf to enable both BF addition and
-multiplication.  CMake builds use -DQD_ENABLE_BF_MUL=ON or -DQD_ENABLE_BF=ON.
-The default build is unchanged.
+qd_real. Configure with -DQD_ENABLE_BF_MUL=ON to use the scalar-friendly BF
+multiplication path, or -DQD_ENABLE_BF=ON to enable both BF addition and
+multiplication. The default build is unchanged.
 
-This script automatically generates makefiles for building the library and selects compilers 
-and necessary flags and libraries to include. If the user wishes to specify compilers or flags 
-they may use the following options. 
+Common CMake options include:
 
-       CXX       	C++ compiler to use
-       CXXFLAGS  	C++ compiler flags to use
-       CC        	C compiler to use (for C demo program)
-       CFLAGS    	C compiler flags to use (for C demo program)
-       FC        	Fortran 90 compiler
-       FCFLAGS   	Fortran 90 compiler flags to use
-       FCLIBS    	Fortran 90 libraries needed to link with C++ code.
+       CMAKE_CXX_COMPILER      C++ compiler to use
+       CMAKE_C_COMPILER        C compiler to use
+       CMAKE_Fortran_COMPILER  Fortran compiler to use
+       CMAKE_CXX_FLAGS         C++ compiler flags to use
+       CMAKE_C_FLAGS           C compiler flags to use
+       CMAKE_Fortran_FLAGS     Fortran compiler flags to use
+       QD_BUILD_FORTRAN        AUTO, ON, or OFF
 
 For example, if one is using GNU compilers, configure with:
 
-       ./configure CXX=g++ FC=gfortran
+       cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DCMAKE_Fortran_COMPILER=gfortran
 
-The Fortran and C++ compilers must produce compatible binaries. On some systems 
-additional flags must be included to ensure that portions of the
-library are not built with 32 and 64 bit object files. For example, on
-64-Bit Mac OSX 10.6 (Snow Leopard) and 10.7 (Lion) the correct
-configure line using GNU compilers is:
+The Fortran and C++ compilers must produce compatible binaries. On systems that
+need extra ABI flags, pass them through the corresponding CMake flag variables.
 
-        ./configure CXX=g++ FC=gfortran FCFLAGS=-m64
+To install the library to a chosen prefix, type:
 
-To build the library, simply type 
+       cmake --install build --prefix /path/to/prefix
 
-       make 
-
-and the automatically generated makefiles will build the library including archive files. 
-
-To allow for easy linking to the library, the user may also wish to
-install the archive files to a standard place. To do this type:
-
-       make install
-
-This will also build the library if it has not already been built. Many systems, including Mac 
-and Ubuntu Linux systems, require administrator privileges to install the library at such 
-standard places. On such systems, one may type: 
-
-       sudo make install 
-
-instead if one has sufficient access. 
+Many systems require administrator privileges to install into standard system
+prefixes.
 
 The directory "tests" contains programs for high precision quadrature and integer-relation 
 detection. To build such programs, type:

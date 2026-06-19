@@ -49,101 +49,49 @@ Release-specific notes for libQD3 1.1.0 are in
 
 ## Tips for developers
 
-Before you can build libQD3 from the git repository, you will likely have
-to generate the "autotools" files (such as `./configure`) that are
-normally provided for you in a release tarball. The easiest way to do
-that is to run,
+libQD3 uses CMake as its build system. A normal developer build is:
 
 ```
-$ autoreconf -fi
+$ cmake -S . -B build
+$ cmake --build build -j
+$ ctest --test-dir build --output-on-failure
 ```
-
-as a shortcut for running each of *autoconf*, *autoheader*, *aclocal*,
-*automake*, and *libtoolize* as many times as necessary and in the
-correct order. The `-fi` flags force autoreconf to regenerate
-everything, and to install any missing auxiliary files.  You will of
-course need all of the relevant autotools packages (autoconf,
-automake, and libtool) installed for this to work.
-
-Afterwards, you can configure and build the package normally:
-
-```
-$ ./configure
-$ make
-$ make check
-```
-
 
 ### Optional branch-free arithmetic
 
 Branch-free addition and multiplication for `dd_real`, `td_real`, and `qd_real`
-can be enabled at compile time. Use `./configure --enable-bf-mul` or CMake
-`-DQD_ENABLE_BF_MUL=ON` for the scalar TD/QD multiply speedup; use
-`--enable-bf` or `-DQD_ENABLE_BF=ON` to enable both BF add and BF mul for
-SIMD-oriented or deterministic dataflow builds. BF is off by default.
+can be enabled at compile time. Use `-DQD_ENABLE_BF_MUL=ON` for the scalar
+TD/QD multiply speedup; use `-DQD_ENABLE_BF=ON` to enable both BF add and BF
+mul for SIMD-oriented or deterministic dataflow builds. BF is off by default.
 
 ### Running the test suite
 
-The libQD3 library comes with an automated test suite that should always
-pass. To run it, execute `make check` after building the
-library. Ignoring the noise from the compiler (the test suite itself
-must be compiled), the output should look something like
+The libQD3 library comes with an automated CTest suite that should always pass:
 
 ```
-$ ./configure
-...
-$ make
-...
-$ make check
-...
-PASS: qd_test
-PASS: pslq_test
-PASS: c_test
-PASS: huge
-PASS: f_test
-============================================================================
-Testsuite summary for qd3 1.1.0
-============================================================================
-# TOTAL: 5
-# PASS:  5
-# SKIP:  0
-# XFAIL: 0
-# FAIL:  0
-# XPASS: 0
-# ERROR: 0
-============================================================================
-
+$ cmake -S . -B build
+$ cmake --build build -j
+$ ctest --test-dir build --output-on-failure
 ```
 
-The `f_test` entry is present when Fortran support is enabled.  The main
-numeric test can also be run by precision:
+The main numeric test can also be run by precision after building:
 
 ```
-$ ./tests/qd_test -dd
-$ ./tests/qd_test -edd
-$ ./tests/qd_test -td
-$ ./tests/qd_test -qd
+$ ./build/tests/qd_test -dd
+$ ./build/tests/qd_test -edd
+$ ./build/tests/qd_test -td
+$ ./build/tests/qd_test -qd
 ```
 
 For release-oriented configuration coverage, run:
 
 ```
-$ bash qa/check_16_builds.sh
+$ bash qa/check_16_builds_cmake.sh
 ```
-
-This performs out-of-tree builds for the default configuration plus all
-16 combinations of `ieee_add`, `sloppy_mul`, `sloppy_div`, and `fma`.
-It writes logs and summaries under `_build_matrix/` by default.
 
 Additional QA-only builds are opt-in and do not affect the default test path:
 
 ```
-$ ./configure --enable-sanitizers=address,undefined
-$ make check
-
-$ ./configure --enable-coverage
-$ make coverage
-
 $ cmake -S . -B build-qa -DQD3_ENABLE_ASAN=ON -DQD3_ENABLE_UBSAN=ON
 $ cmake --build build-qa -j
 $ ctest --test-dir build-qa --output-on-failure
@@ -152,45 +100,42 @@ $ cmake -S . -B build-coverage -DQD3_ENABLE_COVERAGE=ON
 $ cmake --build build-coverage --target coverage
 ```
 
-The optional MPFR oracle suite is guarded by `--enable-mpfr-tests` for
-Autotools and `-DQD3_ENABLE_MPFR_TESTS=ON` for CMake. When enabled,
-configuration fails immediately if MPFR/GMP cannot be found. The oracle
-build matrix runner is:
+The optional MPFR oracle suite is guarded by `-DQD3_ENABLE_MPFR_TESTS=ON`.
+When enabled, configuration fails immediately if MPFR/GMP cannot be found. The
+oracle build matrix runner is:
 
 ```
-$ bash qa/check_oracle_matrix.sh
+$ bash qa/check_oracle_matrix_cmake.sh
 $ ENABLE_MPFR_ORACLE=ON bash qa/check_16_builds_cmake.sh
 ```
 
-Both commands export a deterministic `QD_TEST_SEED` by default. The Autotools
-script stores logs under `_build_oracle_matrix/`; the CMake wrapper keeps its
-existing `_build_matrix_cmake/` default unless `BUILD_ROOT` is set.
+Both commands export a deterministic `QD_TEST_SEED` by default and store logs
+under `_build_matrix_cmake/` unless `BUILD_ROOT` is set.
 
 ### Making a release
 
-There are several steps that need to be performed when making a new
-release:
+There are several steps that need to be performed when making a new release:
 
-1. Ensure that all important user-facing changes are mentioned
-   in the `NEWS` file and the appropriate `CHANGES.*.md` file.
+1. Ensure that all important user-facing changes are mentioned in the `NEWS`
+   file and the appropriate `CHANGES.*.md` file.
 
-2. Update the package version number in `configure.ac`.
+2. Update the package version number in `CMakeLists.txt`.
 
-3. Build a release tarball. First, run `git clean -x -f -d` to ensure
-   that you're starting fresh. Then run `autoreconf -fi` to regenerate
-   all of the autotools files. Run `./configure` to create your
-   Makefiles, and finally, `make dist` to create the release tarball.
+3. Build and test from a clean tree:
 
-4. Run `bash qa/check_16_builds.sh` to validate the release matrix.
+```
+$ git clean -x -f -d
+$ cmake -S . -B build
+$ cmake --build build -j
+$ ctest --test-dir build --output-on-failure
+$ bash qa/check_16_builds_cmake.sh
+```
 
-5. Run `make distcheck` to ensure that the release tarball works.
+4. Create the source archive from the tagged commit. The CMake build provides a
+   `dist-cmake` convenience target based on `git archive`.
 
-6. Tag the commit that corresponds to the release with `git tag -s
+5. Tag the commit that corresponds to the release with `git tag -s
    <version-number>`.
 
-7. Push everything to GitHub.
-
-8. Upload the release tarball (created earlier) to the GitHub release
-   page that corresponds to your new version tag. This ensures that
-   end-users can run `./configure` and such "out of the box," without
-   having to install the GNU autotools (or learn their commands).
+6. Push everything to GitHub and upload the generated archive to the GitHub
+   release page.

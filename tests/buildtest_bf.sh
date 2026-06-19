@@ -1,29 +1,23 @@
 #!/bin/sh
 set -eu
 
-jobs=${JOBS:-${MAKEFLAGS:-}}
-if [ -z "$jobs" ]; then
-  jobs="-j2"
-fi
+jobs=${JOBS:-2}
 
 run_case() {
   name=$1
-  cppflags=$2
+  shift
   builddir="buildtest-bf-$name"
   rm -rf "$builddir"
-  mkdir "$builddir"
-  (
-    cd "$builddir"
-    CPPFLAGS="$cppflags" ../configure
-    make $jobs check
-  )
+  cmake -S . -B "$builddir" "$@"
+  cmake --build "$builddir" -j "$jobs"
+  ctest --test-dir "$builddir" --output-on-failure
 }
 
-run_case default ""
-run_case bf "-DQD_BF"
-run_case bf_add "-DQD_BF_ADD"
-run_case bf_mul "-DQD_BF_MUL"
-run_case bf_mul_ieee_add "-DQD_BF_MUL -DQD_IEEE_ADD"
-run_case ieee_add "-DQD_IEEE_ADD"
-run_case sloppy_mul "-DQD_SLOPPY_MUL"
-run_case sloppy_div "-DQD_SLOPPY_DIV"
+run_case default
+run_case bf -DQD_ENABLE_BF=ON
+run_case bf_add -DQD_ENABLE_BF_ADD=ON
+run_case bf_mul -DQD_ENABLE_BF_MUL=ON
+run_case bf_mul_ieee_add -DQD_ENABLE_BF_MUL=ON -DQD_ENABLE_IEEE_ADD=ON
+run_case ieee_add -DQD_ENABLE_IEEE_ADD=ON
+run_case sloppy_mul -DQD_ENABLE_SLOPPY_MUL=ON
+run_case sloppy_div -DQD_ENABLE_SLOPPY_DIV=ON
