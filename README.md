@@ -57,6 +57,39 @@ $ cmake --build build -j
 $ ctest --test-dir build --output-on-failure
 ```
 
+Build knobs are passed at configure time with `-DNAME=VALUE`, for example:
+
+```
+$ cmake -S . -B build-bf-mul -DQD_ENABLE_BF_MUL=ON
+$ cmake --build build-bf-mul -j
+```
+
+Common build knobs:
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `QD_ENABLE_INLINE` | `ON` | Install inline definitions for commonly used functions. |
+| `QD_ENABLE_IEEE_ADD` | `OFF` | Use IEEE-style addition instead of the default sloppy addition. |
+| `QD_ENABLE_SLOPPY_MUL` | `ON` | Use the existing faster sloppy multiplication path where applicable. |
+| `QD_ENABLE_SLOPPY_DIV` | `ON` | Use the existing faster sloppy division path where applicable. |
+| `QD_ENABLE_BF` | `OFF` | Enable both branch-free addition and multiplication. |
+| `QD_ENABLE_BF_ADD` | `OFF` | Enable only branch-free addition. |
+| `QD_ENABLE_BF_MUL` | `OFF` | Enable only branch-free multiplication. |
+| `QD_FMA` | `auto` | Select FMA implementation: `auto`, `yes`, `no`, `gnu`, `c99`, `ibm`, `ia64`, or `compiler`. |
+| `QD_ARCH` | `generic` | Select code generation target: `generic`, `x86-64-v3`, or `native`. |
+| `QD_BUILD_FORTRAN` | `AUTO` | Build Fortran interfaces: `AUTO`, `ON`, or `OFF`. |
+| `QD_ENABLE_EDD_REAL` | `AUTO` | Build binary80 `_Float64x` `edd_real` sources: `AUTO`, `ON`, or `OFF`. |
+| `BUILD_SHARED_LIBS` | `ON` | Build shared libraries. |
+| `QD_BUILD_STATIC` | `ON` | Build static libraries. |
+| `QD_PROPAGATE_FP_CONTRACT_FLAG` | `OFF` | Export the selected FP-contraction flag to downstream C++ consumers. |
+| `QD3_ENABLE_MPFR_TESTS` | `OFF` | Build the optional MPFR oracle test suite. |
+| `QD3_ENABLE_ASAN` | `OFF` | Build QA targets with AddressSanitizer. |
+| `QD3_ENABLE_UBSAN` | `OFF` | Build QA targets with UndefinedBehaviorSanitizer. |
+| `QD3_ENABLE_COVERAGE` | `OFF` | Build QA targets with coverage instrumentation and add the `coverage` target. |
+
+`QD_ENABLE_BF=ON` turns on both `QD_ENABLE_BF_ADD` and `QD_ENABLE_BF_MUL`. At
+least one of `BUILD_SHARED_LIBS` or `QD_BUILD_STATIC` must be `ON`.
+
 ### Optional branch-free arithmetic
 
 Branch-free addition and multiplication for `dd_real`, `td_real`, and `qd_real`
