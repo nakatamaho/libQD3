@@ -1,5 +1,34 @@
 # libQD3 QA Notes
 
+## QA Philosophy
+
+libQD3 QA treats correctness as layered numerical evidence, not as a single
+golden run. The default tests stay dependency-light so normal builds catch API,
+ABI, smoke, and regression failures quickly. The optional oracle tests provide
+stronger numerical evidence by comparing libQD3 against MPFR and MPC reference
+computations at higher precision and documented rounding modes.
+
+A result is accepted only when the relevant public precision types are covered:
+`dd_real`, `td_real`, `qd_real`, `edd_real` when available, and the matching
+complex types. Real oracle references are computed independently with MPFR;
+complex oracle references are computed independently with MPC and MPFR; endpoint
+tests use fixed mathematical contracts for NaN, infinity, branch, and rounding
+behavior.
+
+The tests make the reason for acceptance explicit. Input domains are named and
+separated into stable regions, conditioned regions, and deterministic endpoint
+cases. Error budgets live in the oracle source, are expressed in library eps,
+and are adjusted for condition number where the mathematical problem itself is
+ill-conditioned. Randomized cases are reproducible through `QD_TEST_SEED` or
+`--seed`, and failures print the operands, reference value, library value,
+absolute error, relative error, ULP estimate, and replay command.
+
+This is not a formal proof of the algorithms. It is a practical correctness
+argument: independent high-precision oracles check the direct numerical result,
+identity tests check consistency between related functions, corner tests check
+documented contracts, smoke tests check the public API used by consumers, and
+matrix scripts check that those guarantees survive supported build options.
+
 This file summarizes how the QA suite covers real and complex arithmetic and
 special-function behavior. Source links are included for each test path.
 
