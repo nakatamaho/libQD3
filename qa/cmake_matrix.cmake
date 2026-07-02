@@ -151,11 +151,11 @@ function(qd3_run_config tag)
     set(rc "${QD3_LAST_RC}")
   endif()
 
-  if(rc EQUAL 0)
+  if(rc EQUAL 0 AND ENABLE_MPFR_ORACLE)
     qd3_run_process("${log_file}"
       "${build_dir}/tests/oracle/test_rounding" --all
-      --seed="${QD_TEST_SEED}"
-      --worst-report="${report_file}"
+      "--seed=${QD_TEST_SEED}"
+      "--worst-report=${report_file}"
     )
     set(rc "${QD3_LAST_RC}")
   endif()
@@ -217,7 +217,7 @@ message("MPFR mode : ${ENABLE_MPFR_ORACLE}")
 message("Seed      : ${QD_TEST_SEED}")
 message("Failures  : ${fail_count}")
 
-if(EXISTS "${CORNER_REPORT_DIR}")
+if(ENABLE_MPFR_ORACLE AND EXISTS "${CORNER_REPORT_DIR}")
   execute_process(
     COMMAND python3 "${SRC_DIR}/qa/compare_rounding_matrix.py" "${CORNER_REPORT_DIR}"
     RESULT_VARIABLE compare_rc

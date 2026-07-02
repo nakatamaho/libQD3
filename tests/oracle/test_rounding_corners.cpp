@@ -44,7 +44,8 @@ struct RoundingCaseRecord {
 };
 
 void print_usage() {
-  std::cout << "oracle_test_rounding_corners [-dd] [-td] [-qd] [-edd] [-all] [-v]"
+  std::cout << "oracle_test_rounding_corners [-dd|--dd] [-td|--td]"
+            << " [-qd|--qd] [-edd|--edd] [-all|--all] [-v|--verbose]"
             << " [--seed=N] [--worst-report=FILE]" << std::endl;
 }
 
@@ -469,26 +470,33 @@ void select_all(Options *options) {
 bool parse_args(int argc, char **argv, Options *options) {
   for (int i = 1; i < argc; ++i) {
     if (std::strcmp(argv[i], "-h") == 0 ||
-        std::strcmp(argv[i], "-help") == 0) {
+        std::strcmp(argv[i], "-help") == 0 ||
+        std::strcmp(argv[i], "--help") == 0) {
       print_usage();
       std::exit(0);
-    } else if (std::strcmp(argv[i], "-dd") == 0) {
+    } else if (std::strcmp(argv[i], "-dd") == 0 ||
+               std::strcmp(argv[i], "--dd") == 0) {
       options->test_dd = true;
-    } else if (std::strcmp(argv[i], "-td") == 0) {
+    } else if (std::strcmp(argv[i], "-td") == 0 ||
+               std::strcmp(argv[i], "--td") == 0) {
       options->test_td = true;
-    } else if (std::strcmp(argv[i], "-qd") == 0) {
+    } else if (std::strcmp(argv[i], "-qd") == 0 ||
+               std::strcmp(argv[i], "--qd") == 0) {
       options->test_qd = true;
-    } else if (std::strcmp(argv[i], "-edd") == 0) {
+    } else if (std::strcmp(argv[i], "-edd") == 0 ||
+               std::strcmp(argv[i], "--edd") == 0) {
 #ifdef QD_HAVE_EDD_REAL
       options->test_edd = true;
 #else
       std::cerr << "edd_real is not enabled in this build\n";
       return false;
 #endif
-    } else if (std::strcmp(argv[i], "-all") == 0) {
+    } else if (std::strcmp(argv[i], "-all") == 0 ||
+               std::strcmp(argv[i], "--all") == 0) {
       select_all(options);
     } else if (std::strcmp(argv[i], "-v") == 0 ||
-               std::strcmp(argv[i], "-verbose") == 0) {
+               std::strcmp(argv[i], "-verbose") == 0 ||
+               std::strcmp(argv[i], "--verbose") == 0) {
       options->verbose = true;
     } else if (std::strncmp(argv[i], "--worst-report=", 15) == 0) {
       options->worst_report = argv[i] + 15;

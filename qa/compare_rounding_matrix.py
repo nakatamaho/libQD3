@@ -36,6 +36,17 @@ def read_reports(report_dir: str):
   return data
 
 
+def normalized_input_id(row):
+  input_id = row['input_id']
+  if row['operation'] == 'add' and input_id.startswith(
+      'variant_distinguishing_carry_ripple_cancellation_'):
+    return 'variant_distinguishing_carry_ripple_cancellation'
+  if row['operation'] == 'mul' and input_id.startswith(
+      'qd_mul_variant_distinguishing_'):
+    return 'qd_mul_variant_distinguishing'
+  return input_id
+
+
 def max_by_key(rows):
   add_map: Dict[Tuple[str, str, str, str, str, str], Dict[str, float]] = {}
   mul_map: Dict[Tuple[str, str, str, str, str, str], Dict[str, float]] = {}
@@ -43,7 +54,7 @@ def max_by_key(rows):
   for row in rows:
     t = row['type']
     op = row['operation']
-    input_id = row['input_id']
+    input_id = normalized_input_id(row)
     ieee_add = row['ieee_add']
     sloppy_mul = row['sloppy_mul']
     sloppy_div = row['sloppy_div']
