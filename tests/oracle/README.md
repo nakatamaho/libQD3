@@ -41,17 +41,18 @@ tests/oracle/test_rounding_corners -all --seed=12345
 
 `test_arith` checks `+`, `-`, `*`, `/`, `sqr`, compound assignment,
 mixed `T op double`, and comparisons against exact MPFR images.
-`test_unary` checks `sqrt`, `sqr`, `exp`, `log`, `log10`, `sin`, `cos`,
-`tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, and `tanh` over bounded
-random domains. Trigonometric tests are split into stable inputs, where
+`test_unary` checks `sqrt`, `sqr`, `exp`, `exp2`, `expm1`, `log`,
+`log1p`, `log10`, `log2`, `cbrt`, `trunc`, `round`, `sin`, `cos`, `tan`,
+`asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, and
+`atanh` over bounded random domains. Trigonometric tests are split into stable inputs, where
 both `|sin(x)|` and `|cos(x)|` are at least `0.25`, and conditioned
 inputs, where the allowed error is scaled by the relative condition
 number. The TAP comments for trig cases include the worst input limbs,
 MPFR `sin`, `cos`, `tan`, the condition number, and the `tan` error
 obtained from the library's `sin(x) / cos(x)` path.
 `test_binary` checks two-input functions and parameterized operations:
-`pow(T,int)`, `pow(T,T)` where supported, `nroot`, `atan2`, `ldexp`,
-`fmod`, and `drem`.
+`pow(T,int)`, `pow(T,T)`, `nroot`, `atan2`, `ldexp`, `hypot`, `fmod`,
+and `drem` where exposed.
 `test_special` is deterministic and does not accept `--seed`; it checks
 NaN/Inf constants, documented domain-NaN behavior,
 selected endpoint values, `nint` half cases, exact power-of-two scaling,
@@ -66,6 +67,25 @@ and the type-specific special-string parse contract.
 `test_capi` checks the C wrappers against the C++ API with bit-identical
 limb comparisons for arithmetic, unary, transcendental, trigonometric,
 hyperbolic, comparison, constants, read, and swrite shims.
+
+
+## MPC Complex Oracle Tests
+
+The complex oracle suite is optional and independent from the MPFR-only real
+oracle suite. Enable it with:
+
+```sh
+cmake -S . -B build-mpc -DQD3_ENABLE_MPC_TESTS=ON -DBUILD_TESTING=ON
+cmake --build build-mpc -j
+ctest --test-dir build-mpc --output-on-failure
+```
+
+These tests require MPC, MPFR, and GMP. They cover complex arithmetic,
+elementary functions including `tan`, inverse trig/hyperbolic functions,
+`tanh`, `proj`, `pow`, `ldexp`, `abs`, `norm`, `arg`, `polar`, component-wise
+`ceil`, and `conj` for `dd_complex`, `td_complex`, `qd_complex`,
+and `edd_complex` when available. The existing `QD3_ENABLE_MPFR_TESTS` option
+does not require MPC.
 
 ## Oracle Coverage Audit
 
@@ -85,19 +105,20 @@ needs an explicit oracle row or special-value grid.
 | `+`, `-`, `*`, `/`, `sqr` | `test_arith`, `test_rounding_corners` | Covered | Same-type random MPFR checks plus deterministic exactness, tie, and variant cases. |
 | Compound assignment | `test_arith` | Partial | Same-type compound operations are checked against the corresponding expression; mixed compound overloads still need a dedicated matrix. |
 | Comparisons | `test_arith`, `test_capi` | Partial | Same-type comparisons are randomized against MPFR ordering; mixed dd/td/qd comparison overloads are not exhaustively enumerated. |
-| `sqrt`, `sqr`, `exp`, `log`, `log10` | `fn_registry`, `test_unary` | Covered | Random domains are table-driven and report bound justification. |
+| `sqrt`, `sqr`, `exp`, `exp2`, `expm1`, `log`, `log1p`, `log10`, `log2`, `cbrt`, `trunc`, `round` | `fn_registry`, `test_unary` | Covered | Random domains are table-driven and report bound justification. |
 | `sin`, `cos`, `tan` | `fn_registry`, `test_unary` | Covered | Stable and conditioned domains are split; trig diagnostics include condition number, MPFR components, and td reduction sectors. |
-| `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh` | `fn_registry`, `test_unary` | Covered | Random bounded domains are covered for all enabled real types. |
+| `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` | `fn_registry`, `test_unary` | Covered | Random bounded domains are covered for all enabled real types. |
 | `pow(T,int)` | `test_binary` | Covered | Covered for dd, td, qd, and edd. |
-| `pow(T,T)` | `test_binary` | Covered where available | Covered for dd, td, and qd; edd does not expose this overload. |
+| `pow(T,T)` | `test_binary` | Covered | Covered for dd, td, qd, and edd. |
 | `nroot` | `test_binary`, `test_special`, `test_identities` | Partial | `n=3` is covered, including a negative cube-root edge; other integer roots remain TODO. |
 | `atan2` | `test_binary`, `test_special` | Covered | Random MPFR checks plus a quadrant-II endpoint case. |
 | `ldexp` | `test_binary`, `test_special` | Covered | Exact MPFR scaling with zero allowed error. |
-| `fmod`, `drem` | `test_binary` | Covered where available | Covered for dd and qd, matching the public C++ API. |
+| `hypot` | `test_binary` | Covered | Random MPFR checks for all enabled real types. |
+| `fmod` | `test_binary` | Covered | Covered for dd, td, qd, and edd. |
+| `drem` | `test_binary` | Covered where available | Covered for dd and qd, matching the public C++ API. |
 | `abs`, `fabs` | `test_capi`, `test_special` | Partial | C shim equivalence and `abs(-inf)` are checked; direct MPFR absolute-value rows are still TODO. |
-| `nint`, `floor`, `ceil`, `aint`, `quick_nint` | `test_special`, `test_capi` | Partial | Half cases and C shim checks exist for exposed APIs; a direct MPFR rounding grid and `quick_nint` coverage remain TODO. |
+| `nint`, `floor`, `ceil`, `aint`, `trunc`, `round`, `quick_nint` | `test_unary`, `test_special`, `test_capi` | Partial | `trunc` and `round` have direct MPFR rows; half cases and C shim checks exist for exposed APIs; a direct grid for all rounding APIs and `quick_nint` coverage remain TODO. |
 | `sincos`, `sincosh` | `test_identities` indirectly | TODO | `tan` versus `sin/cos` is checked, but the public pair-output APIs need direct bit or MPFR checks. |
-| `asinh`, `acosh`, `atanh` | none | TODO | Public C++ and C headers expose these for dd/td/qd; add direct MPFR rows. |
 | String construction, stream read/write, `to_string`, `to_digits`, `write` | `test_io`, `test_capi` | Partial | Round trips and format invariants are covered; exact decimal boundary and locale/width grids remain TODO. |
 | C API wrappers | `test_capi` | Partial | Core shims are compared to C++ API bit-identically; mixed C shim overloads, `sincos`, `sincosh`, inverse hyperbolic, and write/rand variants need more rows. |
 

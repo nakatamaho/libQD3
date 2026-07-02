@@ -87,6 +87,12 @@ qd_real. Configure with -DQD_ENABLE_BF_MUL=ON to use the scalar-friendly BF
 multiplication path, or -DQD_ENABLE_BF=ON to enable both BF addition and
 multiplication. The default build is unchanged.
 
+Complex C++ support is available through <qd/complex.h>, which defines
+`dd_complex`, `td_complex`, `qd_complex`, and `edd_complex` when enabled.
+The overload set follows standard complex arithmetic and elementary functions,
+plus `proj`, `ldexp`, and component-wise `ceil`, using unqualified lookup/ADL
+without adding overloads to namespace `std`.
+
 Common CMake options include:
 
        CMAKE_CXX_COMPILER      C++ compiler to use

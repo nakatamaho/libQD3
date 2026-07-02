@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Extended-precision complex types
+
+libQD3 now installs first-class complex headers for `dd_complex`, `td_complex`,
+`qd_complex`, and `edd_complex` when `edd_real` is available. The implementation
+uses one shared `qd3_complex<Real>` template body and thin type aliases, with
+ADL-discovered overloads for arithmetic, elementary functions, `ldexp`,
+`proj`, and component-wise `ceil`. The complex overload set now covers the
+standard-compatible `tan`, `tanh`, inverse trigonometric, and inverse
+hyperbolic functions without adding overloads to namespace `std`.
+
+A default `complex_test` target covers the public headers and generic
+`using std::sqrt; sqrt(z)` style calls. Optional MPC-backed complex oracle tests
+are available with `-DQD3_ENABLE_MPC_TESTS=ON` and remain independent from the
+existing MPFR-only real oracle suite.
+
+The real types also gained matching practical C++ math coverage for `log2`,
+`exp2`, `expm1`, `log1p`, `hypot`, `cbrt`, `trunc`, and `round`, with TD/EDD
+API gaps closed where needed so generic `using std::...; f(x)` code behaves
+consistently across DD, TD, QD, and EDD builds.
+
 ### Optional branch-free arithmetic
 
 libQD3 now has optional branch-free (BF) addition and multiplication for

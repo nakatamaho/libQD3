@@ -1,4 +1,9 @@
 Changes for 1.1.1
+    Added first-class extended-precision complex C++ headers for dd_complex,
+    td_complex, qd_complex, and edd_complex when available, backed by a shared
+    template implementation and optional MPC oracle tests; added complex tan,
+    tanh, inverse trig/hyperbolic, and proj overloads plus real log2, exp2,
+    expm1, log1p, hypot, cbrt, trunc, and round coverage across types.
     Reworked td_real trigonometric argument reduction to use a native
     four-limb residual helper instead of routing the reduction through
     qd_real, and added deterministic td sin/cos/tan worst-case regressions.
@@ -9,7 +14,7 @@ Changes for 1.1.1
     tests with 69.7% filtered line coverage and 75.2% filtered function
     coverage.
     Added an optional MPFR-backed oracle test suite under tests/oracle and wired
-    it into CMake/Autotools test flows when MPFR testing is enabled.
+    it into CMake test flows when MPFR testing is enabled.
     Added seeded TAP diagnostics, verbose MPFR value/error reporting, and
     reproducibility notes for oracle test runs (seed precedence: QD_TEST_SEED -> --seed -> fixed default).
     Added coverage and sanitizer coverage workflows for the oracle suite, including

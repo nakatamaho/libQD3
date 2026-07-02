@@ -13,6 +13,12 @@ Fortran:
 - `td_real`: triple-double precision, about 159 mantissa bits
 - `qd_real`: quad-double precision, about 212 mantissa bits
 
+libQD3 also provides matching C++ complex aliases through `<qd/complex.h>`:
+`dd_complex`, `td_complex`, `qd_complex`, and `edd_complex` when `edd_real` is
+available. These overload arithmetic, standard complex elementary functions,
+`proj`, `ldexp`, and component-wise `ceil` through normal unqualified lookup
+plus ADL; no overloads are added to namespace `std`.
+
 ## News
 2026-04-22 libQD3 1.1.0 was released.  This release adds
 binary80-based `edd_real` extended-double support, including core
@@ -83,6 +89,7 @@ Common build knobs:
 | `QD_BUILD_STATIC` | `ON` | Build static libraries. |
 | `QD_PROPAGATE_FP_CONTRACT_FLAG` | `OFF` | Export the selected FP-contraction flag to downstream C++ consumers. |
 | `QD3_ENABLE_MPFR_TESTS` | `OFF` | Build the optional MPFR oracle test suite. |
+| `QD3_ENABLE_MPC_TESTS` | `OFF` | Build the optional MPC complex oracle test suite. |
 | `QD3_ENABLE_ASAN` | `OFF` | Build QA targets with AddressSanitizer. |
 | `QD3_ENABLE_UBSAN` | `OFF` | Build QA targets with UndefinedBehaviorSanitizer. |
 | `QD3_ENABLE_COVERAGE` | `OFF` | Build QA targets with coverage instrumentation and add the `coverage` target. |
@@ -105,6 +112,18 @@ The libQD3 library comes with an automated CTest suite that should always pass:
 $ cmake -S . -B build
 $ cmake --build build -j
 $ ctest --test-dir build --output-on-failure
+```
+
+The default suite also builds `complex_test`, which covers the public
+`dd_complex`, `td_complex`, `qd_complex`, and optional `edd_complex` headers.
+
+The optional MPC complex oracle suite can be enabled independently from the
+MPFR real oracle suite:
+
+```
+cmake -S . -B build-mpc -DBUILD_TESTING=ON -DQD3_ENABLE_MPC_TESTS=ON
+cmake --build build-mpc -j
+ctest --test-dir build-mpc --output-on-failure
 ```
 
 The main numeric test can also be run by precision after building:
