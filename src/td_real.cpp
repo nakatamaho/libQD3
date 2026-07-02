@@ -391,6 +391,121 @@ td_real log10(const td_real &a) {
   return log(a) / td_real::_log10;
 }
 
+td_real log2(const td_real &a) {
+  return log(a) / td_real::_log2;
+}
+
+td_real exp2(const td_real &a) {
+  return exp(td_real::_log2 * a);
+}
+
+td_real expm1(const td_real &a) {
+  if (a.isnan()) {
+    return td_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < td_real(0.125)) {
+    td_real term = a;
+    td_real sum = a;
+    double n = 1.0;
+    td_real thresh = abs(a) * td_real(td_real::_eps);
+    if (thresh.is_zero()) {
+      thresh = td_real(td_real::_eps);
+    }
+    do {
+      n += 1.0;
+      term *= a;
+      term /= n;
+      sum += term;
+    } while (abs(term) > thresh);
+    return sum;
+  }
+  return exp(a) - 1.0;
+}
+
+td_real log1p(const td_real &a) {
+  if (a.isnan()) {
+    return td_real::_nan;
+  }
+  if (a == -1.0) {
+    return -td_real::_inf;
+  }
+  if (a < -1.0) {
+    td_real::error("(td_real::log1p): Argument out of domain.");
+    return td_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < td_real(0.125)) {
+    td_real term = a;
+    td_real sum = a;
+    double n = 1.0;
+    td_real thresh = abs(a) * td_real(td_real::_eps);
+    if (thresh.is_zero()) {
+      thresh = td_real(td_real::_eps);
+    }
+    do {
+      n += 1.0;
+      term *= -a;
+      td_real add = term / n;
+      sum += add;
+      if (abs(add) <= thresh) {
+        break;
+      }
+    } while (true);
+    return sum;
+  }
+  return log(1.0 + a);
+}
+
+td_real fmod(const td_real &a, const td_real &b) {
+  td_real n = aint(a / b);
+  return a - b * n;
+}
+
+td_real hypot(const td_real &a, const td_real &b) {
+  if (a.isnan() || b.isnan()) {
+    return td_real::_nan;
+  }
+  if (a.isinf() || b.isinf()) {
+    return td_real::_inf;
+  }
+  td_real x = abs(a);
+  td_real y = abs(b);
+  if (x < y) {
+    std::swap(x, y);
+  }
+  if (x.is_zero()) {
+    return 0.0;
+  }
+  td_real r = y / x;
+  return x * sqrt(1.0 + sqr(r));
+}
+
+td_real cbrt(const td_real &a) {
+  if (a.isnan()) {
+    return td_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  return nroot(a, 3);
+}
+
+td_real trunc(const td_real &a) {
+  return aint(a);
+}
+
+td_real round(const td_real &a) {
+  if (a.isnan() || a.isinf() || a.is_zero()) {
+    return a;
+  }
+  return a.is_positive() ? floor(a + 0.5) : ceil(a - 0.5);
+}
+
 td_real sin(const td_real &a) {
   td_real s, c;
   sincos(a, s, c);

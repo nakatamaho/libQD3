@@ -265,6 +265,10 @@ edd_real nroot(const edd_real &a, int n) {
   return (edd_word) 1.0 / x;
 }
 
+edd_real pow(const edd_real &a, const edd_real &b) {
+  return exp(b * log(a));
+}
+
 edd_real exp(const edd_real &a) {
   if (a.isnan())
     return edd_real::_nan;
@@ -316,6 +320,68 @@ edd_real log(const edd_real &a) {
 
 edd_real log10(const edd_real &a) {
   return log(a) / edd_real::_log10;
+}
+
+edd_real log2(const edd_real &a) {
+  return log(a) / edd_real::_log2;
+}
+
+edd_real exp2(const edd_real &a) {
+  return exp(edd_real::_log2 * a);
+}
+
+edd_real expm1(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (a.is_zero())
+    return a;
+  if (abs(a) < (edd_word) 0.125) {
+    edd_real term = a;
+    edd_real sum = a;
+    edd_word n = (edd_word) 1.0;
+    edd_real thresh = abs(a) * edd_real::_eps;
+    if (thresh.is_zero())
+      thresh = edd_real(edd_real::_eps);
+    do {
+      n += (edd_word) 1.0;
+      term *= a;
+      term /= n;
+      sum += term;
+    } while (abs(term) > thresh);
+    return sum;
+  }
+  return exp(a) - (edd_word) 1.0;
+}
+
+edd_real log1p(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (a == (edd_word) -1.0)
+    return -edd_real::_inf;
+  if (a < (edd_word) -1.0) {
+    edd_real::error("(edd_real::log1p): Argument out of domain.");
+    return edd_real::_nan;
+  }
+  if (a.is_zero())
+    return a;
+  if (abs(a) < (edd_word) 0.125) {
+    edd_real term = a;
+    edd_real sum = a;
+    edd_word n = (edd_word) 1.0;
+    edd_real thresh = abs(a) * edd_real::_eps;
+    if (thresh.is_zero())
+      thresh = edd_real(edd_real::_eps);
+    do {
+      n += (edd_word) 1.0;
+      term *= -a;
+      edd_real add = term / n;
+      sum += add;
+      if (abs(add) <= thresh)
+        break;
+    } while (true);
+    return sum;
+  }
+  return log((edd_word) 1.0 + a);
 }
 
 void sincos(const edd_real &a, edd_real &s, edd_real &c) {
@@ -498,6 +564,76 @@ void sincosh(const edd_real &a, edd_real &s, edd_real &c) {
   }
 }
 
+edd_real asinh(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (a.isinf())
+    return a;
+  return log(a + sqrt(sqr(a) + (edd_word) 1.0));
+}
+
+edd_real acosh(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (a < (edd_word) 1.0) {
+    edd_real::error("(edd_real::acosh): Argument out of domain.");
+    return edd_real::_nan;
+  }
+  if (a.isinf())
+    return edd_real::_inf;
+  return log(a + sqrt(sqr(a) - (edd_word) 1.0));
+}
+
+edd_real atanh(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (abs(a) >= (edd_word) 1.0) {
+    edd_real::error("(edd_real::atanh): Argument out of domain.");
+    return edd_real::_nan;
+  }
+  return mul_pwr2(log(((edd_word) 1.0 + a) / ((edd_word) 1.0 - a)),
+                  (edd_word) 0.5);
+}
+
 edd_real nint(const edd_real &a) {
   return edd_nint_internal(a);
+}
+
+edd_real fmod(const edd_real &a, const edd_real &b) {
+  edd_real n = aint(a / b);
+  return a - b * n;
+}
+
+edd_real hypot(const edd_real &a, const edd_real &b) {
+  if (a.isnan() || b.isnan())
+    return edd_real::_nan;
+  if (a.isinf() || b.isinf())
+    return edd_real::_inf;
+  edd_real x = abs(a);
+  edd_real y = abs(b);
+  if (x < y)
+    std::swap(x, y);
+  if (x.is_zero())
+    return edd_real((edd_word) 0.0);
+  edd_real r = y / x;
+  return x * sqrt((edd_word) 1.0 + sqr(r));
+}
+
+edd_real cbrt(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+  if (a.is_zero())
+    return a;
+  return nroot(a, 3);
+}
+
+edd_real trunc(const edd_real &a) {
+  return aint(a);
+}
+
+edd_real round(const edd_real &a) {
+  if (a.isnan() || a.isinf() || a.is_zero())
+    return a;
+  return a.is_positive() ? floor(a + (edd_word) 0.5)
+                         : ceil(a - (edd_word) 0.5);
 }

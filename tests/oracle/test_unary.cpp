@@ -97,10 +97,18 @@ const char *unary_op_id(qd_oracle::UnaryOp op) {
     return "sqr";
   case qd_oracle::unary_exp:
     return "exp";
+  case qd_oracle::unary_exp2:
+    return "exp2";
+  case qd_oracle::unary_expm1:
+    return "expm1";
   case qd_oracle::unary_log:
     return "log";
   case qd_oracle::unary_log10:
     return "log10";
+  case qd_oracle::unary_log1p:
+    return "log1p";
+  case qd_oracle::unary_log2:
+    return "log2";
   case qd_oracle::unary_sin:
     return "sin";
   case qd_oracle::unary_cos:
@@ -119,6 +127,12 @@ const char *unary_op_id(qd_oracle::UnaryOp op) {
     return "cosh";
   case qd_oracle::unary_tanh:
     return "tanh";
+  case qd_oracle::unary_cbrt:
+    return "cbrt";
+  case qd_oracle::unary_trunc:
+    return "trunc";
+  case qd_oracle::unary_round:
+    return "round";
   }
   return "unknown";
 }
@@ -143,6 +157,8 @@ const char *input_domain_name(qd_oracle::InputDomain domain) {
     return "trig_conditioned";
   case qd_oracle::domain_hyperbolic_moderate:
     return "hyperbolic_moderate";
+  case qd_oracle::domain_log1p:
+    return "log1p";
   }
   return "unknown";
 }
@@ -249,10 +265,18 @@ T apply_unary(qd_oracle::UnaryOp op, const T &a) {
     return sqr(a);
   case qd_oracle::unary_exp:
     return exp(a);
+  case qd_oracle::unary_exp2:
+    return exp2(a);
+  case qd_oracle::unary_expm1:
+    return expm1(a);
   case qd_oracle::unary_log:
     return log(a);
   case qd_oracle::unary_log10:
     return log10(a);
+  case qd_oracle::unary_log1p:
+    return log1p(a);
+  case qd_oracle::unary_log2:
+    return log2(a);
   case qd_oracle::unary_sin:
     return sin(a);
   case qd_oracle::unary_cos:
@@ -271,6 +295,12 @@ T apply_unary(qd_oracle::UnaryOp op, const T &a) {
     return cosh(a);
   case qd_oracle::unary_tanh:
     return tanh(a);
+  case qd_oracle::unary_cbrt:
+    return cbrt(a);
+  case qd_oracle::unary_trunc:
+    return trunc(a);
+  case qd_oracle::unary_round:
+    return round(a);
   }
   return T(0);
 }
@@ -286,11 +316,23 @@ void apply_mpfr(qd_oracle::UnaryOp op, mpfr_t ref, mpfr_t a) {
   case qd_oracle::unary_exp:
     mpfr_exp(ref, a, MPFR_RNDN);
     break;
+  case qd_oracle::unary_exp2:
+    mpfr_exp2(ref, a, MPFR_RNDN);
+    break;
+  case qd_oracle::unary_expm1:
+    mpfr_expm1(ref, a, MPFR_RNDN);
+    break;
   case qd_oracle::unary_log:
     mpfr_log(ref, a, MPFR_RNDN);
     break;
   case qd_oracle::unary_log10:
     mpfr_log10(ref, a, MPFR_RNDN);
+    break;
+  case qd_oracle::unary_log1p:
+    mpfr_log1p(ref, a, MPFR_RNDN);
+    break;
+  case qd_oracle::unary_log2:
+    mpfr_log2(ref, a, MPFR_RNDN);
     break;
   case qd_oracle::unary_sin:
     mpfr_sin(ref, a, MPFR_RNDN);
@@ -318,6 +360,15 @@ void apply_mpfr(qd_oracle::UnaryOp op, mpfr_t ref, mpfr_t a) {
     break;
   case qd_oracle::unary_tanh:
     mpfr_tanh(ref, a, MPFR_RNDN);
+    break;
+  case qd_oracle::unary_cbrt:
+    mpfr_cbrt(ref, a, MPFR_RNDN);
+    break;
+  case qd_oracle::unary_trunc:
+    mpfr_trunc(ref, a);
+    break;
+  case qd_oracle::unary_round:
+    mpfr_round(ref, a);
     break;
   }
 }
@@ -459,6 +510,8 @@ T make_input(qd_oracle::InputDomain domain) {
     return make_trig_input<T>(domain);
   case qd_oracle::domain_hyperbolic_moderate:
     return qd_oracle::rng::uniform_type<T>(-2, 2);
+  case qd_oracle::domain_log1p:
+    return qd_oracle::rng::uniform_type<T>(-4, -1) + T(0.25);
   }
   return T(0);
 }

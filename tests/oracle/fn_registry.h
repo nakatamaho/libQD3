@@ -29,8 +29,12 @@ enum UnaryOp {
   unary_sqrt,
   unary_sqr,
   unary_exp,
+  unary_exp2,
+  unary_expm1,
   unary_log,
   unary_log10,
+  unary_log1p,
+  unary_log2,
   unary_sin,
   unary_cos,
   unary_tan,
@@ -39,7 +43,10 @@ enum UnaryOp {
   unary_atan,
   unary_sinh,
   unary_cosh,
-  unary_tanh
+  unary_tanh,
+  unary_cbrt,
+  unary_trunc,
+  unary_round
 };
 
 enum InputDomain {
@@ -51,7 +58,8 @@ enum InputDomain {
   domain_trig_moderate,
   domain_trig_stable,
   domain_trig_conditioned,
-  domain_hyperbolic_moderate
+  domain_hyperbolic_moderate,
+  domain_log1p
 };
 
 struct UnaryRegistryEntry {
@@ -69,7 +77,8 @@ enum BinaryOp {
   binary_atan2,
   binary_ldexp,
   binary_fmod,
-  binary_drem
+  binary_drem,
+  binary_hypot
 };
 
 inline ErrorBound binary_algebraic_bound(const char *name) {
@@ -226,10 +235,18 @@ inline const UnaryRegistryEntry *unary_registry(std::size_t *count) {
        algebraic_unary_bound("sqr")},
       {unary_exp, "exp", domain_exp_moderate,
        transcendental_bound("exp")},
+      {unary_exp2, "exp2", domain_exp_moderate,
+       transcendental_bound("exp2")},
+      {unary_expm1, "expm1", domain_exp_moderate,
+       transcendental_bound("expm1")},
       {unary_log, "log", domain_positive,
        transcendental_bound("log")},
       {unary_log10, "log10", domain_positive,
        transcendental_bound("log10")},
+      {unary_log1p, "log1p", domain_log1p,
+       transcendental_bound("log1p")},
+      {unary_log2, "log2", domain_positive,
+       transcendental_bound("log2")},
       {unary_sin, "sin_stable", domain_trig_stable,
        stable_trig_bound("sin_stable")},
       {unary_sin, "sin_conditioned", domain_trig_conditioned,
@@ -253,7 +270,13 @@ inline const UnaryRegistryEntry *unary_registry(std::size_t *count) {
       {unary_cosh, "cosh", domain_hyperbolic_moderate,
        transcendental_bound("cosh")},
       {unary_tanh, "tanh", domain_hyperbolic_moderate,
-       transcendental_bound("tanh")}};
+       transcendental_bound("tanh")},
+      {unary_cbrt, "cbrt", domain_all_moderate,
+       algebraic_unary_bound("cbrt")},
+      {unary_trunc, "trunc", domain_all_moderate,
+       exact_add_smoke_bound()},
+      {unary_round, "round", domain_all_moderate,
+       exact_add_smoke_bound()}};
   *count = sizeof(entries) / sizeof(entries[0]);
   return entries;
 }

@@ -1076,6 +1076,42 @@ inline bool operator!=(const td_real &a, const td_real &b) {
   return !(a == b);
 }
 
+inline td_real floor(const td_real &a) {
+  double x0 = std::floor(a[0]);
+  double x1 = 0.0;
+  double x2 = 0.0;
+
+  if (x0 == a[0]) {
+    x1 = std::floor(a[1]);
+    if (x1 == a[1]) {
+      x2 = std::floor(a[2]);
+    }
+  }
+
+  td::renorm(x0, x1, x2);
+  return td_real(x0, x1, x2);
+}
+
+inline td_real ceil(const td_real &a) {
+  double x0 = std::ceil(a[0]);
+  double x1 = 0.0;
+  double x2 = 0.0;
+
+  if (x0 == a[0]) {
+    x1 = std::ceil(a[1]);
+    if (x1 == a[1]) {
+      x2 = std::ceil(a[2]);
+    }
+  }
+
+  td::renorm(x0, x1, x2);
+  return td_real(x0, x1, x2);
+}
+
+inline td_real aint(const td_real &a) {
+  return (a[0] >= 0.0) ? floor(a) : ceil(a);
+}
+
 inline dd_real to_dd_real(const td_real &a) {
   dd_real result(a[0], a[1]);
   result += a[2];

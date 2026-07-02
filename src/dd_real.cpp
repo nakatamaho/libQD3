@@ -296,6 +296,116 @@ dd_real log10(const dd_real &a) {
   return log(a) / dd_real::_log10;
 }
 
+dd_real log2(const dd_real &a) {
+  return log(a) / dd_real::_log2;
+}
+
+dd_real exp2(const dd_real &a) {
+  return exp(dd_real::_log2 * a);
+}
+
+dd_real expm1(const dd_real &a) {
+  if (a.isnan()) {
+    return dd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < dd_real(0.125)) {
+    dd_real term = a;
+    dd_real sum = a;
+    double n = 1.0;
+    dd_real thresh = abs(a) * dd_real::_eps;
+    if (thresh.is_zero()) {
+      thresh = dd_real::_eps;
+    }
+    do {
+      n += 1.0;
+      term *= a;
+      term /= n;
+      sum += term;
+    } while (abs(term) > thresh);
+    return sum;
+  }
+  return exp(a) - 1.0;
+}
+
+dd_real log1p(const dd_real &a) {
+  if (a.isnan()) {
+    return dd_real::_nan;
+  }
+  if (a == -1.0) {
+    return -dd_real::_inf;
+  }
+  if (a < -1.0) {
+    dd_real::error("(dd_real::log1p): Argument out of domain.");
+    return dd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < dd_real(0.125)) {
+    dd_real term = a;
+    dd_real sum = a;
+    double n = 1.0;
+    dd_real thresh = abs(a) * dd_real::_eps;
+    if (thresh.is_zero()) {
+      thresh = dd_real::_eps;
+    }
+    do {
+      n += 1.0;
+      term *= -a;
+      dd_real add = term / n;
+      sum += add;
+      if (abs(add) <= thresh) {
+        break;
+      }
+    } while (true);
+    return sum;
+  }
+  return log(1.0 + a);
+}
+
+dd_real hypot(const dd_real &a, const dd_real &b) {
+  if (a.isnan() || b.isnan()) {
+    return dd_real::_nan;
+  }
+  if (a.isinf() || b.isinf()) {
+    return dd_real::_inf;
+  }
+  dd_real x = abs(a);
+  dd_real y = abs(b);
+  if (x < y) {
+    std::swap(x, y);
+  }
+  if (x.is_zero()) {
+    return 0.0;
+  }
+  dd_real r = y / x;
+  return x * sqrt(1.0 + sqr(r));
+}
+
+dd_real cbrt(const dd_real &a) {
+  if (a.isnan()) {
+    return dd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  return nroot(a, 3);
+}
+
+dd_real trunc(const dd_real &a) {
+  return aint(a);
+}
+
+dd_real round(const dd_real &a) {
+  if (a.isnan() || a.isinf() || a.is_zero()) {
+    return a;
+  }
+  return a.is_positive() ? floor(a + 0.5) : ceil(a - 0.5);
+}
+
 static const dd_real _pi16 = dd_real(1.963495408493620697e-01,
                                      7.654042494670957545e-18);
 

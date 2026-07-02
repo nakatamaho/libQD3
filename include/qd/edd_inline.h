@@ -617,6 +617,34 @@ inline bool operator>=(const edd_real &a, const edd_real &b) {
   return edd::comparison_ge(a, b);
 }
 
+inline edd_real floor(const edd_real &a) {
+  edd_word x0 = edd::floorx(a[0]);
+  edd_word x1 = (edd_word) 0.0;
+
+  if (x0 == a[0]) {
+    x1 = edd::floorx(a[1]);
+  }
+
+  edd::renorm2(x0, x1);
+  return edd_real(x0, x1);
+}
+
+inline edd_real ceil(const edd_real &a) {
+  edd_word x0 = -edd::floorx(-a[0]);
+  edd_word x1 = (edd_word) 0.0;
+
+  if (x0 == a[0]) {
+    x1 = -edd::floorx(-a[1]);
+  }
+
+  edd::renorm2(x0, x1);
+  return edd_real(x0, x1);
+}
+
+inline edd_real aint(const edd_real &a) {
+  return (a[0] >= (edd_word) 0.0) ? floor(a) : ceil(a);
+}
+
 inline edd_real abs(const edd_real &a) {
   return (a[0] < (edd_word) 0.0) ? -a : a;
 }

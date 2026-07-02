@@ -1023,6 +1023,116 @@ qd_real log10(const qd_real &a) {
   return log(a) / qd_real::_log10;
 }
 
+qd_real log2(const qd_real &a) {
+  return log(a) / qd_real::_log2;
+}
+
+qd_real exp2(const qd_real &a) {
+  return exp(qd_real::_log2 * a);
+}
+
+qd_real expm1(const qd_real &a) {
+  if (a.isnan()) {
+    return qd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < qd_real(0.125)) {
+    qd_real term = a;
+    qd_real sum = a;
+    double n = 1.0;
+    qd_real thresh = abs(a) * qd_real::_eps;
+    if (thresh.is_zero()) {
+      thresh = qd_real::_eps;
+    }
+    do {
+      n += 1.0;
+      term *= a;
+      term /= n;
+      sum += term;
+    } while (abs(term) > thresh);
+    return sum;
+  }
+  return exp(a) - 1.0;
+}
+
+qd_real log1p(const qd_real &a) {
+  if (a.isnan()) {
+    return qd_real::_nan;
+  }
+  if (a == -1.0) {
+    return -qd_real::_inf;
+  }
+  if (a < -1.0) {
+    qd_real::error("(qd_real::log1p): Argument out of domain.");
+    return qd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  if (abs(a) < qd_real(0.125)) {
+    qd_real term = a;
+    qd_real sum = a;
+    double n = 1.0;
+    qd_real thresh = abs(a) * qd_real::_eps;
+    if (thresh.is_zero()) {
+      thresh = qd_real::_eps;
+    }
+    do {
+      n += 1.0;
+      term *= -a;
+      qd_real add = term / n;
+      sum += add;
+      if (abs(add) <= thresh) {
+        break;
+      }
+    } while (true);
+    return sum;
+  }
+  return log(1.0 + a);
+}
+
+qd_real hypot(const qd_real &a, const qd_real &b) {
+  if (a.isnan() || b.isnan()) {
+    return qd_real::_nan;
+  }
+  if (a.isinf() || b.isinf()) {
+    return qd_real::_inf;
+  }
+  qd_real x = abs(a);
+  qd_real y = abs(b);
+  if (x < y) {
+    std::swap(x, y);
+  }
+  if (x.is_zero()) {
+    return 0.0;
+  }
+  qd_real r = y / x;
+  return x * sqrt(1.0 + sqr(r));
+}
+
+qd_real cbrt(const qd_real &a) {
+  if (a.isnan()) {
+    return qd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  return nroot(a, 3);
+}
+
+qd_real trunc(const qd_real &a) {
+  return aint(a);
+}
+
+qd_real round(const qd_real &a) {
+  if (a.isnan() || a.isinf() || a.is_zero()) {
+    return a;
+  }
+  return a.is_positive() ? floor(a + 0.5) : ceil(a - 0.5);
+}
+
 static const qd_real _pi1024 = qd_real(
     3.067961575771282340e-03, 1.195944139792337116e-19,
    -2.924579892303066080e-36, 1.086381075061880158e-52);

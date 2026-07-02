@@ -303,6 +303,38 @@ bool run_fmod_impl(qd_oracle::Tap &tap, bool verbose) {
   return result;
 }
 
+
+template <class T>
+bool run_hypot_impl(qd_oracle::Tap &tap, bool verbose) {
+  qd_oracle::ErrorBound bound = qd_oracle::binary_algebraic_bound("hypot");
+  bool pass = true;
+  double worst = -1.0;
+  int worst_iteration = -1;
+  T worst_a, worst_b, worst_got;
+  mpfr_t a_mp, b_mp, ref, worst_ref;
+  mpfr_inits2(qd_oracle::ref_prec<T>(), a_mp, b_mp, ref, worst_ref,
+              (mpfr_ptr) 0);
+  for (int i = 0; i < kSamples; ++i) {
+    T a = qd_oracle::rng::uniform_type<T>(-32, 32);
+    T b = qd_oracle::rng::uniform_type<T>(-32, 32);
+    T got = hypot(a, b);
+    qd_oracle::to_mpfr(a_mp, a);
+    qd_oracle::to_mpfr(b_mp, b);
+    mpfr_hypot(ref, a_mp, b_mp, MPFR_RNDN);
+    double relerr = qd_oracle::relerr_in_eps(got, ref);
+    if (relerr > worst || !std::isfinite(relerr)) {
+      worst = relerr; worst_iteration = i; worst_a = a; worst_b = b;
+      worst_got = got; mpfr_set(worst_ref, ref, MPFR_RNDN);
+    }
+    if (!std::isfinite(relerr) || relerr > bound.eps_multiplier) pass = false;
+  }
+  bool result = report_case(tap, "hypot oracle", pass, worst, worst_iteration,
+                            worst_a, worst_b, worst_got, worst_ref, bound,
+                            verbose);
+  mpfr_clears(a_mp, b_mp, ref, worst_ref, (mpfr_ptr) 0);
+  return result;
+}
+
 template <class T>
 bool run_drem_impl(qd_oracle::Tap &tap, bool verbose) {
   qd_oracle::ErrorBound bound = qd_oracle::binary_algebraic_bound("drem");
@@ -346,6 +378,7 @@ bool run_common_type(qd_oracle::Tap &tap, bool verbose) {
   pass &= run_nroot3<T>(tap, verbose);
   pass &= run_atan2<T>(tap, verbose);
   pass &= run_ldexp<T>(tap, verbose);
+  pass &= run_hypot_impl<T>(tap, verbose);
   return pass;
 }
 
@@ -365,6 +398,7 @@ template <>
 bool run_type<td_real>(qd_oracle::Tap &tap, bool verbose) {
   bool pass = run_common_type<td_real>(tap, verbose);
   pass &= run_pow_real_impl<td_real>(tap, verbose);
+  pass &= run_fmod_impl<td_real>(tap, verbose);
   return pass;
 }
 
@@ -380,13 +414,16 @@ bool run_type<qd_real>(qd_oracle::Tap &tap, bool verbose) {
 #ifdef QD_HAVE_EDD_REAL
 template <>
 bool run_type<edd_real>(qd_oracle::Tap &tap, bool verbose) {
-  return run_common_type<edd_real>(tap, verbose);
+  bool pass = run_common_type<edd_real>(tap, verbose);
+  pass &= run_pow_real_impl<edd_real>(tap, verbose);
+  pass &= run_fmod_impl<edd_real>(tap, verbose);
+  return pass;
 }
 #endif
 
-int type_plan_dd_qd() { return 7; }
-int type_plan_td() { return 5; }
-int type_plan_edd() { return 4; }
+int type_plan_dd_qd() { return 8; }
+int type_plan_td() { return 7; }
+int type_plan_edd() { return 7; }
 
 int selected_plan(const Options &options) {
   int count = 0;

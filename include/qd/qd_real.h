@@ -307,6 +307,10 @@ QD_API qd_real atan2(const qd_real &y, const qd_real &x);
 QD_API qd_real exp(const qd_real &a);
 QD_API qd_real log(const qd_real &a);
 QD_API qd_real log10(const qd_real &a);
+QD_API qd_real log2(const qd_real &a);
+QD_API qd_real exp2(const qd_real &a);
+QD_API qd_real expm1(const qd_real &a);
+QD_API qd_real log1p(const qd_real &a);
 
 QD_API qd_real sinh(const qd_real &a);
 QD_API qd_real cosh(const qd_real &a);
@@ -325,6 +329,10 @@ QD_API qd_real min(const qd_real &a, const qd_real &b);
 QD_API qd_real min(const qd_real &a, const qd_real &b, const qd_real &c);
 
 QD_API qd_real fmod(const qd_real &a, const qd_real &b);
+QD_API qd_real hypot(const qd_real &a, const qd_real &b);
+QD_API qd_real cbrt(const qd_real &a);
+QD_API qd_real trunc(const qd_real &a);
+QD_API qd_real round(const qd_real &a);
 
 QD_API std::ostream &operator<<(std::ostream &s, const qd_real &a);
 QD_API std::istream &operator>>(std::istream &s, qd_real &a);

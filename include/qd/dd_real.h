@@ -296,6 +296,10 @@ QD_API dd_real exp(const dd_real &a);
 QD_API dd_real ldexp(const dd_real &a, int exp);
 QD_API dd_real log(const dd_real &a);
 QD_API dd_real log10(const dd_real &a);
+QD_API dd_real log2(const dd_real &a);
+QD_API dd_real exp2(const dd_real &a);
+QD_API dd_real expm1(const dd_real &a);
+QD_API dd_real log1p(const dd_real &a);
 
 QD_API dd_real sin(const dd_real &a);
 QD_API dd_real cos(const dd_real &a);
@@ -321,6 +325,10 @@ QD_API dd_real fabs(const dd_real &a);
 QD_API dd_real abs(const dd_real &a);   /* same as fabs */
 
 QD_API dd_real fmod(const dd_real &a, const dd_real &b);
+QD_API dd_real hypot(const dd_real &a, const dd_real &b);
+QD_API dd_real cbrt(const dd_real &a);
+QD_API dd_real trunc(const dd_real &a);
+QD_API dd_real round(const dd_real &a);
 
 QD_API std::ostream& operator<<(std::ostream &s, const dd_real &a);
 QD_API std::istream& operator>>(std::istream &s, dd_real &a);

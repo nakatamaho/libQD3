@@ -209,6 +209,7 @@ QD_API edd_real sqrt(const edd_real &a);
 QD_API edd_real nroot(const edd_real &a, int n);
 QD_API edd_real npwr(const edd_real &a, int n);
 QD_API edd_real pow(const edd_real &a, int n);
+QD_API edd_real pow(const edd_real &a, const edd_real &b);
 
 QD_API edd_real abs(const edd_real &a);
 QD_API edd_real fabs(const edd_real &a);
@@ -251,6 +252,10 @@ QD_API int to_int(const edd_real &a);
 QD_API edd_real exp(const edd_real &a);
 QD_API edd_real log(const edd_real &a);
 QD_API edd_real log10(const edd_real &a);
+QD_API edd_real log2(const edd_real &a);
+QD_API edd_real exp2(const edd_real &a);
+QD_API edd_real expm1(const edd_real &a);
+QD_API edd_real log1p(const edd_real &a);
 
 QD_API edd_real sin(const edd_real &a);
 QD_API edd_real cos(const edd_real &a);
@@ -267,7 +272,19 @@ QD_API edd_real cosh(const edd_real &a);
 QD_API edd_real tanh(const edd_real &a);
 QD_API void sincosh(const edd_real &a, edd_real &s, edd_real &c);
 
+QD_API edd_real asinh(const edd_real &a);
+QD_API edd_real acosh(const edd_real &a);
+QD_API edd_real atanh(const edd_real &a);
+
 QD_API edd_real nint(const edd_real &a);
+QD_API edd_real floor(const edd_real &a);
+QD_API edd_real ceil(const edd_real &a);
+QD_API edd_real aint(const edd_real &a);
+QD_API edd_real fmod(const edd_real &a, const edd_real &b);
+QD_API edd_real hypot(const edd_real &a, const edd_real &b);
+QD_API edd_real cbrt(const edd_real &a);
+QD_API edd_real trunc(const edd_real &a);
+QD_API edd_real round(const edd_real &a);
 
 QD_API std::ostream &operator<<(std::ostream &s, const edd_real &a);
 QD_API std::istream &operator>>(std::istream &s, edd_real &a);

@@ -314,6 +314,10 @@ QD_API int to_int(const td_real &a);
 QD_API td_real exp(const td_real &a);
 QD_API td_real log(const td_real &a);
 QD_API td_real log10(const td_real &a);
+QD_API td_real log2(const td_real &a);
+QD_API td_real exp2(const td_real &a);
+QD_API td_real expm1(const td_real &a);
+QD_API td_real log1p(const td_real &a);
 
 QD_API td_real sin(const td_real &a);
 QD_API td_real cos(const td_real &a);
@@ -334,6 +338,14 @@ QD_API td_real asinh(const td_real &a);
 QD_API td_real acosh(const td_real &a);
 QD_API td_real atanh(const td_real &a);
 QD_API td_real nint(const td_real &a);
+QD_API td_real floor(const td_real &a);
+QD_API td_real ceil(const td_real &a);
+QD_API td_real aint(const td_real &a);
+QD_API td_real fmod(const td_real &a, const td_real &b);
+QD_API td_real hypot(const td_real &a, const td_real &b);
+QD_API td_real cbrt(const td_real &a);
+QD_API td_real trunc(const td_real &a);
+QD_API td_real round(const td_real &a);
 
 QD_API std::ostream &operator<<(std::ostream &s, const td_real &a);
 QD_API std::istream &operator>>(std::istream &s, td_real &a);
