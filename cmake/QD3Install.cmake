@@ -12,6 +12,9 @@ function(qd3_install_targets)
   install(FILES ${QD_PUBLIC_HEADERS}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/qd
   )
+  install(FILES ${QD_PUBLIC_DETAIL_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/qd/detail
+  )
   install(FILES "${CMAKE_BINARY_DIR}/include/qd/qd_config.h"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/qd
   )

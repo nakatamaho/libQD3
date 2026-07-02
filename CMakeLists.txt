@@ -120,24 +120,36 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/c_dd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_qd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_td.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/complex.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/dd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_edd.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/edd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/edd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/edd_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/fpu.h"
   "${CMAKE_SOURCE_DIR}/include/qd/inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/td_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/bits.h"
 )
 
-if(QD3_ENABLE_MPFR_TESTS)
+set(QD_PUBLIC_DETAIL_HEADERS
+  "${CMAKE_SOURCE_DIR}/include/qd/detail/complex_impl.h"
+)
+
+if(QD3_ENABLE_MPFR_TESTS OR QD3_ENABLE_MPC_TESTS)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(MPFR REQUIRED IMPORTED_TARGET mpfr)
   pkg_check_modules(GMP REQUIRED IMPORTED_TARGET gmp)
+endif()
+if(QD3_ENABLE_MPC_TESTS)
+  pkg_check_modules(MPC REQUIRED IMPORTED_TARGET mpc)
 endif()
 
 set(QD3_QA_COMPILE_OPTIONS "")
@@ -364,6 +376,11 @@ if(BUILD_TESTING)
   target_link_libraries(huge PRIVATE qd)
   add_test(NAME huge COMMAND huge)
 
+  add_executable(complex_test tests/complex_test.cpp)
+  qd3_configure_internal_target(complex_test)
+  target_link_libraries(complex_test PRIVATE qd)
+  add_test(NAME complex_test COMMAND complex_test)
+
   add_executable(qd_timer EXCLUDE_FROM_ALL tests/qd_timer.cpp tests/tictoc.cpp tests/tictoc.h)
   qd3_configure_internal_target(qd_timer)
   target_link_libraries(qd_timer PRIVATE qd)
@@ -373,7 +390,7 @@ if(BUILD_TESTING)
   target_link_libraries(quadt_test PRIVATE qd)
   set_target_properties(quadt_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
-  set(QD_DEMO_DEPS qd_test pslq_test c_test huge qd_timer quadt_test)
+  set(QD_DEMO_DEPS qd_test pslq_test c_test huge complex_test qd_timer quadt_test)
 
   if(QD_HAVE_FORTRAN)
     set_source_files_properties(tests/f_test.f PROPERTIES Fortran_FORMAT FREE)
@@ -636,6 +653,94 @@ if(BUILD_TESTING)
     )
   endif()
 
+  if(QD3_ENABLE_MPC_TESTS)
+    set(QD_COMPLEX_ORACLE_LIBS qd PkgConfig::MPC PkgConfig::MPFR PkgConfig::GMP)
+    set(QD_COMPLEX_ORACLE_LINK_DIRS ${MPC_LIBRARY_DIRS} ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+    set(QD_COMPLEX_ORACLE_COMMON_SOURCES
+      tests/oracle/mpc_complex_oracle.cpp
+      tests/oracle/mpc_complex_oracle.h
+      tests/oracle/mpfr_oracle.cpp
+      tests/oracle/mpfr_oracle.h
+      tests/oracle/qd_rng.cpp
+      tests/oracle/qd_rng.h
+      tests/oracle/tap.h
+    )
+
+    function(qd3_add_complex_oracle_target target source output_name)
+      add_executable(${target}
+        ${source}
+        ${QD_COMPLEX_ORACLE_COMMON_SOURCES}
+      )
+      qd3_configure_internal_target(${target})
+      target_include_directories(${target} BEFORE PRIVATE
+        "${CMAKE_SOURCE_DIR}/tests/oracle"
+      )
+      target_link_libraries(${target} PRIVATE ${QD_COMPLEX_ORACLE_LIBS})
+      target_link_directories(${target} PRIVATE ${QD_COMPLEX_ORACLE_LINK_DIRS})
+      set_target_properties(${target} PROPERTIES
+        OUTPUT_NAME ${output_name}
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+      )
+    endfunction()
+
+    qd3_add_complex_oracle_target(oracle_test_complex_arith
+      tests/oracle/test_complex_arith.cpp test_complex_arith)
+    qd3_add_complex_oracle_target(oracle_test_complex_unary
+      tests/oracle/test_complex_unary.cpp test_complex_unary)
+    qd3_add_complex_oracle_target(oracle_test_complex_binary
+      tests/oracle/test_complex_binary.cpp test_complex_binary)
+    qd3_add_complex_oracle_target(oracle_test_complex_special
+      tests/oracle/test_complex_special.cpp test_complex_special)
+
+    set(QD_COMPLEX_ORACLE_TESTS
+      oracle_test_complex_arith_dd
+      oracle_test_complex_arith_td
+      oracle_test_complex_arith_qd
+      oracle_test_complex_unary_dd
+      oracle_test_complex_unary_td
+      oracle_test_complex_unary_qd
+      oracle_test_complex_binary_dd
+      oracle_test_complex_binary_td
+      oracle_test_complex_binary_qd
+      oracle_test_complex_special_dd
+      oracle_test_complex_special_td
+      oracle_test_complex_special_qd
+    )
+    add_test(NAME oracle_test_complex_arith_dd COMMAND oracle_test_complex_arith -dd)
+    add_test(NAME oracle_test_complex_arith_td COMMAND oracle_test_complex_arith -td)
+    add_test(NAME oracle_test_complex_arith_qd COMMAND oracle_test_complex_arith -qd)
+    add_test(NAME oracle_test_complex_unary_dd COMMAND oracle_test_complex_unary -dd)
+    add_test(NAME oracle_test_complex_unary_td COMMAND oracle_test_complex_unary -td)
+    add_test(NAME oracle_test_complex_unary_qd COMMAND oracle_test_complex_unary -qd)
+    add_test(NAME oracle_test_complex_binary_dd COMMAND oracle_test_complex_binary -dd)
+    add_test(NAME oracle_test_complex_binary_td COMMAND oracle_test_complex_binary -td)
+    add_test(NAME oracle_test_complex_binary_qd COMMAND oracle_test_complex_binary -qd)
+    add_test(NAME oracle_test_complex_special_dd COMMAND oracle_test_complex_special -dd)
+    add_test(NAME oracle_test_complex_special_td COMMAND oracle_test_complex_special -td)
+    add_test(NAME oracle_test_complex_special_qd COMMAND oracle_test_complex_special -qd)
+    if(QD_HAVE_EDD_REAL)
+      add_test(NAME oracle_test_complex_arith_edd COMMAND oracle_test_complex_arith -edd)
+      add_test(NAME oracle_test_complex_unary_edd COMMAND oracle_test_complex_unary -edd)
+      add_test(NAME oracle_test_complex_binary_edd COMMAND oracle_test_complex_binary -edd)
+      add_test(NAME oracle_test_complex_special_edd COMMAND oracle_test_complex_special -edd)
+      list(APPEND QD_COMPLEX_ORACLE_TESTS
+        oracle_test_complex_arith_edd
+        oracle_test_complex_unary_edd
+        oracle_test_complex_binary_edd
+        oracle_test_complex_special_edd
+      )
+    endif()
+    set_tests_properties(${QD_COMPLEX_ORACLE_TESTS} PROPERTIES
+      ENVIRONMENT "QD_TEST_SEED=11400714819323198485"
+    )
+    list(APPEND QD_DEMO_DEPS
+      oracle_test_complex_arith
+      oracle_test_complex_unary
+      oracle_test_complex_binary
+      oracle_test_complex_special
+    )
+  endif()
+
   add_custom_target(demo DEPENDS ${QD_DEMO_DEPS})
   add_custom_target(time
     COMMAND qd_timer
@@ -741,6 +846,7 @@ message(STATUS "  Branch-free arithmetic     = ${QD_ENABLE_BF}")
 message(STATUS "  Branch-free addition       = ${QD_ENABLE_BF_ADD}")
 message(STATUS "  Branch-free multiplication = ${QD_ENABLE_BF_MUL}")
 message(STATUS "  MPFR oracle tests          = ${QD3_ENABLE_MPFR_TESTS}")
+message(STATUS "  MPC complex oracle tests   = ${QD3_ENABLE_MPC_TESTS}")
 message(STATUS "  AddressSanitizer           = ${QD3_ENABLE_ASAN}")
 message(STATUS "  UndefinedBehaviorSanitizer = ${QD3_ENABLE_UBSAN}")
 message(STATUS "  coverage instrumentation   = ${QD3_ENABLE_COVERAGE}")
