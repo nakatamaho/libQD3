@@ -1,6 +1,6 @@
 # CHANGES.md
 
-## Unreleased
+## 1.2.0
 
 ### Extended-precision complex types
 

@@ -1,4 +1,4 @@
-Changes for 1.1.1
+Changes for 1.2.0
     Added first-class extended-precision complex C++ headers for dd_complex,
     td_complex, qd_complex, and edd_complex when available, backed by a shared
     template implementation and optional MPC oracle tests; added complex tan,

@@ -20,6 +20,12 @@ available. These overload arithmetic, standard complex elementary functions,
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-07-03 libQD3 1.2.0 was released.  This release adds first-class
+extended-precision complex C++ types, a CMake-only build, additional real C++
+math overloads, optional branch-free arithmetic, improved TD/EDD
+trigonometric paths, and MPFR/MPC oracle QA.  See
+[CHANGES.1.2.0.md](CHANGES.1.2.0.md) for the 1.2.0 release notes.
+
 2026-04-22 libQD3 1.1.0 was released.  This release adds
 binary80-based `edd_real` extended-double support, including core
 arithmetic, constants, conversions, transcendental functions, a small C API,
@@ -50,8 +56,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.1.0 are in
-[CHANGES.1.1.0.md](CHANGES.1.1.0.md).
+Release-specific notes for libQD3 1.2.0 are in
+[CHANGES.1.2.0.md](CHANGES.1.2.0.md).
 
 ## Tips for developers
 
