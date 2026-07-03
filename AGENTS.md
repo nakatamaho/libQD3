@@ -35,6 +35,7 @@
 - The MPC-inclusive release gate is the union of these CMake QA scripts:
   - `bash qa/check_16_builds_cmake.sh`
   - `bash qa/check_oracle_matrix_cmake.sh`
+  - `bash qa/check_bf_matrix_cmake.sh`
   - `bash qa/check_complex_oracle_matrix_cmake.sh`
 
 - `qa/check_16_builds_cmake.sh` covers the default configuration plus the 16
@@ -43,6 +44,9 @@
 
 - `qa/check_oracle_matrix_cmake.sh` covers the same build-option matrix with
   `QD3_ENABLE_MPFR_TESTS=ON`.
+
+- `qa/check_bf_matrix_cmake.sh` covers the Branch-Free arithmetic build modes
+  with `QD3_ENABLE_MPFR_TESTS=ON`.
 
 - `qa/check_complex_oracle_matrix_cmake.sh` is the MPC/MPFR-backed complex
   oracle gate. It must pass for a release gate to be considered complete.
@@ -69,4 +73,5 @@
 
 - `qa/check_16_builds_cmake.sh`
 - `qa/check_oracle_matrix_cmake.sh`
+- `qa/check_bf_matrix_cmake.sh`
 - `qa/check_complex_oracle_matrix_cmake.sh`

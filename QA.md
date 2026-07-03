@@ -133,4 +133,5 @@ For wider build-option coverage, use:
 
 - [qa/check_16_builds_cmake.sh](qa/check_16_builds_cmake.sh)
 - [qa/check_oracle_matrix_cmake.sh](qa/check_oracle_matrix_cmake.sh)
+- [qa/check_bf_matrix_cmake.sh](qa/check_bf_matrix_cmake.sh)
 - [qa/check_complex_oracle_matrix_cmake.sh](qa/check_complex_oracle_matrix_cmake.sh)
