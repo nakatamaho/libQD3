@@ -182,38 +182,103 @@ template <> struct CApi<edd_real> {
   typedef edd_word Limb;
   typedef void (*UnaryFn)(const Limb *, Limb *);
   typedef void (*BinaryFn)(const Limb *, const Limb *, Limb *);
-  static void copy(const Limb *a, Limb *b) { c_edd_copy(a, b); }
-  static void copy_d(double a, Limb *b) { c_edd_copy_d(a, b); }
-  static void add(const Limb *a, const Limb *b, Limb *c) { c_edd_add(a, b, c); }
-  static void sub(const Limb *a, const Limb *b, Limb *c) { c_edd_sub(a, b, c); }
-  static void mul(const Limb *a, const Limb *b, Limb *c) { c_edd_mul(a, b, c); }
-  static void div(const Limb *a, const Limb *b, Limb *c) { c_edd_div(a, b, c); }
-  static void sqrt_op(const Limb *a, Limb *b) { c_edd_sqrt(a, b); }
-  static void sqr_op(const Limb *a, Limb *b) { c_edd_sqr(a, b); }
-  static void abs_op(const Limb *a, Limb *b) { c_edd_abs(a, b); }
-  static void neg_op(const Limb *a, Limb *b) { c_edd_neg(a, b); }
-  static void exp_op(const Limb *a, Limb *b) { c_edd_exp(a, b); }
-  static void log_op(const Limb *a, Limb *b) { c_edd_log(a, b); }
-  static void log10_op(const Limb *a, Limb *b) { c_edd_log10(a, b); }
-  static void sin_op(const Limb *a, Limb *b) { c_edd_sin(a, b); }
-  static void cos_op(const Limb *a, Limb *b) { c_edd_cos(a, b); }
-  static void tan_op(const Limb *a, Limb *b) { c_edd_tan(a, b); }
-  static void atan2_op(const Limb *a, const Limb *b, Limb *c) {
-    c_edd_atan2(a, b, c);
+  typedef _Float64x CLimb;
+  typedef void (*CUnaryFn)(const CLimb *, CLimb *);
+  typedef void (*CBinaryFn)(const CLimb *, const CLimb *, CLimb *);
+
+  static void to_c(const Limb *in, CLimb *out) {
+    out[0] = static_cast<CLimb>(in[0]);
+    out[1] = static_cast<CLimb>(in[1]);
   }
-  static void sinh_op(const Limb *a, Limb *b) { c_edd_sinh(a, b); }
-  static void cosh_op(const Limb *a, Limb *b) { c_edd_cosh(a, b); }
-  static void tanh_op(const Limb *a, Limb *b) { c_edd_tanh(a, b); }
-  static void read(const char *s, Limb *a) { c_edd_read(s, a); }
+
+  static void from_c(const CLimb *in, Limb *out) {
+    out[0] = static_cast<Limb>(in[0]);
+    out[1] = static_cast<Limb>(in[1]);
+  }
+
+  static void call_unary(const Limb *a, Limb *b, CUnaryFn fn) {
+    CLimb ca[2];
+    CLimb cb[2];
+    to_c(a, ca);
+    fn(ca, cb);
+    from_c(cb, b);
+  }
+
+  static void call_binary(const Limb *a, const Limb *b, Limb *c,
+                          CBinaryFn fn) {
+    CLimb ca[2];
+    CLimb cb[2];
+    CLimb cc[2];
+    to_c(a, ca);
+    to_c(b, cb);
+    fn(ca, cb, cc);
+    from_c(cc, c);
+  }
+
+  static void copy(const Limb *a, Limb *b) { call_unary(a, b, c_edd_copy); }
+  static void copy_d(double a, Limb *b) {
+    CLimb cb[2];
+    c_edd_copy_d(a, cb);
+    from_c(cb, b);
+  }
+  static void add(const Limb *a, const Limb *b, Limb *c) {
+    call_binary(a, b, c, c_edd_add);
+  }
+  static void sub(const Limb *a, const Limb *b, Limb *c) {
+    call_binary(a, b, c, c_edd_sub);
+  }
+  static void mul(const Limb *a, const Limb *b, Limb *c) {
+    call_binary(a, b, c, c_edd_mul);
+  }
+  static void div(const Limb *a, const Limb *b, Limb *c) {
+    call_binary(a, b, c, c_edd_div);
+  }
+  static void sqrt_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_sqrt); }
+  static void sqr_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_sqr); }
+  static void abs_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_abs); }
+  static void neg_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_neg); }
+  static void exp_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_exp); }
+  static void log_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_log); }
+  static void log10_op(const Limb *a, Limb *b) {
+    call_unary(a, b, c_edd_log10);
+  }
+  static void sin_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_sin); }
+  static void cos_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_cos); }
+  static void tan_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_tan); }
+  static void atan2_op(const Limb *a, const Limb *b, Limb *c) {
+    call_binary(a, b, c, c_edd_atan2);
+  }
+  static void sinh_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_sinh); }
+  static void cosh_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_cosh); }
+  static void tanh_op(const Limb *a, Limb *b) { call_unary(a, b, c_edd_tanh); }
+  static void read(const char *s, Limb *a) {
+    CLimb ca[2];
+    c_edd_read(s, ca);
+    from_c(ca, a);
+  }
   static void swrite(const Limb *a, int precision, char *s, int len) {
-    c_edd_swrite(a, precision, s, len);
+    CLimb ca[2];
+    to_c(a, ca);
+    c_edd_swrite(ca, precision, s, len);
   }
   static void comp(const Limb *a, const Limb *b, int *result) {
-    c_edd_comp(a, b, result);
+    CLimb ca[2];
+    CLimb cb[2];
+    to_c(a, ca);
+    to_c(b, cb);
+    c_edd_comp(ca, cb, result);
   }
-  static void pi(Limb *a) { c_edd_pi(a); }
-  static void two_pi(Limb *a) { c_edd_2pi(a); }
-  static Limb epsilon() { return c_edd_epsilon(); }
+  static void pi(Limb *a) {
+    CLimb ca[2];
+    c_edd_pi(ca);
+    from_c(ca, a);
+  }
+  static void two_pi(Limb *a) {
+    CLimb ca[2];
+    c_edd_2pi(ca);
+    from_c(ca, a);
+  }
+  static Limb epsilon() { return static_cast<Limb>(c_edd_epsilon()); }
 };
 #endif
 
