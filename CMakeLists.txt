@@ -144,6 +144,9 @@ set(QD_PUBLIC_DETAIL_HEADERS
 )
 
 if(QD3_ENABLE_MPFR_TESTS OR QD3_ENABLE_MPC_TESTS)
+  if(CMAKE_CROSSCOMPILING AND NOT PKG_CONFIG_ARGN)
+    set(PKG_CONFIG_ARGN --define-prefix)
+  endif()
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(MPFR REQUIRED IMPORTED_TARGET mpfr)
   pkg_check_modules(GMP REQUIRED IMPORTED_TARGET gmp)
@@ -409,7 +412,8 @@ if(BUILD_TESTING)
   endif()
 
   if(QD3_ENABLE_MPFR_TESTS)
-    set(QD_ORACLE_LIBS qd PkgConfig::MPFR PkgConfig::GMP)
+    set(QD_ORACLE_LIBS qd ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
+    set(QD_ORACLE_INCLUDE_DIRS ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
     set(QD_ORACLE_LINK_DIRS ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
 
     set(QD_ORACLE_COMMON_SOURCES
@@ -558,6 +562,7 @@ if(BUILD_TESTING)
         oracle_test_capi
         oracle_test_rounding
         oracle_test_bf_commutativity)
+      target_include_directories(${qd_oracle_target} BEFORE PRIVATE ${QD_ORACLE_INCLUDE_DIRS})
       target_link_directories(${qd_oracle_target} PRIVATE ${QD_ORACLE_LINK_DIRS})
     endforeach()
 
@@ -654,7 +659,8 @@ if(BUILD_TESTING)
   endif()
 
   if(QD3_ENABLE_MPC_TESTS)
-    set(QD_COMPLEX_ORACLE_LIBS qd PkgConfig::MPC PkgConfig::MPFR PkgConfig::GMP)
+    set(QD_COMPLEX_ORACLE_LIBS qd ${MPC_LIBRARIES} ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
+    set(QD_COMPLEX_ORACLE_INCLUDE_DIRS ${MPC_INCLUDE_DIRS} ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
     set(QD_COMPLEX_ORACLE_LINK_DIRS ${MPC_LIBRARY_DIRS} ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
     set(QD_COMPLEX_ORACLE_COMMON_SOURCES
       tests/oracle/mpc_complex_oracle.cpp
@@ -674,6 +680,7 @@ if(BUILD_TESTING)
       qd3_configure_internal_target(${target})
       target_include_directories(${target} BEFORE PRIVATE
         "${CMAKE_SOURCE_DIR}/tests/oracle"
+        ${QD_COMPLEX_ORACLE_INCLUDE_DIRS}
       )
       target_link_libraries(${target} PRIVATE ${QD_COMPLEX_ORACLE_LIBS})
       target_link_directories(${target} PRIVATE ${QD_COMPLEX_ORACLE_LINK_DIRS})

@@ -112,9 +112,42 @@ inline std::string mpfr_ptr_to_string(mpfr_srcptr value) {
 
 template <class Real>
 double complex_relerr_in_eps(const qd3_complex<Real> &got, mpc_t ref) {
-  const double re = relerr_in_eps(got.real(), mpc_realref(ref));
-  const double im = relerr_in_eps(got.imag(), mpc_imagref(ref));
-  return std::max(re, im);
+  mpfr_t got_re;
+  mpfr_t got_im;
+  mpfr_t diff_re;
+  mpfr_t diff_im;
+  mpfr_t denom_re;
+  mpfr_t denom_im;
+  mpfr_t denom;
+  mpfr_t eps;
+  mpfr_t scaled;
+  mpfr_inits2(ref_prec<Real>(), got_re, got_im, diff_re, diff_im,
+              denom_re, denom_im, denom, eps, scaled, (mpfr_ptr) 0);
+
+  to_mpfr(got_re, got.real());
+  to_mpfr(got_im, got.imag());
+  mpfr_sub(diff_re, got_re, mpc_realref(ref), MPFR_RNDN);
+  mpfr_sub(diff_im, got_im, mpc_imagref(ref), MPFR_RNDN);
+  mpfr_abs(diff_re, diff_re, MPFR_RNDN);
+  mpfr_abs(diff_im, diff_im, MPFR_RNDN);
+  mpfr_max(scaled, diff_re, diff_im, MPFR_RNDN);
+
+  mpfr_abs(denom_re, mpc_realref(ref), MPFR_RNDN);
+  mpfr_abs(denom_im, mpc_imagref(ref), MPFR_RNDN);
+  mpfr_max(denom, denom_re, denom_im, MPFR_RNDN);
+  require_exact(TypeTraits<Real>::set_min_normalized(eps), "set min normalized");
+  if (mpfr_zero_p(denom) || mpfr_cmp(denom, eps) < 0) {
+    mpfr_set(denom, eps, MPFR_RNDN);
+  }
+
+  mpfr_div(scaled, scaled, denom, MPFR_RNDN);
+  require_exact(TypeTraits<Real>::set_eps(eps), "set eps");
+  mpfr_div(scaled, scaled, eps, MPFR_RNDN);
+
+  double result = mpfr_get_d(scaled, MPFR_RNDN);
+  mpfr_clears(got_re, got_im, diff_re, diff_im, denom_re, denom_im,
+              denom, eps, scaled, (mpfr_ptr) 0);
+  return result;
 }
 
 template <class Real>

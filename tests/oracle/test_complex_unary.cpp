@@ -186,7 +186,7 @@ bool run_case(qd_oracle::Tap &tap, UnaryCase op, bool verbose) {
   for (int i = 0; i < kSamples; ++i) {
     Complex z = random_complex<Real>(-2, 1);
     if (op == case_log || op == case_log10 || op == case_log2) {
-      z += Complex(Real(1.5), Real(0.25));
+      z += Complex(Real(8.0), Real(4.0));
     }
     Complex got = apply_lib(op, z);
     to_mpc(input_mpc, z);
