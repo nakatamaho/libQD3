@@ -28,6 +28,7 @@ set(CTEST_CMD "$ENV{CTEST}")
 if(CTEST_CMD STREQUAL "")
   set(CTEST_CMD "ctest")
 endif()
+set(CTEST_COMMAND "${CTEST_CMD}")
 
 set(GENERATOR "$ENV{GENERATOR}")
 set(KEEP_BUILD "$ENV{KEEP_BUILD}")
@@ -47,11 +48,92 @@ if(QD_TEST_SEED STREQUAL "")
   set(QD_TEST_SEED "11400714819323198485")
 endif()
 
+set(CTEST_SOURCE_DIRECTORY "${SRC_DIR}")
+set(CTEST_BINARY_DIRECTORY "${BUILD_ROOT}")
+
 set(JOBS "$ENV{JOBS}")
 if(JOBS STREQUAL "")
   cmake_host_system_information(RESULT JOBS QUERY NUMBER_OF_LOGICAL_CORES)
   if(NOT JOBS OR JOBS STREQUAL "0")
     set(JOBS "4")
+  endif()
+endif()
+
+string(TOLOWER "${CMAKE_HOST_SYSTEM_PROCESSOR}" QD3_HOST_PROCESSOR)
+if(QD3_HOST_PROCESSOR STREQUAL "")
+  cmake_host_system_information(RESULT QD3_HOST_PROCESSOR QUERY OS_PLATFORM)
+  string(TOLOWER "${QD3_HOST_PROCESSOR}" QD3_HOST_PROCESSOR)
+endif()
+
+function(qd3_probe_x86_64_v3 out_var)
+  set(${out_var} FALSE PARENT_SCOPE)
+
+  set(probe_cxx "$ENV{CXX}")
+  if(probe_cxx STREQUAL "")
+    find_program(probe_cxx NAMES c++ g++ clang++)
+  endif()
+  if(NOT probe_cxx)
+    message(STATUS "x86-64-v3 probe skipped: no C++ compiler found")
+    return()
+  endif()
+
+  set(probe_dir "${BUILD_ROOT}/_host_probes/x86-64-v3")
+  set(probe_src "${probe_dir}/x86_64_v3.cpp")
+  set(probe_exe "${probe_dir}/x86_64_v3")
+  if(WIN32)
+    set(probe_exe "${probe_exe}.exe")
+  endif()
+  file(MAKE_DIRECTORY "${probe_dir}")
+  file(WRITE "${probe_src}" [[
+#include <immintrin.h>
+
+int main() {
+  alignas(32) double input[4] = {1.0, 2.0, 3.0, 4.0};
+  alignas(32) double output[4] = {};
+  __m256d x = _mm256_load_pd(input);
+  __m256d y = _mm256_set1_pd(2.0);
+  __m256d z = _mm256_set1_pd(1.0);
+  __m256d r = _mm256_fmadd_pd(x, y, z);
+  _mm256_store_pd(output, r);
+  return output[0] == 3.0 && output[3] == 9.0 ? 0 : 1;
+}
+]])
+
+  execute_process(
+    COMMAND "${probe_cxx}" -std=c++11 -march=x86-64-v3 "${probe_src}" -o "${probe_exe}"
+    RESULT_VARIABLE build_rc
+    OUTPUT_VARIABLE build_out
+    ERROR_VARIABLE build_err
+  )
+  if(NOT build_rc STREQUAL "0")
+    message(STATUS "x86-64-v3 probe build failed with ${probe_cxx}; treating FMA as unavailable")
+    return()
+  endif()
+
+  execute_process(
+    COMMAND "${probe_exe}"
+    RESULT_VARIABLE run_rc
+    OUTPUT_VARIABLE run_out
+    ERROR_VARIABLE run_err
+  )
+  if(run_rc STREQUAL "0")
+    set(${out_var} TRUE PARENT_SCOPE)
+  else()
+    message(STATUS "x86-64-v3 probe did not run cleanly; treating FMA as unavailable")
+  endif()
+endfunction()
+
+set(QD3_FMA_ENABLED_MODE auto)
+set(QD3_FMA_ENABLED_ARCH generic)
+set(QD3_FMA_ENABLED_REASON "generic host target")
+if(QD3_HOST_PROCESSOR MATCHES "^(x86_64|amd64)$")
+  qd3_probe_x86_64_v3(QD3_HOST_HAS_X86_64_V3)
+  if(QD3_HOST_HAS_X86_64_V3)
+    set(QD3_FMA_ENABLED_ARCH x86-64-v3)
+    set(QD3_FMA_ENABLED_REASON "x86-64-v3/FMA probe passed")
+  else()
+    set(QD3_FMA_ENABLED_MODE no)
+    set(QD3_FMA_ENABLED_REASON "x86 host below runnable x86-64-v3")
   endif()
 endif()
 
@@ -190,8 +272,8 @@ foreach(ieee_add OFF ON)
             -DQD_ENABLE_IEEE_ADD=${ieee_add}
             -DQD_ENABLE_SLOPPY_MUL=${sloppy_mul}
             -DQD_ENABLE_SLOPPY_DIV=${sloppy_div}
-            -DQD_FMA=auto
-            -DQD_ARCH=x86-64-v3
+            -DQD_FMA=${QD3_FMA_ENABLED_MODE}
+            -DQD_ARCH=${QD3_FMA_ENABLED_ARCH}
           )
         else()
           qd3_run_config("${tag}"
@@ -215,6 +297,10 @@ message("TSV       : ${SUMMARY_TSV}")
 message("Logs      : ${LOG_DIR}")
 message("MPFR mode : ${ENABLE_MPFR_ORACLE}")
 message("Seed      : ${QD_TEST_SEED}")
+message("Host CPU  : ${QD3_HOST_PROCESSOR}")
+message("FMA mode  : ${QD3_FMA_ENABLED_MODE}")
+message("FMA arch  : ${QD3_FMA_ENABLED_ARCH}")
+message("FMA reason: ${QD3_FMA_ENABLED_REASON}")
 message("Failures  : ${fail_count}")
 
 if(ENABLE_MPFR_ORACLE AND EXISTS "${CORNER_REPORT_DIR}")
