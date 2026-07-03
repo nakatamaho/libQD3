@@ -273,9 +273,9 @@ void edd_real::to_digits(char *s, int &expn, int precision) const {
     r *= edd_real((edd_word) 10.0) ^ 4000;
     r /= edd_real((edd_word) 10.0) ^ (e + 4000);
   } else if (e > 4000) {
-    r = ldexp(r, -QD_EDD_FLT64X_MANT_DIG);
+    r = ldexp(r, -QD_EDD_WORD_MANT_DIG);
     r /= edd_real((edd_word) 10.0) ^ e;
-    r = ldexp(r, QD_EDD_FLT64X_MANT_DIG);
+    r = ldexp(r, QD_EDD_WORD_MANT_DIG);
   } else {
     r /= edd_real((edd_word) 10.0) ^ e;
   }

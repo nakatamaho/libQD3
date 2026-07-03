@@ -252,7 +252,7 @@ edd_real nroot(const edd_real &a, int n) {
     return edd_real((edd_word) 0.0);
 
   edd_real r = abs(a);
-  edd_real x = edd_real(__builtin_expf64x(-__builtin_logf64x(r[0]) / (edd_word) n));
+  edd_real x = edd_real(edd::expx(-edd::logx(r[0]) / (edd_word) n));
   edd_word inv_n = (edd_word) 1.0 / (edd_word) n;
 
   x += x * ((edd_word) 1.0 - r * npwr(x, n)) * inv_n;
@@ -309,8 +309,8 @@ edd_real log(const edd_real &a) {
     return edd_real((edd_word) 0.0);
 
   int e;
-  edd_word m = __builtin_frexpf64x(a[0], &e);
-  edd_real x = edd_real(__builtin_logf64x(m)) + edd_real::_log2 * (edd_word) e;
+  edd_word m = edd::frexpx(a[0], &e);
+  edd_real x = edd_real(edd::logx(m)) + edd_real::_log2 * (edd_word) e;
 
   x = x + a * exp(-x) - (edd_word) 1.0;
   x = x + a * exp(-x) - (edd_word) 1.0;
@@ -456,13 +456,13 @@ edd_real atan2(const edd_real &y, const edd_real &x) {
       edd_real::error("(edd_real::atan2): Both arguments zero.");
       return edd_real::_nan;
     }
-    return __builtin_signbit(y[0]) ? -edd_real::_pi2 : edd_real::_pi2;
+    return edd::signbitx(y[0]) ? -edd_real::_pi2 : edd_real::_pi2;
   }
 
   if (y.is_zero()) {
     if (x.is_positive())
       return signed_zero(y[0]);
-    return __builtin_signbit(y[0]) ? -edd_real::_pi : edd_real::_pi;
+    return edd::signbitx(y[0]) ? -edd_real::_pi : edd_real::_pi;
   }
 
   if (x == y)
@@ -473,7 +473,7 @@ edd_real atan2(const edd_real &y, const edd_real &x) {
   edd_real r = sqrt(sqr(x) + sqr(y));
   edd_real xx = x / r;
   edd_real yy = y / r;
-  edd_real z(edd_real(__builtin_atan2f64x(to_float64x(y), to_float64x(x))));
+  edd_real z(edd_real(edd::atan2x(to_float64x(y), to_float64x(x))));
   edd_real sin_z;
   edd_real cos_z;
 

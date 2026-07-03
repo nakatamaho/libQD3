@@ -221,8 +221,8 @@ bool test_edd_real_int64_constructor() {
   pass &= (to_qd_real(u) == qd_real(umax));
   pass &= (to_qd_real(s) == qd_real(imin));
   pass &= (to_qd_real(assigned) == qd_real(umax));
-  pass &= (u[1] == (_Float64x) 0.0);
-  pass &= (s[1] == (_Float64x) 0.0);
+  pass &= (u[1] == (edd_word) 0.0);
+  pass &= (s[1] == (edd_word) 0.0);
 
   if (flag_verbose) {
     cout << "uint64 max = " << to_qd_real(u) << endl;
@@ -235,16 +235,36 @@ bool test_edd_real_int64_constructor() {
 
 #ifdef QD_HAVE_EDD_REAL
 
-bool edd_nonoverlap(_Float64x hi, _Float64x lo) {
-  if (hi == (_Float64x) 0.0) {
-    return lo == (_Float64x) 0.0;
+namespace {
+
+inline edd_word test_edd_fabs(edd_word x) {
+#ifdef QD_EDD_WORD_IS_FLOAT64X
+  return __builtin_fabsf64x(x);
+#else
+  return std::fabs(x);
+#endif
+}
+
+inline edd_word test_edd_ldexp(edd_word x, int e) {
+#ifdef QD_EDD_WORD_IS_FLOAT64X
+  return __builtin_ldexpf64x(x, e);
+#else
+  return std::ldexp(x, e);
+#endif
+}
+
+} // namespace
+
+bool edd_nonoverlap(edd_word hi, edd_word lo) {
+  if (hi == (edd_word) 0.0) {
+    return lo == (edd_word) 0.0;
   }
-  return __builtin_fabsf64x(lo) <=
-      (_Float64x) 0.5 * __builtin_ldexpf64x(__builtin_fabsf64x(hi), -63);
+  return test_edd_fabs(lo) <=
+      (edd_word) 0.5 * test_edd_ldexp(test_edd_fabs(hi), -63);
 }
 
 bool edd_is_normalized(const edd_real &a) {
-  return __builtin_fabsf64x(a[0]) >= __builtin_fabsf64x(a[1]) &&
+  return test_edd_fabs(a[0]) >= test_edd_fabs(a[1]) &&
          edd_nonoverlap(a[0], a[1]);
 }
 
@@ -366,8 +386,8 @@ bool EddTestSuite::test6() {
   cout << endl;
   cout << "Test 6.  (edd sqrt near 1)." << endl;
 
-  edd_real a = edd_real((_Float64x) 1.0) +
-      edd_real((_Float64x) __builtin_ldexpf64x((_Float64x) 1.0, -63));
+  edd_real a = edd_real((edd_word) 1.0) +
+      edd_real(test_edd_ldexp((edd_word) 1.0, -63));
   edd_real s = sqrt(a);
   edd_real back = sqr(s);
 
@@ -392,8 +412,8 @@ bool EddTestSuite::test8() {
   cout << endl;
   cout << "Test 8.  (edd constructor / scalar conversion checks)." << endl;
 
-  _Float64x x = (_Float64x) 1.0 +
-      __builtin_ldexpf64x((_Float64x) 1.0, -63);
+  edd_word x = (edd_word) 1.0 +
+      test_edd_ldexp((edd_word) 1.0, -63);
   edd_real a(x);
   edd_real b(1.25);
   edd_real c(7);
@@ -401,7 +421,7 @@ bool EddTestSuite::test8() {
   bool pass = (to_float64x(a) == x);
   pass &= (to_double(b) == 1.25);
   pass &= (to_int(c) == 7);
-  pass &= (a > (_Float64x) 1.0);
+  pass &= (a > (edd_word) 1.0);
 
   return pass;
 }
@@ -421,8 +441,8 @@ bool EddTestSuite::test9() {
   pass &= edd_check_close(edd_real::_log10, qd_real::_log10, 8.0);
   pass &= (edd_real::_2pi > edd_real::_pi);
   pass &= (edd_real::_pi > edd_real::_pi2);
-  pass &= (edd_real::_eps > (_Float64x) 0.0);
-  pass &= (edd_real::_min_normalized > (_Float64x) 0.0);
+  pass &= (edd_real::_eps > (edd_word) 0.0);
+  pass &= (edd_real::_min_normalized > (edd_word) 0.0);
   pass &= (edd_real::_ndigits >= 38);
 
   return pass;
@@ -465,9 +485,9 @@ bool EddTestSuite::test10() {
 
 bool EddTestSuite::test11() {
   cout << endl;
-  cout << "Test 11.  (edd mixed-mode _Float64x arithmetic and comparisons)." << endl;
+  cout << "Test 11.  (edd mixed-mode binary80 arithmetic and comparisons)." << endl;
 
-  edd_word x = (edd_word) 1.0 + __builtin_ldexpf64x((edd_word) 1.0, -63);
+  edd_word x = (edd_word) 1.0 + test_edd_ldexp((edd_word) 1.0, -63);
   edd_word y = (edd_word) 3.0;
   edd_real a("1.125");
 
@@ -535,15 +555,15 @@ bool EddTestSuite::test13() {
   cout << endl;
   cout << "Test 13.  (edd overflow / underflow boundary behavior)." << endl;
 
-  edd_real large = ldexp(edd_real((_Float64x) 1.0), QD_EDD_FLT64X_MAX_EXP - 200);
-  edd_real tiny = ldexp(edd_real((_Float64x) 1.0), -16000);
+  edd_real large = ldexp(edd_real((edd_word) 1.0), QD_EDD_WORD_MAX_EXP - 200);
+  edd_real tiny = ldexp(edd_real((edd_word) 1.0), -16000);
   edd_real q = large / large;
   edd_real p = large * tiny;
-  edd_real s = sqrt(sqr(ldexp(edd_real((_Float64x) 1.0), 4000)));
+  edd_real s = sqrt(sqr(ldexp(edd_real((edd_word) 1.0), 4000)));
 
-  bool pass = (q == (_Float64x) 1.0);
+  bool pass = (q == (edd_word) 1.0);
   pass &= p.isfinite();
-  pass &= (s == ldexp(edd_real((_Float64x) 1.0), 4000));
+  pass &= (s == ldexp(edd_real((edd_word) 1.0), 4000));
 
   return pass;
 }
@@ -557,7 +577,7 @@ bool EddTestSuite::test14() {
   edd_real lx = log(ex);
   qd_real qx("1.2345678901234567890123456789");
 
-  edd_real huge = edd_real::_log2 * (_Float64x) 12000.0;
+  edd_real huge = edd_real::_log2 * (edd_word) 12000.0;
   edd_real ehuge = exp(huge);
   edd_real lhuge = log(ehuge);
 
@@ -693,9 +713,9 @@ bool test_edd_real_comparison() {
   cout << endl;
   cout << "Test 18.  (edd comparison normalization)." << endl;
 
-  _Float64x lo = __builtin_ldexpf64x((_Float64x) 1.0, -63);
-  edd_real a((_Float64x) 1.0 - lo, lo);
-  edd_real b((_Float64x) 1.0);
+  edd_word lo = test_edd_ldexp((edd_word) 1.0, -63);
+  edd_real a((edd_word) 1.0 - lo, lo);
+  edd_real b((edd_word) 1.0);
   edd_real diff = a - b;
 
   bool pass = diff.is_zero();
@@ -705,8 +725,8 @@ bool test_edd_real_comparison() {
   pass &= !(a > b);
   pass &= (a <= b);
   pass &= (a >= b);
-  pass &= (a == (_Float64x) 1.0);
-  pass &= ((_Float64x) 1.0 == a);
+  pass &= (a == (edd_word) 1.0);
+  pass &= ((edd_word) 1.0 == a);
 
   return pass;
 }
@@ -1845,7 +1865,7 @@ int main(int argc, char *argv[]) {
   if (flag_test_edd) {
     EddTestSuite edd_test;
 
-    /* edd_real relies on native binary80 _Float64x limbs, so restore the
+    /* edd_real relies on native binary80 limbs, so restore the
        host x87 control word before running its tests.  The dd/qd/td tests
        above intentionally use the round-to-double fix. */
     fpu_fix_end(&old_cw);

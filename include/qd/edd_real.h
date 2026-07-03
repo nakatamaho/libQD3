@@ -2,7 +2,7 @@
  * include/edd_real.h
  *
  * Extended-double-double precision arithmetic package based on a native
- * two-limb _Float64x expansion for GNU C++ binary80 targets.
+ * two-limb binary80 expansion for GNU C++ targets.
  */
 #ifndef _QD_EDD_REAL_H
 #define _QD_EDD_REAL_H
@@ -39,18 +39,30 @@
 #endif
 
 #ifndef QD_HAVE_EDD_REAL
-#error "edd_real requires a configure result with GNU C++ _Float64x binary80 support enabled."
+#error "edd_real requires a configure result with GNU C++ binary80 support enabled."
 #endif
 
-#if QD_EDD_FLT64X_MANT_DIG != 64
-#error "edd_real requires _Float64x with binary80 mantissa precision (64 bits)."
+#if !defined(QD_EDD_WORD_IS_FLOAT64X) && !defined(QD_EDD_WORD_IS_LONG_DOUBLE)
+#error "edd_real requires a selected binary80 limb backend."
 #endif
 
-#if QD_EDD_FLT64X_MAX_EXP != 16384
-#error "edd_real requires _Float64x with binary80 exponent range (max exp 16384)."
+#if defined(QD_EDD_WORD_IS_FLOAT64X) && defined(QD_EDD_WORD_IS_LONG_DOUBLE)
+#error "edd_real limb backend is ambiguous."
 #endif
 
+#if QD_EDD_WORD_MANT_DIG != 64
+#error "edd_real requires binary80 mantissa precision (64 bits)."
+#endif
+
+#if QD_EDD_WORD_MAX_EXP != 16384
+#error "edd_real requires binary80 exponent range (max exp 16384)."
+#endif
+
+#ifdef QD_EDD_WORD_IS_FLOAT64X
 using edd_word = _Float64x;
+#else
+using edd_word = long double;
+#endif
 
 struct QD_API edd_real {
   edd_word x[2];
@@ -76,8 +88,8 @@ struct QD_API edd_real {
   }
 
   edd_real(double d) {
-    x[0] = (_Float64x) d;
-    x[1] = (_Float64x) 0.0;
+    x[0] = (edd_word) d;
+    x[1] = (edd_word) 0.0;
   }
 
   edd_real(int i) {
@@ -175,8 +187,8 @@ namespace std {
   template <>
   class numeric_limits<edd_real> : public numeric_limits<long double> {
   public:
-    inline static _Float64x epsilon() { return edd_real::_eps; }
-    inline static _Float64x min() { return edd_real::_min_normalized; }
+    inline static edd_word epsilon() { return edd_real::_eps; }
+    inline static edd_word min() { return edd_real::_min_normalized; }
     inline static edd_real max() { return edd_real::_max; }
     inline static edd_real safe_max() { return edd_real::_safe_max; }
     static const int digits = 126;

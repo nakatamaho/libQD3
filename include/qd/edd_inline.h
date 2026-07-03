@@ -1,7 +1,7 @@
 /*
  * include/edd_inline.h
  *
- * Inline building blocks for edd_real based on native _Float64x limbs.
+ * Inline building blocks for edd_real based on native binary80 limbs.
  */
 #ifndef _QD_EDD_INLINE_H
 #define _QD_EDD_INLINE_H
@@ -14,6 +14,7 @@
 
 namespace edd {
 
+#ifdef QD_EDD_WORD_IS_FLOAT64X
 inline edd_word fabsx(edd_word x) { return __builtin_fabsf64x(x); }
 inline edd_word sqrtx(edd_word x) { return __builtin_sqrtf64x(x); }
 inline edd_word floorx(edd_word x) { return __builtin_floorf64x(x); }
@@ -22,29 +23,56 @@ inline edd_word copysignx(edd_word x, edd_word y) {
   return __builtin_copysignf64x(x, y);
 }
 inline edd_word log10x(edd_word x) { return __builtin_log10f64x(x); }
+inline edd_word expx(edd_word x) { return __builtin_expf64x(x); }
+inline edd_word logx(edd_word x) { return __builtin_logf64x(x); }
+inline edd_word frexpx(edd_word x, int *e) { return __builtin_frexpf64x(x, e); }
+inline edd_word atan2x(edd_word y, edd_word x) { return __builtin_atan2f64x(y, x); }
 
 inline bool isnanx(edd_word x) { return __builtin_isnan(x); }
 inline bool isinfx(edd_word x) { return __builtin_isinf_sign(x) != 0; }
 inline bool isfinitex(edd_word x) { return __builtin_isfinite(x); }
+inline bool signbitx(edd_word x) { return __builtin_signbit(x) != 0; }
 
 inline edd_word d_nan() { return __builtin_nanf64x(""); }
 inline edd_word d_inf() { return __builtin_huge_valf64x(); }
+#else
+inline edd_word fabsx(edd_word x) { return std::fabs(x); }
+inline edd_word sqrtx(edd_word x) { return std::sqrt(x); }
+inline edd_word floorx(edd_word x) { return std::floor(x); }
+inline edd_word ldexpx(edd_word x, int e) { return std::ldexp(x, e); }
+inline edd_word copysignx(edd_word x, edd_word y) {
+  return std::copysign(x, y);
+}
+inline edd_word log10x(edd_word x) { return std::log10(x); }
+inline edd_word expx(edd_word x) { return std::exp(x); }
+inline edd_word logx(edd_word x) { return std::log(x); }
+inline edd_word frexpx(edd_word x, int *e) { return std::frexp(x, e); }
+inline edd_word atan2x(edd_word y, edd_word x) { return std::atan2(y, x); }
+
+inline bool isnanx(edd_word x) { return std::isnan(x); }
+inline bool isinfx(edd_word x) { return std::isinf(x); }
+inline bool isfinitex(edd_word x) { return std::isfinite(x); }
+inline bool signbitx(edd_word x) { return std::signbit(x); }
+
+inline edd_word d_nan() { return std::numeric_limits<edd_word>::quiet_NaN(); }
+inline edd_word d_inf() { return std::numeric_limits<edd_word>::infinity(); }
+#endif
 
 inline edd_word splitter() {
   return ldexpx((edd_word) 1.0, QD_EDD_SPLIT_BITS) + (edd_word) 1.0;
 }
 
 inline edd_word split_thresh() {
-  return ldexpx((edd_word) 1.0, QD_EDD_FLT64X_MAX_EXP - QD_EDD_SPLIT_SCALE_BITS);
+  return ldexpx((edd_word) 1.0, QD_EDD_WORD_MAX_EXP - QD_EDD_SPLIT_SCALE_BITS);
 }
 
 inline edd_word div_rescale_thresh() {
   return ldexpx((edd_word) 1.0,
-      QD_EDD_FLT64X_MAX_EXP - QD_EDD_FLT64X_MANT_DIG);
+      QD_EDD_WORD_MAX_EXP - QD_EDD_WORD_MANT_DIG);
 }
 
 inline edd_word sqrt_rescale_thresh() {
-  return ldexpx((edd_word) 1.0, QD_EDD_FLT64X_MAX_EXP - 3);
+  return ldexpx((edd_word) 1.0, QD_EDD_WORD_MAX_EXP - 3);
 }
 
 inline edd_word quick_two_sum(edd_word a, edd_word b, edd_word &err) {
@@ -419,7 +447,7 @@ inline edd_real edd_real::div(edd_word a, edd_word b) {
   edd_word s, e;
 
   const bool rescale = edd_real_div_needs_rescale(a);
-  const edd_word aa = rescale ? edd::ldexpx(a, -QD_EDD_FLT64X_MANT_DIG) : a;
+  const edd_word aa = rescale ? edd::ldexpx(a, -QD_EDD_WORD_MANT_DIG) : a;
 
   q1 = aa / b;
   p1 = edd::two_prod(q1, b, p2);
@@ -429,7 +457,7 @@ inline edd_real edd_real::div(edd_word a, edd_word b) {
   s = edd::quick_two_sum(q1, q2, e);
 
   edd_real r(s, e);
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_FLT64X_MANT_DIG)) : r;
+  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
 }
 
 inline edd_real operator/(const edd_real &a, edd_word b) {
@@ -439,7 +467,7 @@ inline edd_real operator/(const edd_real &a, edd_word b) {
   edd_real r;
 
   const bool rescale = edd_real_div_needs_rescale(a.x[0]);
-  const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_FLT64X_MANT_DIG)) : a;
+  const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_WORD_MANT_DIG)) : a;
 
   q1 = aa.x[0] / b;
   p1 = edd::two_prod(q1, b, p2);
@@ -449,7 +477,7 @@ inline edd_real operator/(const edd_real &a, edd_word b) {
   q2 = (s + e) / b;
   r.x[0] = edd::quick_two_sum(q1, q2, r.x[1]);
 
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_FLT64X_MANT_DIG)) : r;
+  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
 }
 
 inline edd_real operator/(const edd_real &a, const edd_real &b) {
@@ -457,7 +485,7 @@ inline edd_real operator/(const edd_real &a, const edd_real &b) {
   edd_real r;
 
   const bool rescale = edd_real_div_needs_rescale(a.x[0]);
-  const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_FLT64X_MANT_DIG)) : a;
+  const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_WORD_MANT_DIG)) : a;
 
   q1 = aa.x[0] / b.x[0];
   r = aa - q1 * b;
@@ -467,7 +495,7 @@ inline edd_real operator/(const edd_real &a, const edd_real &b) {
 
   q1 = edd::quick_two_sum(q1, q2, q2);
   r = edd_real(q1, q2) + q3;
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_FLT64X_MANT_DIG)) : r;
+  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
 }
 
 inline edd_real operator/(edd_word a, const edd_real &b) {
