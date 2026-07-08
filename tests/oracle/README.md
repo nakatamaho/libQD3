@@ -173,7 +173,23 @@ at least 90% as the remaining corner-case tests are added.
 ## Unary Worst-Case Snapshot (seed 12345)
 
 The following table is a representative comparison of the maximum observed
-`relerr` per function+domain across `dd`, `td`, `qd`, and `edd`.
+`relerr_eps` per function+domain across `dd`, `td`, `qd`, and `edd`.
+`relerr_eps` is the relative error scaled by the epsilon of the tested type:
+
+```text
+abs(got - MPFR_ref) / max(abs(MPFR_ref), min_normalized) / type_epsilon
+```
+
+The values are therefore measured in each type's own eps units. A smaller
+`relerr_eps` for `td` than for `qd` does not mean that the absolute relative
+error of `td_real` is smaller. For example, `td_real::_eps` is about `2^-157`,
+while `qd_real::_eps` is about `2^-209`; `3.6` qd eps is still an absolute
+relative error far smaller than `0.2` td eps.
+
+The seeded input streams are also type-dependent because the random MPFR input
+generator consumes a number of random bits based on the target type's precision.
+The table is intended to show how tightly each implementation tracks its own
+precision budget, not to rank absolute accuracy across precision types.
 
 Command used:
 
@@ -185,7 +201,7 @@ build-mpfr/tests/oracle/test_unary -edd --seed=12345 --worst-report=/tmp/oracle_
 python3 qa/compare_unary_worst_reports.py   --report dd=/tmp/oracle_unary_dd_worst.csv   --report td=/tmp/oracle_unary_td_worst.csv   --report qd=/tmp/oracle_unary_qd_worst.csv   --report edd=/tmp/oracle_unary_edd_worst.csv
 ```
 
-| Function | Operation | Domain | dd | td | qd | edd | Best (precision:relerr) | Worst relerr |
+| Function | Operation | Domain | dd | td | qd | edd | Best (precision:relerr_eps) | Worst relerr_eps |
 |:--|:--|:--|--:|--:|--:|--:|:--|--:|
 | `cos_conditioned` | `cos` | `trig_conditioned` | `2.345158e+02` | `1.859679e-01` | `3.606068e+00` | `5.842733e-01` | `td:1.859679e-01` | `2.345158e+02` |
 | `tan_conditioned` | `tan` | `trig_conditioned` | `1.002354e+02` | `4.293063e-01` | `5.337408e+00` | `7.403565e-01` | `td:4.293063e-01` | `1.002354e+02` |

@@ -123,7 +123,7 @@ def stats_for_precision_rows(rows: Dict[str, dict], precisions: List[str]) -> Tu
 
 
 def print_markdown_table(sorted_keys: List[Tuple[str, str, str]], table: Dict[Tuple[str, str, str], Dict[str, dict]], precisions: List[str]):
-  print('| function | operation | domain | ' + ' | '.join(precisions) + ' | best_precision | best_relerr | worst_relerr |')
+  print('| function | operation | domain | ' + ' | '.join(precisions) + ' | best_precision | best_relerr_eps | worst_relerr_eps |')
   print('|---|---|---|' + '|'.join('---' for _ in precisions) + '|---|---|---|')
 
   for function_name, operation, domain in sorted_keys:
@@ -132,7 +132,7 @@ def print_markdown_table(sorted_keys: List[Tuple[str, str, str]], table: Dict[Tu
 
 
 def print_tsv(sorted_keys: List[Tuple[str, str, str]], table: Dict[Tuple[str, str, str], Dict[str, dict]], precisions: List[str]):
-  print('\t'.join(['function', 'operation', 'domain'] + precisions + ['best_precision', 'best_relerr', 'worst_relerr']))
+  print('\t'.join(['function', 'operation', 'domain'] + precisions + ['best_precision', 'best_relerr_eps', 'worst_relerr_eps']))
 
   for function_name, operation, domain in sorted_keys:
     vals, best, worst = stats_for_precision_rows(table.get((function_name, operation, domain), {}), precisions)
