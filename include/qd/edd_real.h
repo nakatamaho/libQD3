@@ -12,9 +12,11 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <type_traits>
 
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
+#include <qd/inline.h>
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 
@@ -107,6 +109,13 @@ struct QD_API edd_real {
     x[1] = (edd_word) 0.0;
   }
 
+  template <class I,
+            typename std::enable_if<qd::is_supported_integral<I>::value,
+                                    int>::type = 0>
+  edd_real(I i) {
+    assign_integral(i);
+  }
+
   edd_real(const char *s);
   edd_real(const dd_real &dd);
   explicit edd_real(const qd_real &qd);
@@ -163,6 +172,13 @@ struct QD_API edd_real {
   edd_real &operator=(int a);
   edd_real &operator=(std::uint64_t a);
   edd_real &operator=(std::int64_t a);
+  template <class I>
+  typename std::enable_if<qd::is_supported_integral<I>::value,
+                          edd_real &>::type
+  operator=(I a) {
+    assign_integral(a);
+    return *this;
+  }
   edd_real &operator=(const char *s);
   edd_real &operator=(const dd_real &a);
   edd_real &operator=(const qd_real &a);
@@ -181,6 +197,23 @@ struct QD_API edd_real {
       std::ios_base::fmtflags fmt = static_cast<std::ios_base::fmtflags>(0),
       bool showpos = false, bool uppercase = false, char fill = ' ') const;
   static int read(const char *s, edd_real &a);
+
+private:
+  template <class I>
+  typename std::enable_if<qd::is_supported_signed_integral<I>::value,
+                          void>::type
+  assign_integral(I i) {
+    x[0] = (edd_word) static_cast<std::int64_t>(i);
+    x[1] = (edd_word) 0.0;
+  }
+
+  template <class I>
+  typename std::enable_if<qd::is_supported_unsigned_integral<I>::value,
+                          void>::type
+  assign_integral(I i) {
+    x[0] = (edd_word) static_cast<std::uint64_t>(i);
+    x[1] = (edd_word) 0.0;
+  }
 };
 
 namespace std {

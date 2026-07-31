@@ -27,7 +27,9 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <type_traits>
 #include <qd/qd_config.h>
+#include <qd/inline.h>
 #include <qd/dd_real.h>
 
 #if defined(QD_BF)
@@ -81,6 +83,12 @@ struct QD_API qd_real {
   qd_real(int i);
   qd_real(std::uint64_t i);
   qd_real(std::int64_t i);
+  template <class I,
+            typename std::enable_if<qd::is_supported_integral<I>::value,
+                                    int>::type = 0>
+  qd_real(I i) {
+    qd::integer_to_double_expansion(i, x, 4);
+  }
 
   double operator[](int i) const;
   double &operator[](int i);
@@ -131,6 +139,13 @@ struct QD_API qd_real {
   qd_real &operator=(double a);
   qd_real &operator=(std::uint64_t a);
   qd_real &operator=(std::int64_t a);
+  template <class I>
+  typename std::enable_if<qd::is_supported_integral<I>::value,
+                          qd_real &>::type
+  operator=(I a) {
+    qd::integer_to_double_expansion(a, x, 4);
+    return *this;
+  }
   qd_real &operator=(const dd_real &a);
   qd_real &operator=(const char *s);
 

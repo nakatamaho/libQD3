@@ -54,8 +54,7 @@ inline qd_real::qd_real(const dd_real &a) {
 }
 
 inline qd_real::qd_real(int i) {
-  x[0] = static_cast<double>(i);
-  x[1] = x[2] = x[3] = 0.0;
+  qd::int64_to_double_expansion(static_cast<std::int64_t>(i), x, 4);
 }
 
 inline qd_real::qd_real(std::uint64_t a) {

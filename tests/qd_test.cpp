@@ -22,6 +22,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
@@ -100,6 +101,74 @@ td_real polyroot(const td_real *c, int n, const td_real &x0,
 }
 
 namespace {
+
+template <class I>
+typename std::enable_if<qd::is_supported_signed_integral<I>::value,
+                        std::int64_t>::type
+integral_expected(I value) {
+  return static_cast<std::int64_t>(value);
+}
+
+template <class I>
+typename std::enable_if<qd::is_supported_unsigned_integral<I>::value,
+                        std::uint64_t>::type
+integral_expected(I value) {
+  return static_cast<std::uint64_t>(value);
+}
+
+template <class Real, class I>
+bool check_integral_conversion_case(const char *real_name,
+                                    const char *integer_name, I value) {
+  static_assert(qd::is_supported_integral<I>::value,
+                "integer test case must use a supported non-bool integral");
+
+  const Real expected(integral_expected(value));
+  const Real constructed(value);
+  Real assigned;
+  assigned = value;
+
+  const bool pass = (constructed == expected) && (assigned == expected);
+  if (!pass && flag_verbose) {
+    cout << real_name << " " << integer_name
+         << " integral conversion mismatch" << endl;
+  }
+  return pass;
+}
+
+template <class Real>
+bool test_integral_template_conversions(const char *real_name,
+                                        const char *test_name) {
+  cout << endl;
+  cout << test_name << "  (" << real_name
+       << " integral template constructors / assignments)." << endl;
+
+  static_assert(!qd::is_supported_integral<bool>::value,
+                "bool must not be captured by the integral template path");
+
+  bool pass = true;
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "int32_t", static_cast<std::int32_t>(-123456789));
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "uint32_t", static_cast<std::uint32_t>(0xffffffffu));
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "int64_t", std::numeric_limits<std::int64_t>::min());
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "uint64_t", std::numeric_limits<std::uint64_t>::max());
+  pass &= check_integral_conversion_case<Real>(real_name, "int", -17);
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "long", static_cast<long>(-123456789L));
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "long long", static_cast<long long>(-9007199254740993LL));
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "unsigned int", std::numeric_limits<unsigned int>::max());
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "unsigned long", std::numeric_limits<unsigned long>::max());
+  pass &= check_integral_conversion_case<Real>(
+      real_name, "unsigned long long",
+      std::numeric_limits<unsigned long long>::max());
+
+  return pass;
+}
 
 bool test_dd_real_int64_constructor() {
   cout << endl;
@@ -1833,6 +1902,8 @@ int main(int argc, char *argv[]) {
     pass &= dd_test.testall();
     pass &= print_result(test_dd_real_comparison());
     pass &= print_result(test_dd_real_int64_constructor());
+    pass &= print_result(
+        test_integral_template_conversions<dd_real>("dd_real", "Test 10b."));
   }
 
   if (flag_test_qd) {
@@ -1845,6 +1916,8 @@ int main(int argc, char *argv[]) {
     pass &= qd_test.testall();
     pass &= print_result(test_qd_real_comparison());
     pass &= print_result(test_qd_real_int64_constructor());
+    pass &= print_result(
+        test_integral_template_conversions<qd_real>("qd_real", "Test 10b."));
   }
 
   if (flag_test_td) {
@@ -1859,6 +1932,8 @@ int main(int argc, char *argv[]) {
     pass &= td_test.testall();
     pass &= print_result(test_td_real_comparison());
     pass &= print_result(test_td_real_int64_constructor());
+    pass &= print_result(
+        test_integral_template_conversions<td_real>("td_real", "Test 23b."));
   }
 
 #ifdef QD_HAVE_EDD_REAL
@@ -1877,6 +1952,8 @@ int main(int argc, char *argv[]) {
     pass &= edd_test.testall();
     pass &= print_result(test_edd_real_comparison());
     pass &= print_result(test_edd_real_int64_constructor());
+    pass &= print_result(
+        test_integral_template_conversions<edd_real>("edd_real", "Test 19b."));
   }
 #endif
 

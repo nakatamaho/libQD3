@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 namespace qd {
 
@@ -101,6 +102,57 @@ inline void int64_to_double_expansion(std::int64_t value, double *out,
       out[i] = -out[i];
     }
   }
+}
+
+template <class I>
+struct integral_conversion_type {
+  typedef typename std::remove_cv<
+      typename std::remove_reference<I>::type>::type type;
+};
+
+template <class I,
+          bool IsIntegral =
+              std::is_integral<typename integral_conversion_type<I>::type>::value>
+struct is_supported_integral : std::false_type {};
+
+template <class I>
+struct is_supported_integral<I, true>
+    : std::integral_constant<
+          bool,
+          !std::is_same<typename integral_conversion_type<I>::type, bool>::value &&
+              (sizeof(typename integral_conversion_type<I>::type) <=
+               sizeof(std::uint64_t))> {};
+
+template <class I, bool IsSupported = is_supported_integral<I>::value>
+struct is_supported_signed_integral : std::false_type {};
+
+template <class I>
+struct is_supported_signed_integral<I, true>
+    : std::integral_constant<
+          bool,
+          std::is_signed<typename integral_conversion_type<I>::type>::value> {};
+
+template <class I, bool IsSupported = is_supported_integral<I>::value>
+struct is_supported_unsigned_integral : std::false_type {};
+
+template <class I>
+struct is_supported_unsigned_integral<I, true>
+    : std::integral_constant<
+          bool,
+          !std::is_signed<typename integral_conversion_type<I>::type>::value> {};
+
+template <class I>
+inline typename std::enable_if<is_supported_signed_integral<I>::value,
+                               void>::type
+integer_to_double_expansion(I value, double *out, int limbs) {
+  qd::int64_to_double_expansion(static_cast<std::int64_t>(value), out, limbs);
+}
+
+template <class I>
+inline typename std::enable_if<is_supported_unsigned_integral<I>::value,
+                               void>::type
+integer_to_double_expansion(I value, double *out, int limbs) {
+  qd::uint64_to_double_expansion(static_cast<std::uint64_t>(value), out, limbs);
 }
 
 #ifndef QD_FMS

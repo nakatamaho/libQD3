@@ -36,9 +36,11 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <type_traits>
 
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
+#include <qd/inline.h>
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 
@@ -99,12 +101,16 @@ struct QD_API td_real {
   }
 
   td_real(int i) {
-    x[0] = static_cast<double>(i);
-    x[1] = 0.0;
-    x[2] = 0.0;
+    qd::int64_to_double_expansion(static_cast<std::int64_t>(i), x, 3);
   }
   td_real(std::uint64_t i);
   td_real(std::int64_t i);
+  template <class I,
+            typename std::enable_if<qd::is_supported_integral<I>::value,
+                                    int>::type = 0>
+  td_real(I i) {
+    qd::integer_to_double_expansion(i, x, 3);
+  }
 
   td_real(const dd_real &dd);
   explicit td_real(const qd_real &qd);
@@ -171,6 +177,13 @@ struct QD_API td_real {
   td_real &operator=(double a);
   td_real &operator=(std::uint64_t a);
   td_real &operator=(std::int64_t a);
+  template <class I>
+  typename std::enable_if<qd::is_supported_integral<I>::value,
+                          td_real &>::type
+  operator=(I a) {
+    qd::integer_to_double_expansion(a, x, 3);
+    return *this;
+  }
   td_real &operator=(const dd_real &a);
   td_real &operator=(const qd_real &a);
   td_real &operator=(const char *s);
