@@ -1,3 +1,13 @@
+Changes for 1.3.0
+    Integrated downstream MPLAPACK portability fixes into upstream libQD3.
+    Added integer mixed-mode arithmetic and comparison overloads for
+    dd_real, td_real, qd_real, and edd_real, plus explicit integer conversion
+    helpers.  Added std::complex<double> interop for libQD3 complex wrappers.
+    Added a CMake uninstall target, changed shared-library SOVERSION to 2,
+    strengthened FMA selection with a residual correctness probe, and added
+    x87 80-bit FPU handling for EDD tests.  Documented the known MinGW/Wine
+    edd_real long-double trigonometry limitation.
+
 Changes for 1.2.0
     Added first-class extended-precision complex C++ headers for dd_complex,
     td_complex, qd_complex, and edd_complex when available, backed by a shared
@@ -216,4 +226,3 @@ Changes for 1.1  (2002-10-22)
   - fixed constant (3/4) * pi
   - fixed exp(x) to return zero if x is a large negative number
   - removed "docs" target in Makefile
-

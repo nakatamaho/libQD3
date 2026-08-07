@@ -200,10 +200,19 @@ int test_4() {
 #endif
 
 int main(void) {
-  fpu_fix_start(NULL);
+  unsigned int old_cw = 0;
+  int status = 0;
+
+  fpu_fix_start(&old_cw);
+  status = test_1() || test_2() || test_3();
 #ifdef QD_HAVE_EDD_REAL
-  return test_1() || test_2() || test_3() || test_4();
-#else
-  return test_1() || test_2() || test_3();
+  {
+    unsigned int old_edd_cw = 0;
+    fpu_fix_start_80bit(&old_edd_cw);
+    status = status || test_4();
+    fpu_fix_end(&old_edd_cw);
+  }
 #endif
+  fpu_fix_end(&old_cw);
+  return status;
 }

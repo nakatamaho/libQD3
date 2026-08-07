@@ -143,5 +143,10 @@
 #undef QD_ISNAN
 #endif
 
+/* Define to 1 if x87 precision control can force 80-bit extended mode. */
+#ifndef QD_HAVE_FPU_FIX_80BIT
+#undef QD_HAVE_FPU_FIX_80BIT
+#endif
+
 
 #endif /* _QD_QD_CONFIG_H */

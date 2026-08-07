@@ -275,6 +275,46 @@ inline qd3_complex<Real> operator/(double a, const qd3_complex<Real> &b) {
 }
 
 template <class Real>
+inline qd3_complex<Real> operator+(qd3_complex<Real> a, const std::complex<double> &b) {
+  return a + qd3_complex<Real>(b);
+}
+
+template <class Real>
+inline qd3_complex<Real> operator+(const std::complex<double> &a, qd3_complex<Real> b) {
+  return qd3_complex<Real>(a) + b;
+}
+
+template <class Real>
+inline qd3_complex<Real> operator-(qd3_complex<Real> a, const std::complex<double> &b) {
+  return a - qd3_complex<Real>(b);
+}
+
+template <class Real>
+inline qd3_complex<Real> operator-(const std::complex<double> &a, const qd3_complex<Real> &b) {
+  return qd3_complex<Real>(a) - b;
+}
+
+template <class Real>
+inline qd3_complex<Real> operator*(qd3_complex<Real> a, const std::complex<double> &b) {
+  return a * qd3_complex<Real>(b);
+}
+
+template <class Real>
+inline qd3_complex<Real> operator*(const std::complex<double> &a, qd3_complex<Real> b) {
+  return qd3_complex<Real>(a) * b;
+}
+
+template <class Real>
+inline qd3_complex<Real> operator/(qd3_complex<Real> a, const std::complex<double> &b) {
+  return a / qd3_complex<Real>(b);
+}
+
+template <class Real>
+inline qd3_complex<Real> operator/(const std::complex<double> &a, const qd3_complex<Real> &b) {
+  return qd3_complex<Real>(a) / b;
+}
+
+template <class Real>
 inline qd3_complex<Real> conj(const qd3_complex<Real> &z) {
   return qd3_complex<Real>(z.real(), -z.imag());
 }

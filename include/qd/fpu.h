@@ -28,6 +28,13 @@ extern "C" {
 QD_API void fpu_fix_start(unsigned int *old_cw);
 
 /*
+ * Set the x87 FPU to 80-bit extended precision, and save the old control word
+ * in old_cw. This is used by edd_real on x86 targets. On non-x86 targets, or
+ * when the configure probe cannot verify the mode switch, this is a no-op.
+ */
+QD_API void fpu_fix_start_80bit(unsigned int *old_cw);
+
+/*
  * Restore the control word.
  */
 QD_API void fpu_fix_end(unsigned int *old_cw);

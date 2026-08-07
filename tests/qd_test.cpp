@@ -1940,10 +1940,10 @@ int main(int argc, char *argv[]) {
   if (flag_test_edd) {
     EddTestSuite edd_test;
 
-    /* edd_real relies on native binary80 limbs, so restore the
-       host x87 control word before running its tests.  The dd/qd/td tests
-       above intentionally use the round-to-double fix. */
-    fpu_fix_end(&old_cw);
+    /* edd_real relies on binary80 limbs, while the dd/qd/td tests above
+       intentionally use the round-to-double fix. */
+    unsigned int old_edd_cw = 0;
+    fpu_fix_start_80bit(&old_edd_cw);
 
     cout << endl;
     cout << "Testing edd_real ..." << endl;
@@ -1954,6 +1954,7 @@ int main(int argc, char *argv[]) {
     pass &= print_result(test_edd_real_int64_constructor());
     pass &= print_result(
         test_integral_template_conversions<edd_real>("edd_real", "Test 19b."));
+    fpu_fix_end(&old_edd_cw);
   }
 #endif
 

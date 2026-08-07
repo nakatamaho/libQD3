@@ -15,10 +15,11 @@
 #include <qd/fpu.h>
 
 #ifdef X86
-#ifdef  _WIN32
+#ifdef _WIN32
 #include <float.h>
-#else
+#endif
 
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 #ifdef HAVE_FPU_CONTROL_H
 #include <fpu_control.h>
 #endif
@@ -30,6 +31,7 @@
 #ifndef _FPU_SETCW
 #define _FPU_SETCW(x) asm volatile ("fldcw %0": :"m" (x));
 #endif
+#endif
 
 #ifndef _FPU_EXTENDED
 #define _FPU_EXTENDED 0x0300
@@ -39,14 +41,23 @@
 #define _FPU_DOUBLE 0x0200
 #endif
 
-#endif
 #endif /* X86 */
 
 extern "C" {
 
 void fpu_fix_start(unsigned int *old_cw) {
 #ifdef X86
-#ifdef _WIN32
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+  volatile unsigned short cw, new_cw;
+  _FPU_GETCW(cw);
+
+  new_cw = (cw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
+  _FPU_SETCW(new_cw);
+
+  if (old_cw) {
+    *old_cw = cw;
+  }
+#elif defined(_WIN32)
 #ifdef __BORLANDC__
   /* Win 32 Borland C */
   unsigned short cw = _control87(0, 0);
@@ -69,11 +80,64 @@ void fpu_fix_start(unsigned int *old_cw) {
 
   new_cw = (cw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
   _FPU_SETCW(new_cw);
-  
+
   if (old_cw) {
     *old_cw = cw;
   }
 #endif
+#endif
+}
+
+void fpu_fix_start_80bit(unsigned int *old_cw) {
+#ifdef X86
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+  volatile unsigned short cw, new_cw;
+  _FPU_GETCW(cw);
+
+  if (old_cw) {
+    *old_cw = cw;
+  }
+#ifdef QD_HAVE_FPU_FIX_80BIT
+  new_cw = (cw & ~_FPU_EXTENDED) | _FPU_EXTENDED;
+  _FPU_SETCW(new_cw);
+#endif
+#elif defined(_WIN32)
+#ifdef __BORLANDC__
+  /* Win 32 Borland C */
+  unsigned short cw = _control87(0, 0);
+  if (old_cw) {
+    *old_cw = cw;
+  }
+#ifdef QD_HAVE_FPU_FIX_80BIT
+  _control87(0x0300, 0x0300);
+#endif
+#else
+  /* Win 32 MSVC */
+  unsigned int cw = _control87(0, 0);
+  if (old_cw) {
+    *old_cw = cw;
+  }
+#ifdef QD_HAVE_FPU_FIX_80BIT
+  _control87(0x00000000, 0x00030000);
+#endif
+#endif
+#else
+  /* Linux */
+  volatile unsigned short cw, new_cw;
+  _FPU_GETCW(cw);
+
+  if (old_cw) {
+    *old_cw = cw;
+  }
+#ifdef QD_HAVE_FPU_FIX_80BIT
+  new_cw = (cw & ~_FPU_EXTENDED) | _FPU_EXTENDED;
+  _FPU_SETCW(new_cw);
+#endif
+#endif
+#else
+  if (old_cw) {
+    *old_cw = 0;
+  }
 #endif
 }
 

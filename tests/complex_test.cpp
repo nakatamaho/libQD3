@@ -3,6 +3,7 @@
 #include <qd/td_complex.h>
 #include <qd/qd_complex.h>
 #include <qd/edd_complex.h>
+#include <qd/fpu.h>
 
 #include <algorithm>
 #include <cmath>
@@ -304,7 +305,12 @@ int main() {
   pass &= run_type<td_complex>("td_complex");
   pass &= run_type<qd_complex>("qd_complex");
 #ifdef QD_HAVE_EDD_REAL
-  pass &= run_type<edd_complex>("edd_complex");
+  {
+    unsigned int old_edd_cw = 0;
+    fpu_fix_start_80bit(&old_edd_cw);
+    pass &= run_type<edd_complex>("edd_complex");
+    fpu_fix_end(&old_edd_cw);
+  }
 #endif
 
   if (pass) {

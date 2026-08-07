@@ -20,6 +20,14 @@ available. These overload arithmetic, standard complex elementary functions,
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-08-07 libQD3 1.3.0 was released.  This maintenance release folds
+MPLAPACK downstream portability patches into upstream: integer mixed-mode
+operators for DD/TD/QD/EDD real types, std::complex<double> interop for the
+C++ complex wrappers, CMake uninstall support, stricter FMA probing, x87
+80-bit FPU handling for EDD tests, shared-library SOVERSION 2, and MinGW/Wine
+EDD notes.  See [CHANGES.1.3.0.md](CHANGES.1.3.0.md) for the 1.3.0 release
+notes.
+
 2026-07-03 libQD3 1.2.0 was released.  This release adds first-class
 extended-precision complex C++ types, a CMake-only build, additional real C++
 math overloads, optional branch-free arithmetic, improved TD/EDD
@@ -56,8 +64,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.2.0 are in
-[CHANGES.1.2.0.md](CHANGES.1.2.0.md).
+Release-specific notes for libQD3 1.3.0 are in
+[CHANGES.1.3.0.md](CHANGES.1.3.0.md).
 
 ## Tips for developers
 
@@ -122,6 +130,28 @@ $ ctest --test-dir build --output-on-failure
 
 The default suite also builds `complex_test`, which covers the public
 `dd_complex`, `td_complex`, `qd_complex`, and optional `edd_complex` headers.
+
+### Known issue: MinGW/Wine `edd_real` trigonometry
+
+`edd_real` is implemented on native binary80 limbs.  On MinGW targets executed
+under Wine, the binary80 `long double` trigonometric and inverse-trigonometric
+runtime path may not satisfy libQD3's EDD test tolerances, especially for
+large-argument reduction.  In observed `x86_64-w64-mingw32-g++` builds under
+Wine, the EDD-only parts of the default suite failed in:
+
+- `qd_test -edd`: Test 15, EDD trig identities and qd oracle agreement
+- `qd_test -edd`: Test 16, EDD inverse trig consistency
+- `qd_test -edd`: Test 17, EDD large-argument reduction and hyperbolic checks
+- `complex_test`: `edd_complex`
+
+The `dd_real`, `td_real`, and `qd_real` tests passed in the same environment.
+This is tracked as a libQD3 platform/runtime issue, not as a downstream
+consumer issue.  Release builds that only require DD/TD/QD functionality may
+disable EDD on MinGW with:
+
+```
+$ cmake -S . -B build-mingw -DQD_ENABLE_EDD_REAL=OFF
+```
 
 The optional MPC complex oracle suite can be enabled independently from the
 MPFR real oracle suite:

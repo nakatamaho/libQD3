@@ -1,5 +1,24 @@
 # CHANGES.md
 
+## 1.3.0
+
+libQD3 1.3.0 is a maintenance release that upstreams the downstream patches
+used by MPLAPACK. It improves C++ overload coverage for generated LAPACK-style
+code, hardens CMake packaging, and records the remaining MinGW/Wine EDD
+trigonometry limitation.
+
+Highlights:
+
+- Added integer mixed-mode arithmetic and comparison overloads for `dd_real`,
+  `td_real`, `qd_real`, and `edd_real`.
+- Added explicit integer conversion helpers for all real types.
+- Added `std::complex<double>` interop operators for the libQD3 complex wrapper
+  types.
+- Added a CMake `uninstall` target and changed shared-library SOVERSION to 2.
+- Strengthened FMA auto-detection with a residual correctness probe.
+- Added an x87 80-bit FPU mode probe and EDD test wrappers.
+- Documented the known MinGW/Wine `edd_real` long-double trigonometry issue.
+
 ## 1.2.0
 
 ### Extended-precision complex types

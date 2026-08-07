@@ -149,6 +149,20 @@ struct QD_API qd_real {
   qd_real &operator=(const dd_real &a);
   qd_real &operator=(const char *s);
 
+  template <typename Integer,
+            typename std::enable_if<
+                std::is_same<Integer, int>::value ||
+                std::is_same<Integer, long>::value ||
+                std::is_same<Integer, unsigned long>::value ||
+                std::is_same<Integer, long long>::value ||
+                std::is_same<Integer, unsigned long long>::value ||
+                std::is_same<Integer, std::int64_t>::value ||
+                std::is_same<Integer, std::uint64_t>::value,
+                int>::type = 0>
+  operator Integer() const {
+    return static_cast<Integer>(x[0]);
+  }
+
   bool is_zero() const;
   bool is_one() const;
   bool is_positive() const;
@@ -225,6 +239,66 @@ QD_API qd_real operator*(const qd_real &a, const td_real &b);
 QD_API qd_real operator*(const qd_real &a, double b);
 QD_API qd_real operator*(double a, const qd_real &b);
 
+template <typename Integer>
+struct qd_real_integer_operand
+    : std::integral_constant<bool,
+          std::is_same<Integer, int>::value ||
+          std::is_same<Integer, unsigned int>::value ||
+          std::is_same<Integer, long>::value ||
+          std::is_same<Integer, unsigned long>::value ||
+          std::is_same<Integer, long long>::value ||
+          std::is_same<Integer, unsigned long long>::value ||
+          std::is_same<Integer, std::int64_t>::value ||
+          std::is_same<Integer, std::uint64_t>::value> {};
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator+(const qd_real &a, Integer b) {
+  return a + qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator+(Integer a, const qd_real &b) {
+  return qd_real(a) + b;
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator-(const qd_real &a, Integer b) {
+  return a - qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator-(Integer a, const qd_real &b) {
+  return qd_real(a) - b;
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator*(const qd_real &a, Integer b) {
+  return a * qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator*(Integer a, const qd_real &b) {
+  return qd_real(a) * b;
+}
+
 QD_API qd_real operator/(const qd_real &a, const qd_real &b);
 QD_API qd_real operator/(const dd_real &a, const qd_real &b);
 QD_API qd_real operator/(const qd_real &a, const dd_real &b);
@@ -232,6 +306,22 @@ QD_API qd_real operator/(const td_real &a, const qd_real &b);
 QD_API qd_real operator/(const qd_real &a, const td_real &b);
 QD_API qd_real operator/(const qd_real &a, double b);
 QD_API qd_real operator/(double a, const qd_real &b);
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator/(const qd_real &a, Integer b) {
+  return a / qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<
+              qd_real_integer_operand<Integer>::value,
+              int>::type = 0>
+inline qd_real operator/(Integer a, const qd_real &b) {
+  return qd_real(a) / b;
+}
 
 QD_API qd_real sqr(const qd_real &a);
 QD_API qd_real sqrt(const qd_real &a);
@@ -249,6 +339,12 @@ QD_API qd_real divrem(const qd_real &a, const qd_real &b, qd_real &r);
 dd_real to_dd_real(const qd_real &a);
 double  to_double(const qd_real &a);
 int     to_int(const qd_real &a);
+long    to_long(const qd_real &a);
+unsigned long to_unsigned_long(const qd_real &a);
+long long to_long_long(const qd_real &a);
+unsigned long long to_unsigned_long_long(const qd_real &a);
+std::int64_t to_int64_t(const qd_real &a);
+std::uint64_t to_uint64_t(const qd_real &a);
 
 QD_API bool operator==(const qd_real &a, const qd_real &b);
 QD_API bool operator==(const qd_real &a, const dd_real &b);
@@ -297,6 +393,78 @@ QD_API bool operator!=(const qd_real &a, const td_real &b);
 QD_API bool operator!=(const td_real &a, const qd_real &b);
 QD_API bool operator!=(double a, const qd_real &b);
 QD_API bool operator!=(const qd_real &a, double b);
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator==(const qd_real &a, Integer b) {
+  return a == qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator==(Integer a, const qd_real &b) {
+  return qd_real(a) == b;
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator!=(const qd_real &a, Integer b) {
+  return a != qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator!=(Integer a, const qd_real &b) {
+  return qd_real(a) != b;
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator<(const qd_real &a, Integer b) {
+  return a < qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator<(Integer a, const qd_real &b) {
+  return qd_real(a) < b;
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator>(const qd_real &a, Integer b) {
+  return a > qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator>(Integer a, const qd_real &b) {
+  return qd_real(a) > b;
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator<=(const qd_real &a, Integer b) {
+  return a <= qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator<=(Integer a, const qd_real &b) {
+  return qd_real(a) <= b;
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator>=(const qd_real &a, Integer b) {
+  return a >= qd_real(b);
+}
+
+template <typename Integer,
+          typename std::enable_if<qd_real_integer_operand<Integer>::value, int>::type = 0>
+inline bool operator>=(Integer a, const qd_real &b) {
+  return qd_real(a) >= b;
+}
 
 QD_API qd_real fabs(const qd_real &a);
 QD_API qd_real abs(const qd_real &a);    /* same as fabs */

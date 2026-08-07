@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.2.0 LANGUAGES CXX C)
+project(qd3 VERSION 1.3.0 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -17,6 +17,7 @@ include(CheckSymbolExists)
 include(QD3BuildOptions)
 include(QD3CheckFMA)
 include(QD3CheckEddReal)
+include(QD3CheckFpu)
 include(QD3CheckFortran)
 include(QD3Version)
 
@@ -58,6 +59,7 @@ if(QD_HAVE_LIBM)
   list(APPEND QD_SYSTEM_LIBS m)
 endif()
 
+qd3_check_fpu_fix_80bit()
 qd3_check_edd_real()
 qd3_check_fortran()
 
@@ -252,7 +254,7 @@ set(QD3_INSTALL_TARGETS "")
 
 if(BUILD_SHARED_LIBS)
   add_library(qd SHARED ${QD_SOURCES})
-  set_target_properties(qd PROPERTIES VERSION 0.0.0 SOVERSION 0)
+  set_target_properties(qd PROPERTIES VERSION 2.0.0 SOVERSION 2)
 else()
   add_library(qd STATIC ${QD_SOURCES})
 endif()
@@ -291,7 +293,7 @@ if(QD_HAVE_FORTRAN)
 
   if(BUILD_SHARED_LIBS)
     add_library(qdmod SHARED ${QD_FORTRAN_SOURCES})
-    set_target_properties(qdmod PROPERTIES VERSION 0.0.0 SOVERSION 0)
+    set_target_properties(qdmod PROPERTIES VERSION 2.0.0 SOVERSION 2)
   else()
     add_library(qdmod STATIC ${QD_FORTRAN_SOURCES})
   endif()
@@ -322,7 +324,7 @@ if(QD_HAVE_FORTRAN)
 
   if(BUILD_SHARED_LIBS)
     add_library(qd_f_main SHARED fortran/main.cpp)
-    set_target_properties(qd_f_main PROPERTIES VERSION 0.0.0 SOVERSION 0)
+    set_target_properties(qd_f_main PROPERTIES VERSION 2.0.0 SOVERSION 2)
   else()
     add_library(qd_f_main STATIC fortran/main.cpp)
   endif()
@@ -791,7 +793,7 @@ add_custom_target(doc
 )
 
 add_custom_target(dist-cmake
-  COMMAND sh -c "git -C '${CMAKE_SOURCE_DIR}' archive --format=tar --prefix='qd3-${PROJECT_VERSION}/' HEAD | xz -c > '${CMAKE_BINARY_DIR}/qd3-${PROJECT_VERSION}.tar.xz'"
+  COMMAND sh -c "git -C '${CMAKE_SOURCE_DIR}' archive --format=tar.gz --prefix='libQD3-${PROJECT_VERSION}/' HEAD > '${CMAKE_BINARY_DIR}/libQD3-${PROJECT_VERSION}.tar.gz'"
   VERBATIM
 )
 
@@ -823,6 +825,17 @@ file(CHMOD "${CMAKE_BINARY_DIR}/qd-config"
 include(QD3Install)
 qd3_install_targets()
 
+configure_file(
+  "${CMAKE_SOURCE_DIR}/cmake/QD3Uninstall.cmake.in"
+  "${CMAKE_BINARY_DIR}/cmake_uninstall.cmake"
+  @ONLY
+)
+if(NOT TARGET uninstall)
+  add_custom_target(uninstall
+    COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/cmake_uninstall.cmake"
+  )
+endif()
+
 message(STATUS "")
 message(STATUS "QD3 configuration summary")
 message(STATUS "  version                    = ${PROJECT_VERSION}")
@@ -846,6 +859,7 @@ message(STATUS "  QD_FMS selected            = ${QD_FMS_SELECTED}")
 message(STATUS "  FP contraction flag        = ${QD_FP_CONTRACT_FLAG}")
 message(STATUS "  QD_ARCH                    = ${QD_ARCH} (${QD_ARCH_CXX_FLAG})")
 message(STATUS "  edd_real status            = ${QD_EDD_STATUS}")
+message(STATUS "  x87 80-bit FPU fix         = ${QD_FPU_FIX_80BIT_STATUS}")
 message(STATUS "  BUILD_SHARED_LIBS          = ${BUILD_SHARED_LIBS}")
 message(STATUS "  QD_BUILD_STATIC            = ${QD_BUILD_STATIC}")
 message(STATUS "  tests enabled              = ${BUILD_TESTING}")

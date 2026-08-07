@@ -1158,6 +1158,30 @@ inline int to_int(const qd_real &a) {
   return static_cast<int>(a[0]);
 }
 
+inline long to_long(const qd_real &a) {
+  return static_cast<long>(a[0]);
+}
+
+inline unsigned long to_unsigned_long(const qd_real &a) {
+  return static_cast<unsigned long>(a[0]);
+}
+
+inline long long to_long_long(const qd_real &a) {
+  return static_cast<long long>(a[0]);
+}
+
+inline unsigned long long to_unsigned_long_long(const qd_real &a) {
+  return static_cast<unsigned long long>(a[0]);
+}
+
+inline std::int64_t to_int64_t(const qd_real &a) {
+  return static_cast<std::int64_t>(a[0]);
+}
+
+inline std::uint64_t to_uint64_t(const qd_real &a) {
+  return static_cast<std::uint64_t>(a[0]);
+}
+
 inline qd_real inv(const qd_real &qd) {
   return 1.0 / qd;
 }

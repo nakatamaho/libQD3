@@ -26,6 +26,7 @@
 #cmakedefine QD_EDD_WORD_MAX_EXP @QD_EDD_WORD_MAX_EXP@
 #cmakedefine QD_EDD_SPLIT_BITS @QD_EDD_SPLIT_BITS@
 #cmakedefine QD_EDD_SPLIT_SCALE_BITS @QD_EDD_SPLIT_SCALE_BITS@
+#cmakedefine QD_HAVE_FPU_FIX_80BIT 1
 
 #ifdef __cplusplus
 #include <cmath>
