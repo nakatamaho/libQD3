@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.3.0 LANGUAGES CXX C)
+project(qd3 VERSION 1.3.1 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 

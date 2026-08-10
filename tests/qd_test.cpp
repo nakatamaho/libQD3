@@ -322,6 +322,42 @@ inline edd_word test_edd_ldexp(edd_word x, int e) {
 #endif
 }
 
+class qd_fpu_scope {
+public:
+  qd_fpu_scope() : old_cw_(0) { fpu_fix_start(&old_cw_); }
+  ~qd_fpu_scope() { fpu_fix_end(&old_cw_); }
+
+private:
+  qd_fpu_scope(const qd_fpu_scope &);
+  qd_fpu_scope &operator=(const qd_fpu_scope &);
+
+  unsigned int old_cw_;
+};
+
+template <class Fn>
+qd_real qd_mode_qd(Fn fn) {
+  qd_fpu_scope scope;
+  return fn();
+}
+
+template <class Fn>
+dd_real qd_mode_dd(Fn fn) {
+  qd_fpu_scope scope;
+  return fn();
+}
+
+template <class Fn>
+bool qd_mode_bool(Fn fn) {
+  qd_fpu_scope scope;
+  return fn();
+}
+
+template <class Fn>
+double qd_mode_double(Fn fn) {
+  qd_fpu_scope scope;
+  return fn();
+}
+
 } // namespace
 
 bool edd_nonoverlap(edd_word hi, edd_word lo) {
@@ -338,11 +374,15 @@ bool edd_is_normalized(const edd_real &a) {
 }
 
 double edd_abs_error(const edd_real &a, const qd_real &ref) {
-  return to_double(abs(to_qd_real(a) - ref));
+  return qd_mode_double([&]() {
+    return to_double(abs(to_qd_real(a) - ref));
+  });
 }
 
 double edd_scale(const qd_real &ref) {
-  return std::max(1.0, std::abs(to_double(ref)));
+  return qd_mode_double([&]() {
+    return std::max(1.0, std::abs(to_double(ref)));
+  });
 }
 
 bool edd_check_close(const edd_real &a, const qd_real &ref, double factor) {
@@ -401,8 +441,8 @@ bool EddTestSuite::test2() {
   edd_real b(sb);
   edd_real diff = a - b;
   edd_real back = diff + b;
-  qd_real qdiff = qd_real(sa) - qd_real(sb);
-  qd_real qback = qdiff + qd_real(sb);
+  qd_real qdiff = qd_mode_qd([&]() { return qd_real(sa) - qd_real(sb); });
+  qd_real qback = qd_mode_qd([&]() { return qdiff + qd_real(sb); });
 
   return edd_check_close(diff, qdiff, 32.0) &&
       edd_check_close(back, qback, 32.0);
@@ -417,7 +457,7 @@ bool EddTestSuite::test3() {
   edd_real a(sa);
   edd_real b(sb);
   edd_real prod = a * b;
-  qd_real qprod = qd_real(sa) * qd_real(sb);
+  qd_real qprod = qd_mode_qd([&]() { return qd_real(sa) * qd_real(sb); });
 
   return edd_check_close(prod, qprod, 48.0);
 }
@@ -432,12 +472,13 @@ bool EddTestSuite::test4() {
   edd_real b(sb);
   edd_real q = a / b;
   edd_real thirds = edd_real("1.0") / edd_real("3.0");
-  qd_real qq = qd_real(sa) / qd_real(sb);
-  qd_real qthirds = qd_real(1.0) / qd_real(3.0);
+  qd_real qq = qd_mode_qd([&]() { return qd_real(sa) / qd_real(sb); });
+  qd_real qthirds = qd_mode_qd([]() { return qd_real(1.0) / qd_real(3.0); });
+  qd_real qa = qd_mode_qd([&]() { return qd_real(sa); });
 
   return edd_check_close(q, qq, 64.0) &&
       edd_check_close(thirds, qthirds, 64.0) &&
-      edd_check_close(q * b, qd_real(sa), 128.0);
+      edd_check_close(q * b, qa, 128.0);
 }
 
 bool EddTestSuite::test5() {
@@ -446,7 +487,7 @@ bool EddTestSuite::test5() {
 
   edd_real square("15241578750190521");
   edd_real exact = sqrt(square);
-  qd_real qexact("123456789");
+  qd_real qexact = qd_mode_qd([]() { return qd_real("123456789"); });
 
   return edd_check_close(exact, qexact, 32.0);
 }
@@ -459,8 +500,9 @@ bool EddTestSuite::test6() {
       edd_real(test_edd_ldexp((edd_word) 1.0, -63));
   edd_real s = sqrt(a);
   edd_real back = sqr(s);
+  qd_real qa = qd_mode_qd([&]() { return to_qd_real(a); });
 
-  return edd_is_normalized(s) && edd_check_close(back, to_qd_real(a), 8.0);
+  return edd_is_normalized(s) && edd_check_close(back, qa, 8.0);
 }
 
 bool EddTestSuite::test7() {
@@ -471,7 +513,7 @@ bool EddTestSuite::test7() {
   edd_real a(src);
   std::string s = a.to_string(38, 0, std::ios_base::scientific);
   edd_real b(s.c_str());
-  qd_real qsrc(src);
+  qd_real qsrc = qd_mode_qd([&]() { return qd_real(src); });
 
   return edd_check_close(a, qsrc, 8.0) &&
       edd_check_close(b, qsrc, 8.0);
@@ -500,14 +542,22 @@ bool EddTestSuite::test9() {
   cout << "Test 9.  (edd constants sanity)." << endl;
 
   bool pass = true;
-  pass &= edd_check_close(edd_real::_pi, qd_real::_pi, 8.0);
-  pass &= edd_check_close(edd_real::_2pi, qd_real::_2pi, 8.0);
-  pass &= edd_check_close(edd_real::_3pi4, qd_real::_3pi4, 8.0);
-  pass &= edd_check_close(edd_real::_pi2, qd_real::_pi2, 8.0);
-  pass &= edd_check_close(edd_real::_pi4, qd_real::_pi4, 8.0);
-  pass &= edd_check_close(edd_real::_e, qd_real::_e, 8.0);
-  pass &= edd_check_close(edd_real::_log2, qd_real::_log2, 8.0);
-  pass &= edd_check_close(edd_real::_log10, qd_real::_log10, 8.0);
+  pass &= edd_check_close(edd_real::_pi,
+      qd_mode_qd([]() { return qd_real::_pi; }), 8.0);
+  pass &= edd_check_close(edd_real::_2pi,
+      qd_mode_qd([]() { return qd_real::_2pi; }), 8.0);
+  pass &= edd_check_close(edd_real::_3pi4,
+      qd_mode_qd([]() { return qd_real::_3pi4; }), 8.0);
+  pass &= edd_check_close(edd_real::_pi2,
+      qd_mode_qd([]() { return qd_real::_pi2; }), 8.0);
+  pass &= edd_check_close(edd_real::_pi4,
+      qd_mode_qd([]() { return qd_real::_pi4; }), 8.0);
+  pass &= edd_check_close(edd_real::_e,
+      qd_mode_qd([]() { return qd_real::_e; }), 8.0);
+  pass &= edd_check_close(edd_real::_log2,
+      qd_mode_qd([]() { return qd_real::_log2; }), 8.0);
+  pass &= edd_check_close(edd_real::_log10,
+      qd_mode_qd([]() { return qd_real::_log10; }), 8.0);
   pass &= (edd_real::_2pi > edd_real::_pi);
   pass &= (edd_real::_pi > edd_real::_pi2);
   pass &= (edd_real::_eps > (edd_word) 0.0);
@@ -537,7 +587,8 @@ bool EddTestSuite::test10() {
     std::istringstream is(os.str());
     edd_real b;
     is >> b;
-    pass &= edd_check_close(b, to_qd_real(a), 16.0);
+    qd_real qa = qd_mode_qd([&]() { return to_qd_real(a); });
+    pass &= edd_check_close(b, qa, 16.0);
   }
 
   const std::string edd_fixed =
@@ -579,21 +630,30 @@ bool EddTestSuite::test12() {
   cout << endl;
   cout << "Test 12.  (edd dd/qd conversion paths)." << endl;
 
-  dd_real dd("1.234567890123456789012345678901");
+  dd_real dd = qd_mode_dd([]() {
+    return dd_real("1.234567890123456789012345678901");
+  });
   edd_real from_dd = to_edd_real(dd);
-  dd_real dd_roundtrip = to_dd_real(from_dd);
+  dd_real dd_roundtrip = qd_mode_dd([&]() { return to_dd_real(from_dd); });
 
-  qd_real qd("1.234567890123456789012345678901234567890123456789");
+  qd_real qd = qd_mode_qd([]() {
+    return qd_real("1.234567890123456789012345678901234567890123456789");
+  });
   edd_real from_qd = to_edd_real(qd);
-  qd_real qd_roundtrip = to_qd_real(from_qd);
+  qd_real qd_roundtrip = qd_mode_qd([&]() { return to_qd_real(from_qd); });
 
-  const bool dd_roundtrip_ok = (dd == dd_roundtrip);
+  const bool dd_roundtrip_ok = qd_mode_bool([&]() {
+    return dd == dd_roundtrip;
+  });
   const bool from_dd_norm_ok = edd_is_normalized(from_dd);
   const bool from_qd_norm_ok = edd_is_normalized(from_qd);
-  const bool from_dd_close_ok = edd_check_close(from_dd, qd_real(dd), 8.0);
+  const qd_real qdd = qd_mode_qd([&]() { return qd_real(dd); });
+  const bool from_dd_close_ok = edd_check_close(from_dd, qdd, 8.0);
   const bool from_qd_close_ok = edd_check_close(from_qd, qd, 8.0);
-  const bool qd_roundtrip_ok = (to_double(abs(qd_roundtrip - qd)) <=
-      16.0 * static_cast<double>(edd_real::_eps) * edd_scale(qd));
+  const bool qd_roundtrip_ok = qd_mode_bool([&]() {
+    return to_double(abs(qd_roundtrip - qd)) <=
+        16.0 * static_cast<double>(edd_real::_eps) * edd_scale(qd);
+  });
 
   bool pass = dd_roundtrip_ok && from_dd_norm_ok && from_qd_norm_ok &&
       from_dd_close_ok && from_qd_close_ok && qd_roundtrip_ok;
@@ -604,7 +664,9 @@ bool EddTestSuite::test12() {
     cout << "from_dd      = " << from_dd << endl;
     cout << "from_qd      = " << from_qd << endl;
     cout << "qd error     = "
-         << to_double(abs(qd_roundtrip - qd)) / static_cast<double>(edd_real::_eps)
+         << qd_mode_double([&]() {
+              return to_double(abs(qd_roundtrip - qd));
+            }) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "from_qd err  = "
          << edd_abs_error(from_qd, qd) / static_cast<double>(edd_real::_eps)
@@ -644,14 +706,17 @@ bool EddTestSuite::test14() {
   edd_real x("1.2345678901234567890123456789");
   edd_real ex = exp(x);
   edd_real lx = log(ex);
-  qd_real qx("1.2345678901234567890123456789");
+  qd_real qx = qd_mode_qd([]() {
+    return qd_real("1.2345678901234567890123456789");
+  });
+  qd_real qex = qd_mode_qd([&]() { return exp(qx); });
 
   edd_real huge = edd_real::_log2 * (edd_word) 12000.0;
   edd_real ehuge = exp(huge);
   edd_real lhuge = log(ehuge);
 
   bool pass = true;
-  pass &= edd_check_close(ex, exp(qx), 128.0);
+  pass &= edd_check_close(ex, qex, 128.0);
   pass &= edd_check_close(lx, qx, 128.0);
   pass &= ehuge.isfinite();
   pass &= edd_is_normalized(ehuge);
@@ -672,18 +737,23 @@ bool EddTestSuite::test15() {
   };
 
   bool pass = true;
+  qd_real qone = qd_mode_qd([]() { return qd_real(1.0); });
+  qd_real qzero = qd_mode_qd([]() { return qd_real(0.0); });
   for (int i = 0; i < 3; i++) {
     edd_real a(samples[i]);
-    qd_real qa(samples[i]);
+    qd_real qa = qd_mode_qd([&]() { return qd_real(samples[i]); });
+    qd_real qs = qd_mode_qd([&]() { return sin(qa); });
+    qd_real qc = qd_mode_qd([&]() { return cos(qa); });
+    qd_real qt = qd_mode_qd([&]() { return tan(qa); });
     edd_real s = sin(a);
     edd_real c = cos(a);
     edd_real t = tan(a);
 
-    pass &= edd_check_close(s, sin(qa), 128.0);
-    pass &= edd_check_close(c, cos(qa), 128.0);
-    pass &= edd_check_close(t, tan(qa), 256.0);
-    pass &= edd_check_close(sqr(s) + sqr(c), qd_real(1.0), 256.0);
-    pass &= edd_check_close(t - (s / c), qd_real(0.0), 256.0);
+    pass &= edd_check_close(s, qs, 128.0);
+    pass &= edd_check_close(c, qc, 128.0);
+    pass &= edd_check_close(t, qt, 256.0);
+    pass &= edd_check_close(sqr(s) + sqr(c), qone, 256.0);
+    pass &= edd_check_close(t - (s / c), qzero, 256.0);
   }
 
   return pass;
@@ -695,16 +765,21 @@ bool EddTestSuite::test16() {
 
   edd_real x("0.3125");
   edd_real y("0.75");
-  qd_real qx("0.3125");
-  qd_real qy("0.75");
+  qd_real qx = qd_mode_qd([]() { return qd_real("0.3125"); });
+  qd_real qy = qd_mode_qd([]() { return qd_real("0.75"); });
+  qd_real qasin = qd_mode_qd([&]() { return asin(qx); });
+  qd_real qacos = qd_mode_qd([&]() { return acos(qx); });
+  qd_real qatan = qd_mode_qd([&]() { return atan(qy); });
+  qd_real qatan2 = qd_mode_qd([&]() { return atan2(qy, qx); });
+  qd_real qx_ref = qd_mode_qd([]() { return qd_real("0.3125"); });
 
   bool pass = true;
-  pass &= edd_check_close(asin(x), asin(qx), 128.0);
-  pass &= edd_check_close(acos(x), acos(qx), 128.0);
-  pass &= edd_check_close(atan(y), atan(qy), 128.0);
-  pass &= edd_check_close(atan2(y, x), atan2(qy, qx), 128.0);
-  pass &= edd_check_close(sin(asin(x)), qd_real("0.3125"), 256.0);
-  pass &= edd_check_close(cos(acos(x)), qd_real("0.3125"), 256.0);
+  pass &= edd_check_close(asin(x), qasin, 128.0);
+  pass &= edd_check_close(acos(x), qacos, 128.0);
+  pass &= edd_check_close(atan(y), qatan, 128.0);
+  pass &= edd_check_close(atan2(y, x), qatan2, 128.0);
+  pass &= edd_check_close(sin(asin(x)), qx_ref, 256.0);
+  pass &= edd_check_close(cos(acos(x)), qx_ref, 256.0);
 
   return pass;
 }
@@ -714,42 +789,48 @@ bool EddTestSuite::test17() {
   cout << "Test 17.  (edd large-argument reduction and hyperbolic checks)." << endl;
 
   edd_real large = edd_real("1.0e40") * edd_real::_pi + edd_real("0.125");
-  qd_real qlarge = to_qd_real(large);
+  qd_real qlarge = qd_mode_qd([&]() { return to_qd_real(large); });
   edd_real h("0.875");
-  qd_real qh("0.875");
+  qd_real qh = qd_mode_qd([]() { return qd_real("0.875"); });
 
   edd_real s = sin(large);
   edd_real c = cos(large);
   edd_real sh = sinh(h);
   edd_real ch = cosh(h);
   edd_real th = tanh(h);
+  qd_real qs = qd_mode_qd([&]() { return sin(qlarge); });
+  qd_real qc = qd_mode_qd([&]() { return cos(qlarge); });
+  qd_real qsh = qd_mode_qd([&]() { return sinh(qh); });
+  qd_real qch = qd_mode_qd([&]() { return cosh(qh); });
+  qd_real qth = qd_mode_qd([&]() { return tanh(qh); });
+  qd_real qone = qd_mode_qd([]() { return qd_real(1.0); });
 
   bool pass = true;
-  pass &= edd_check_close(s, sin(qlarge), 256.0);
-  pass &= edd_check_close(c, cos(qlarge), 256.0);
-  pass &= edd_check_close(sh, sinh(qh), 128.0);
-  pass &= edd_check_close(ch, cosh(qh), 128.0);
-  pass &= edd_check_close(th, tanh(qh), 128.0);
-  pass &= edd_check_close(sqr(ch) - sqr(sh), qd_real(1.0), 256.0);
+  pass &= edd_check_close(s, qs, 256.0);
+  pass &= edd_check_close(c, qc, 256.0);
+  pass &= edd_check_close(sh, qsh, 128.0);
+  pass &= edd_check_close(ch, qch, 128.0);
+  pass &= edd_check_close(th, qth, 128.0);
+  pass &= edd_check_close(sqr(ch) - sqr(sh), qone, 256.0);
 
   if (flag_verbose) {
     cout << "large sin err = "
-         << edd_abs_error(s, sin(qlarge)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(s, qs) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "large cos err = "
-         << edd_abs_error(c, cos(qlarge)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(c, qc) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "sinh err = "
-         << edd_abs_error(sh, sinh(qh)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(sh, qsh) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "cosh err = "
-         << edd_abs_error(ch, cosh(qh)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(ch, qch) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "tanh err = "
-         << edd_abs_error(th, tanh(qh)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(th, qth) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
     cout << "cosh^2-sinh^2 err = "
-         << edd_abs_error(sqr(ch) - sqr(sh), qd_real(1.0)) / static_cast<double>(edd_real::_eps)
+         << edd_abs_error(sqr(ch) - sqr(sh), qone) / static_cast<double>(edd_real::_eps)
          << " eps" << endl;
   }
 

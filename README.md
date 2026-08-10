@@ -20,6 +20,12 @@ available. These overload arithmetic, standard complex elementary functions,
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-08-10 libQD3 1.3.1 was released.  This focused portability release fixes
+x87/i386 FPU-mode separation for EDD: EDD arithmetic stays in verified 80-bit
+mode, while DD/TD/QD oracle operations and the internal `qd_real` path used by
+EDD trigonometric argument reduction run in QD round-to-double mode.  See
+[CHANGES.1.3.1.md](CHANGES.1.3.1.md) for the 1.3.1 release notes.
+
 2026-08-07 libQD3 1.3.0 was released.  This maintenance release folds
 MPLAPACK downstream portability patches into upstream: integer mixed-mode
 operators for DD/TD/QD/EDD real types, std::complex<double> interop for the
@@ -64,8 +70,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.3.0 are in
-[CHANGES.1.3.0.md](CHANGES.1.3.0.md).
+Release-specific notes for libQD3 1.3.1 are in
+[CHANGES.1.3.1.md](CHANGES.1.3.1.md).
 
 ## Tips for developers
 

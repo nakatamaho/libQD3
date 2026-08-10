@@ -301,9 +301,14 @@ bool run_type(const char *name) {
 
 int main() {
   bool pass = true;
-  pass &= run_type<dd_complex>("dd_complex");
-  pass &= run_type<td_complex>("td_complex");
-  pass &= run_type<qd_complex>("qd_complex");
+  {
+    unsigned int old_cw = 0;
+    fpu_fix_start(&old_cw);
+    pass &= run_type<dd_complex>("dd_complex");
+    pass &= run_type<td_complex>("td_complex");
+    pass &= run_type<qd_complex>("qd_complex");
+    fpu_fix_end(&old_cw);
+  }
 #ifdef QD_HAVE_EDD_REAL
   {
     unsigned int old_edd_cw = 0;

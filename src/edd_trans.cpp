@@ -27,6 +27,23 @@ inline edd_word exp_underflow_limit() {
   return to_float64x(edd_real::_log2) * (edd_word) -16445.0;
 }
 
+class qd_fpu_scope {
+public:
+  qd_fpu_scope() : old_cw_(0) { fpu_fix_start(&old_cw_); }
+  ~qd_fpu_scope() { fpu_fix_end(&old_cw_); }
+
+private:
+  qd_fpu_scope(const qd_fpu_scope &);
+  qd_fpu_scope &operator=(const qd_fpu_scope &);
+
+  unsigned int old_cw_;
+};
+
+inline qd_real to_qd_mode(const edd_real &a) {
+  qd_fpu_scope scope;
+  return to_qd_real(a);
+}
+
 inline edd_real edd_nint_internal(const edd_real &a) {
   edd_word x0 = edd::nint(a[0]);
   edd_word x1 = (edd_word) 0.0;
@@ -149,7 +166,7 @@ inline void sincos_taylor(const edd_real &a, edd_real &sin_a, edd_real &cos_a) {
 }
 
 inline void reduce_edd_trig_arg(const edd_real &a, edd_real &t, int &j, int &k) {
-  const qd_real a_qd = to_qd_real(a);
+  const qd_real a_qd = to_qd_mode(a);
 
   if (!std::isfinite(to_double(a_qd))) {
     edd_real z = edd_nint_internal(a / edd_real::_2pi);
@@ -167,18 +184,23 @@ inline void reduce_edd_trig_arg(const edd_real &a, edd_real &t, int &j, int &k) 
     return;
   }
 
-  qd_real z = nint(a_qd / qd_real::_2pi);
-  qd_real r = a_qd - qd_real::_2pi * z;
+  qd_real t_qd;
+  {
+    qd_fpu_scope scope;
+    qd_real z = nint(a_qd / qd_real::_2pi);
+    qd_real r = a_qd - qd_real::_2pi * z;
 
-  double q = std::floor(r[0] / qd_real::_pi2[0] + 0.5);
-  qd_real t_qd = r - qd_real::_pi2 * q;
-  j = static_cast<int>(q);
-  while (j > 2) j -= 4;
-  while (j < -2) j += 4;
+    double q = std::floor(r[0] / qd_real::_pi2[0] + 0.5);
+    t_qd = r - qd_real::_pi2 * q;
+    j = static_cast<int>(q);
+    while (j > 2) j -= 4;
+    while (j < -2) j += 4;
 
-  q = std::floor(t_qd[0] / edd_pi16[0] + 0.5);
-  t = to_edd_real(t_qd - to_qd_real(edd_pi16) * q);
-  k = static_cast<int>(q);
+    q = std::floor(t_qd[0] / edd_pi16[0] + 0.5);
+    t_qd -= to_qd_real(edd_pi16) * q;
+    k = static_cast<int>(q);
+  }
+  t = to_edd_real(t_qd);
 }
 
 inline void sincos_native(const edd_real &a, edd_real &s, edd_real &c) {

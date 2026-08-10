@@ -1,3 +1,10 @@
+Changes for 1.3.1
+    Fixed x87/i386 FPU-mode separation for EDD.  EDD arithmetic now stays in
+    verified 80-bit mode, while DD/TD/QD oracle expressions and the internal
+    qd_real path used by EDD trigonometric argument reduction run in the QD
+    round-to-double mode.  The Debian i386 CMake CTest suite passes without a
+    global -ffloat-store workaround.
+
 Changes for 1.3.0
     Integrated downstream MPLAPACK portability fixes into upstream libQD3.
     Added integer mixed-mode arithmetic and comparison overloads for

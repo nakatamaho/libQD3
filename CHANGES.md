@@ -1,5 +1,24 @@
 # CHANGES.md
 
+## 1.3.1
+
+libQD3 1.3.1 is a focused x87/i386 portability fix release. It separates the
+FPU mode used by EDD arithmetic from the round-to-double mode required by
+DD/TD/QD oracle calculations and by the `qd_real` reduction path inside EDD
+trigonometric functions.
+
+Highlights:
+
+- Fixed EDD trigonometric argument reduction to evaluate its internal
+  `qd_real` work under QD round-to-double FPU mode before converting back to
+  `edd_real`.
+- Split EDD tests so `qd_real` and `dd_real` oracle operations do not run in
+  EDD 80-bit FPU mode.
+- Split `complex_test` so DD/TD/QD complex tests and EDD complex tests run
+  under their respective FPU modes.
+- Verified Debian i386 CTest without adding a global `-ffloat-store`
+  workaround.
+
 ## 1.3.0
 
 libQD3 1.3.0 is a maintenance release that upstreams the downstream patches
