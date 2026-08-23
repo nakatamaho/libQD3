@@ -105,8 +105,14 @@ edd_real &edd_real::operator=(const char *s) {
 }
 
 edd_real sqrt(const edd_real &a) {
+  if (a.isnan())
+    return edd_real::_nan;
+
+  if (a.isinf())
+    return a.is_negative() ? edd_real::_nan : edd_real::_inf;
+
   if (a.is_zero())
-    return (edd_word) 0.0;
+    return a;
 
   if (a.is_negative()) {
     edd_real::error("(edd_real::sqrt): Negative argument.");

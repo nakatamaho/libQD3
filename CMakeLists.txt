@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.3.1 LANGUAGES CXX C)
+project(qd3 VERSION 1.4.0 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -385,6 +385,11 @@ if(BUILD_TESTING)
   qd3_configure_internal_target(complex_test)
   target_link_libraries(complex_test PRIVATE qd)
   add_test(NAME complex_test COMMAND complex_test)
+
+  add_executable(arithmetic_smoke tests/arithmetic_smoke.cpp)
+  qd3_configure_internal_target(arithmetic_smoke)
+  target_link_libraries(arithmetic_smoke PRIVATE qd)
+  add_test(NAME arithmetic_smoke COMMAND arithmetic_smoke)
 
   add_executable(qd_timer EXCLUDE_FROM_ALL tests/qd_timer.cpp tests/tictoc.cpp tests/tictoc.h)
   qd3_configure_internal_target(qd_timer)

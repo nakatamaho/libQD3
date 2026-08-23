@@ -1,3 +1,12 @@
+Changes for 1.4.0
+    Hardened division rescaling and IEEE special-value handling for dd_real,
+    td_real, qd_real, and edd_real.  Quotients that overflow before or after
+    expansion reconstruction now return canonical signed infinities instead
+    of propagating Inf-Inf into NaNs.  Added square-root special-value
+    handling, fixed the EDD maximum constant on targets without a
+    numeric_limits<_Float64x> specialization, and added arithmetic_smoke
+    regression coverage for direct, rescaled, scalar, and QD/DD division.
+
 Changes for 1.3.1
     Fixed x87/i386 FPU-mode separation for EDD.  EDD arithmetic now stays in
     verified 80-bit mode, while DD/TD/QD oracle expressions and the internal

@@ -295,15 +295,81 @@ static inline bool dd_real_div_needs_rescale(double a_hi) {
   return std::fabs(a_hi) > 0x1p+969;
 }
 
+inline dd_real dd_signed_zero(bool negative) {
+  return dd_real(std::copysign(0.0, negative ? -1.0 : 1.0));
+}
+
+inline dd_real dd_div_special(double a, double b, bool &handled) {
+  const bool a_nan = std::isnan(a);
+  const bool b_nan = std::isnan(b);
+  const bool a_inf = std::isinf(a);
+  const bool b_inf = std::isinf(b);
+  const bool negative = std::signbit(a) != std::signbit(b);
+
+  if (a_nan || b_nan || (a_inf && b_inf) || (a == 0.0 && b == 0.0)) {
+    handled = true;
+    return dd_real::_nan;
+  }
+  if (b == 0.0 || a_inf) {
+    handled = true;
+    return negative ? -dd_real::_inf : dd_real::_inf;
+  }
+  if (a == 0.0 || b_inf) {
+    handled = true;
+    return dd_signed_zero(negative);
+  }
+
+  handled = false;
+  return dd_real();
+}
+
+inline dd_real dd_div_special(const dd_real &a, const dd_real &b,
+                              bool &handled) {
+  const bool negative = std::signbit(a.x[0]) != std::signbit(b.x[0]);
+
+  if (a.isnan() || b.isnan() || (a.isinf() && b.isinf()) ||
+      (a.is_zero() && b.is_zero())) {
+    handled = true;
+    return dd_real::_nan;
+  }
+  if (b.is_zero() || a.isinf()) {
+    handled = true;
+    return negative ? -dd_real::_inf : dd_real::_inf;
+  }
+  if (a.is_zero() || b.isinf()) {
+    handled = true;
+    return dd_signed_zero(negative);
+  }
+
+  handled = false;
+  return dd_real();
+}
+
+inline dd_real dd_div_overflow_result(double quotient) {
+  return std::signbit(quotient) ? -dd_real::_inf : dd_real::_inf;
+}
+
+inline dd_real dd_div_finalize(const dd_real &result, bool rescale) {
+  const dd_real restored = rescale ? mul_pwr2(result, 0x1p+53) : result;
+  if (restored.isinf())
+    return std::signbit(restored.x[0]) ? -dd_real::_inf : dd_real::_inf;
+  return restored;
+}
+
 inline dd_real dd_real::div(double a, double b) {
   double q1, q2;
   double p1, p2;
   double s, e;
 
+  bool handled;
+  dd_real special = dd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = dd_real_div_needs_rescale(a);
   const double aa = rescale ? std::ldexp(a, -53) : a;
 
   q1 = aa / b;
+  if (std::isinf(q1)) return dd_div_overflow_result(q1);
 
   /* Compute  a - q1 * b */
   p1 = qd::two_prod(q1, b, p2);
@@ -316,7 +382,7 @@ inline dd_real dd_real::div(double a, double b) {
   s = qd::quick_two_sum(q1, q2, e);
 
   dd_real r(s, e);
-  return rescale ? mul_pwr2(r, 0x1p+53) : r;
+  return dd_div_finalize(r, rescale);
 }
 
 /* double-double / double */
@@ -327,10 +393,15 @@ inline dd_real operator/(const dd_real &a, double b) {
   double s, e;
   dd_real r;
 
+  bool handled;
+  dd_real special = dd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = dd_real_div_needs_rescale(a.x[0]);
   const dd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q1 = aa.x[0] / b;   /* approximate quotient. */
+  if (std::isinf(q1)) return dd_div_overflow_result(q1);
 
   /* Compute  this - q1 * d */
   p1 = qd::two_prod(q1, b, p2);
@@ -344,7 +415,7 @@ inline dd_real operator/(const dd_real &a, double b) {
   /* renormalize */
   r.x[0] = qd::quick_two_sum(q1, q2, r.x[1]);
 
-  return rescale ? mul_pwr2(r, 0x1p+53) : r;
+  return dd_div_finalize(r, rescale);
 }
 
 inline dd_real dd_real::sloppy_div(const dd_real &a, const dd_real &b) {
@@ -352,10 +423,15 @@ inline dd_real dd_real::sloppy_div(const dd_real &a, const dd_real &b) {
   double q1, q2;
   dd_real r;
 
+  bool handled;
+  dd_real special = dd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = dd_real_div_needs_rescale(a.x[0]);
   const dd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q1 = aa.x[0] / b.x[0];  /* approximate quotient */
+  if (std::isinf(q1)) return dd_div_overflow_result(q1);
 
   /* compute  this - q1 * dd */
   r = b * q1;
@@ -368,17 +444,22 @@ inline dd_real dd_real::sloppy_div(const dd_real &a, const dd_real &b) {
 
   /* renormalize */
   r.x[0] = qd::quick_two_sum(q1, q2, r.x[1]);
-  return rescale ? mul_pwr2(r, 0x1p+53) : r;
+  return dd_div_finalize(r, rescale);
 }
 
 inline dd_real dd_real::accurate_div(const dd_real &a, const dd_real &b) {
   double q1, q2, q3;
   dd_real r;
 
+  bool handled;
+  dd_real special = dd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = dd_real_div_needs_rescale(a.x[0]);
   const dd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q1 = aa.x[0] / b.x[0];  /* approximate quotient */
+  if (std::isinf(q1)) return dd_div_overflow_result(q1);
 
   r = aa - q1 * b;
   
@@ -389,7 +470,7 @@ inline dd_real dd_real::accurate_div(const dd_real &a, const dd_real &b) {
 
   q1 = qd::quick_two_sum(q1, q2, q2);
   r = dd_real(q1, q2) + q3;
-  return rescale ? mul_pwr2(r, 0x1p+53) : r;
+  return dd_div_finalize(r, rescale);
 }
 
 /* double-double / double-double */

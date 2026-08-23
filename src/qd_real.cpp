@@ -56,6 +56,71 @@ inline bool qd_real_sqrt_needs_rescale(double a_hi) {
   return std::fabs(a_hi) > 0x1p+969;
 }
 
+inline qd_real qd_signed_zero(bool negative) {
+  return qd_real(std::copysign(0.0, negative ? -1.0 : 1.0));
+}
+
+inline qd_real qd_div_special(const qd_real &a, double b, bool &handled) {
+  const bool b_nan = std::isnan(b);
+  const bool b_inf = std::isinf(b);
+  const bool negative = std::signbit(a[0]) != std::signbit(b);
+
+  if (a.isnan() || b_nan || (a.isinf() && b_inf) ||
+      (a.is_zero() && b == 0.0)) {
+    handled = true;
+    return qd_real::_nan;
+  }
+  if (b == 0.0 || a.isinf()) {
+    handled = true;
+    return negative ? -qd_real::_inf : qd_real::_inf;
+  }
+  if (a.is_zero() || b_inf) {
+    handled = true;
+    return qd_signed_zero(negative);
+  }
+
+  handled = false;
+  return qd_real();
+}
+
+inline qd_real qd_div_special(const qd_real &a, const qd_real &b,
+                              bool &handled) {
+  const bool negative = std::signbit(a[0]) != std::signbit(b[0]);
+
+  if (a.isnan() || b.isnan() || (a.isinf() && b.isinf()) ||
+      (a.is_zero() && b.is_zero())) {
+    handled = true;
+    return qd_real::_nan;
+  }
+  if (b.is_zero() || a.isinf()) {
+    handled = true;
+    return negative ? -qd_real::_inf : qd_real::_inf;
+  }
+  if (a.is_zero() || b.isinf()) {
+    handled = true;
+    return qd_signed_zero(negative);
+  }
+
+  handled = false;
+  return qd_real();
+}
+
+inline qd_real qd_div_special(const qd_real &a, const dd_real &b,
+                              bool &handled) {
+  return qd_div_special(a, qd_real(b), handled);
+}
+
+inline qd_real qd_div_overflow_result(double quotient) {
+  return std::signbit(quotient) ? -qd_real::_inf : qd_real::_inf;
+}
+
+inline qd_real qd_div_finalize(const qd_real &result, bool rescale) {
+  const qd_real restored = rescale ? mul_pwr2(result, 0x1p+53) : result;
+  if (restored.isinf())
+    return std::signbit(restored[0]) ? -qd_real::_inf : qd_real::_inf;
+  return restored;
+}
+
 qd_real fsqrt_core(const qd_real &a, int &flag) {
   int i;
   double e, eps;
@@ -194,10 +259,15 @@ qd_real operator/(const qd_real &a, double b) {
   double q0, q1, q2, q3;
   qd_real r;
 
+  bool handled;
+  qd_real special = qd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = qd_real_div_needs_rescale(a[0]);
   const qd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b;  /* approximate quotient */
+  if (std::isinf(q0)) return qd_div_overflow_result(q0);
 
   /* Compute the remainder  a - q0 * b */
   t0 = two_prod(q0, b, t1);
@@ -218,7 +288,7 @@ qd_real operator/(const qd_real &a, double b) {
 
   renorm(q0, q1, q2, q3);
   qd_real result(q0, q1, q2, q3);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return qd_div_finalize(result, rescale);
 }
 
 qd_real::qd_real(const char *s) {
@@ -703,10 +773,15 @@ qd_real qd_real::sloppy_div(const qd_real &a, const dd_real &b) {
   qd_real r;
   qd_real qd_b(b);
 
+  bool handled;
+  qd_real special = qd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = qd_real_div_needs_rescale(a[0]);
   const qd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b._hi();
+  if (std::isinf(q0)) return qd_div_overflow_result(q0);
   r = aa - q0 * qd_b;
 
   q1 = r[0] / b._hi();
@@ -719,7 +794,7 @@ qd_real qd_real::sloppy_div(const qd_real &a, const dd_real &b) {
 
   ::renorm(q0, q1, q2, q3);
   qd_real result(q0, q1, q2, q3);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return qd_div_finalize(result, rescale);
 }
 
 qd_real qd_real::accurate_div(const qd_real &a, const dd_real &b) {
@@ -727,10 +802,15 @@ qd_real qd_real::accurate_div(const qd_real &a, const dd_real &b) {
   qd_real r;
   qd_real qd_b(b);
 
+  bool handled;
+  qd_real special = qd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = qd_real_div_needs_rescale(a[0]);
   const qd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b._hi();
+  if (std::isinf(q0)) return qd_div_overflow_result(q0);
   r = aa - q0 * qd_b;
 
   q1 = r[0] / b._hi();
@@ -746,7 +826,7 @@ qd_real qd_real::accurate_div(const qd_real &a, const dd_real &b) {
 
   ::renorm(q0, q1, q2, q3, q4);
   qd_real result(q0, q1, q2, q3);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return qd_div_finalize(result, rescale);
 }
 
 /* quad-double / quad-double */
@@ -755,10 +835,15 @@ qd_real qd_real::sloppy_div(const qd_real &a, const qd_real &b) {
 
   qd_real r;
 
+  bool handled;
+  qd_real special = qd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = qd_real_div_needs_rescale(a[0]);
   const qd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b[0];
+  if (std::isinf(q0)) return qd_div_overflow_result(q0);
   r = aa - (b * q0);
 
   q1 = r[0] / b[0];
@@ -772,7 +857,7 @@ qd_real qd_real::sloppy_div(const qd_real &a, const qd_real &b) {
   ::renorm(q0, q1, q2, q3);
 
   qd_real result(q0, q1, q2, q3);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return qd_div_finalize(result, rescale);
 }
 
 qd_real qd_real::accurate_div(const qd_real &a, const qd_real &b) {
@@ -780,10 +865,15 @@ qd_real qd_real::accurate_div(const qd_real &a, const qd_real &b) {
 
   qd_real r;
 
+  bool handled;
+  qd_real special = qd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = qd_real_div_needs_rescale(a[0]);
   const qd_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b[0];
+  if (std::isinf(q0)) return qd_div_overflow_result(q0);
   r = aa - (b * q0);
 
   q1 = r[0] / b[0];
@@ -800,7 +890,7 @@ qd_real qd_real::accurate_div(const qd_real &a, const qd_real &b) {
   ::renorm(q0, q1, q2, q3, q4);
 
   qd_real result(q0, q1, q2, q3);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return qd_div_finalize(result, rescale);
 }
 
 QD_API qd_real fsqrt(const qd_real &a, int &flag) {
@@ -812,8 +902,14 @@ QD_API qd_real fsqrt(const qd_real &a, int &flag) {
      3. repeat 2 until corrections are small
   */
 
+  if (a.isnan())
+    return qd_real::_nan;
+
+  if (a.isinf())
+    return a.is_negative() ? qd_real::_nan : qd_real::_inf;
+
   if (a.is_zero())
-    return (qd_real) 0.0;
+    return a;
 
   if (a.is_negative()) {
     qd_real::error("(qd_real::sqrt): Negative argument.");

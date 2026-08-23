@@ -11,6 +11,17 @@
 #include <qd/edd_inline.h>
 #endif
 
+namespace {
+inline edd_word edd_word_max() {
+#if defined(QD_EDD_WORD_IS_FLOAT64X)
+  // libstdc++ does not provide numeric_limits<_Float64x> on all targets.
+  return static_cast<edd_word>(std::numeric_limits<long double>::max());
+#else
+  return std::numeric_limits<edd_word>::max();
+#endif
+}
+}
+
 const edd_real edd_real::_2pi = edd_real(
     (edd_word) 0xc.90fdaa22168c235p-1L,
     (edd_word) -0xe.ce675d1fc8f8cbbp-67L);
@@ -42,10 +53,9 @@ const edd_word edd_real::_eps = edd::ldexpx((edd_word) 1.0, -126);
 const edd_word edd_real::_min_normalized =
     edd::ldexpx((edd_word) 1.0, -16318);
 const edd_real edd_real::_max = edd_real(
-    std::numeric_limits<edd_word>::max(),
-    edd::ldexpx(std::numeric_limits<edd_word>::max(), -QD_EDD_WORD_MANT_DIG));
+    edd_word_max(), edd::ldexpx(edd_word_max(), -QD_EDD_WORD_MANT_DIG));
 const edd_real edd_real::_safe_max = edd_real(
-    edd::ldexpx(std::numeric_limits<edd_word>::max(), -1),
-    edd::ldexpx(std::numeric_limits<edd_word>::max(),
+    edd::ldexpx(edd_word_max(), -1),
+    edd::ldexpx(edd_word_max(),
         -(QD_EDD_WORD_MANT_DIG + 1)));
 const int edd_real::_ndigits = 38;

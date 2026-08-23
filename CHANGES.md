@@ -1,5 +1,25 @@
 # CHANGES.md
 
+## 1.4.0
+
+libQD3 1.4.0 hardens IEEE-style special values and overflow handling for all
+supported expansion types.
+
+Highlights:
+
+- Added overflow-safe division rescaling for `dd_real`, `td_real`, `qd_real`,
+  and `edd_real`, including scalar and mixed QD/DD division paths.
+- Return canonical signed infinities when a quotient overflows before or after
+  expansion reconstruction, avoiding residual `Inf - Inf` NaNs.
+- Added consistent NaN, infinity, zero, and signed-zero handling for division
+  and square root across DD/TD/QD/EDD.
+- Fixed the EDD maximum constant on targets where the standard library does
+  not specialize `numeric_limits<_Float64x>`.
+- Added the `arithmetic_smoke` CTest regression covering special values,
+  large-operand rescaling, direct quotient overflow, and mixed division.
+- Verified the default CTest suite, the 16-configuration CMake matrix, and
+  the binary-float matrix.
+
 ## 1.3.1
 
 libQD3 1.3.1 is a focused x87/i386 portability fix release. It separates the

@@ -56,6 +56,12 @@ void dd_real::error(const char *msg) {
 /* Computes the square root of the double-double number dd.
    NOTE: dd must be a non-negative number.                   */
 QD_API dd_real sqrt(const dd_real &a) {
+  if (a.isnan())
+    return dd_real::_nan;
+
+  if (a.isinf())
+    return a.is_negative() ? dd_real::_nan : dd_real::_inf;
+
   /* Strategy:  Use Karp's trick:  if x is an approximation
      to sqrt(a), then
 
@@ -67,7 +73,7 @@ QD_API dd_real sqrt(const dd_real &a) {
   */
 
   if (a.is_zero())
-    return 0.0;
+    return a;
 
   if (a.is_negative()) {
     dd_real::error("(dd_real::sqrt): Negative argument.");

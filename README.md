@@ -20,6 +20,13 @@ available. These overload arithmetic, standard complex elementary functions,
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-08-23 libQD3 1.4.0 was released.  This numerical robustness
+release hardens division rescaling and IEEE special-value handling for DD, TD,
+QD, and EDD, adds square-root special-value handling, fixes the EDD maximum
+constant on targets without a `_Float64x` `numeric_limits` specialization, and
+adds focused arithmetic smoke coverage.  See
+[CHANGES.1.4.0.md](CHANGES.1.4.0.md) for the release notes.
+
 2026-08-10 libQD3 1.3.1 was released.  This focused portability release fixes
 x87/i386 FPU-mode separation for EDD: EDD arithmetic stays in verified 80-bit
 mode, while DD/TD/QD oracle operations and the internal `qd_real` path used by
@@ -70,8 +77,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.3.1 are in
-[CHANGES.1.3.1.md](CHANGES.1.3.1.md).
+Release-specific notes for libQD3 1.4.0 are in
+[CHANGES.1.4.0.md](CHANGES.1.4.0.md).
 
 ## Tips for developers
 

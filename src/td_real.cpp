@@ -229,8 +229,16 @@ td_real &td_real::operator=(const char *s) {
 }
 
 td_real sqrt(const td_real &a) {
+  if (a.isnan()) {
+    return td_real::_nan;
+  }
+
+  if (a.isinf()) {
+    return a.is_negative() ? td_real::_nan : td_real::_inf;
+  }
+
   if (a.is_zero()) {
-    return 0.0;
+    return a;
   }
 
   if (a.is_negative()) {

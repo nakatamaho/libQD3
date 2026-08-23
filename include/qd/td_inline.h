@@ -202,6 +202,67 @@ inline qd_real to_qd_conversion(const td_real &a) {
 
 }  // namespace td
 
+inline td_real td_signed_zero(bool negative) {
+  return td_real(std::copysign(0.0, negative ? -1.0 : 1.0));
+}
+
+inline td_real td_div_special(double a, double b, bool &handled) {
+  const bool a_nan = std::isnan(a);
+  const bool b_nan = std::isnan(b);
+  const bool a_inf = std::isinf(a);
+  const bool b_inf = std::isinf(b);
+  const bool negative = std::signbit(a) != std::signbit(b);
+
+  if (a_nan || b_nan || (a_inf && b_inf) || (a == 0.0 && b == 0.0)) {
+    handled = true;
+    return td_real::_nan;
+  }
+  if (b == 0.0 || a_inf) {
+    handled = true;
+    return negative ? -td_real::_inf : td_real::_inf;
+  }
+  if (a == 0.0 || b_inf) {
+    handled = true;
+    return td_signed_zero(negative);
+  }
+
+  handled = false;
+  return td_real();
+}
+
+inline td_real td_div_special(const td_real &a, const td_real &b,
+                              bool &handled) {
+  const bool negative = std::signbit(a[0]) != std::signbit(b[0]);
+
+  if (a.isnan() || b.isnan() || (a.isinf() && b.isinf()) ||
+      (a.is_zero() && b.is_zero())) {
+    handled = true;
+    return td_real::_nan;
+  }
+  if (b.is_zero() || a.isinf()) {
+    handled = true;
+    return negative ? -td_real::_inf : td_real::_inf;
+  }
+  if (a.is_zero() || b.isinf()) {
+    handled = true;
+    return td_signed_zero(negative);
+  }
+
+  handled = false;
+  return td_real();
+}
+
+inline td_real td_div_overflow_result(double quotient) {
+  return std::signbit(quotient) ? -td_real::_inf : td_real::_inf;
+}
+
+inline td_real td_div_finalize(const td_real &result, bool rescale) {
+  const td_real restored = rescale ? mul_pwr2(result, 0x1p+53) : result;
+  if (restored.isinf())
+    return std::signbit(restored.x[0]) ? -td_real::_inf : td_real::_inf;
+  return restored;
+}
+
 inline td_real::td_real(const dd_real &dd) {
   x[0] = dd._hi();
   x[1] = dd._lo();
@@ -618,15 +679,15 @@ inline td_real operator/(const td_real &a, double b) {
   double t0, t1, q0, q1, q2;
   td_real r;
 
-  if (b == 0.0) {
-    td_real::error("(td_real::operator/): Division by zero.");
-    return td_real::_nan;
-  }
+  bool handled;
+  td_real special = td_div_special(a, b, handled);
+  if (handled) return special;
 
   const bool rescale = td::div_needs_rescale(a[0]);
   const td_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b;
+  if (std::isinf(q0)) return td_div_overflow_result(q0);
   t0 = qd::two_prod(q0, b, t1);
   r = aa - td_real(t0, t1, 0.0);
 
@@ -638,7 +699,7 @@ inline td_real operator/(const td_real &a, double b) {
 
   td::renorm(q0, q1, q2);
   td_real result(q0, q1, q2);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return td_div_finalize(result, rescale);
 }
 
 inline td_real operator/(double a, const td_real &b) {
@@ -696,15 +757,15 @@ inline td_real td_real::accurate_div(const td_real &a, const td_real &b) {
   double q0, q1, q2, q3;
   td_real r;
 
-  if (b.is_zero()) {
-    td_real::error("(td_real::operator/): Division by zero.");
-    return td_real::_nan;
-  }
+  bool handled;
+  td_real special = td_div_special(a, b, handled);
+  if (handled) return special;
 
   const bool rescale = td::div_needs_rescale(a[0]);
   const td_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b[0];
+  if (std::isinf(q0)) return td_div_overflow_result(q0);
   r  = aa - b * q0;
 
   q1 = r[0] / b[0];
@@ -717,22 +778,22 @@ inline td_real td_real::accurate_div(const td_real &a, const td_real &b) {
 
   td::renorm(q0, q1, q2, q3); /* 4-to-3 renormalization */
   td_real result(q0, q1, q2);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return td_div_finalize(result, rescale);
 }
 
 inline td_real td_real::sloppy_div(const td_real &a, const td_real &b) {
   double q0, q1, q2;
   td_real r;
 
-  if (b.is_zero()) {
-    td_real::error("(td_real::operator/): Division by zero.");
-    return td_real::_nan;
-  }
+  bool handled;
+  td_real special = td_div_special(a, b, handled);
+  if (handled) return special;
 
   const bool rescale = td::div_needs_rescale(a[0]);
   const td_real aa = rescale ? mul_pwr2(a, 0x1p-53) : a;
 
   q0 = aa[0] / b[0];
+  if (std::isinf(q0)) return td_div_overflow_result(q0);
   r  = aa - b * q0;
 
   q1 = r[0] / b[0];
@@ -742,7 +803,7 @@ inline td_real td_real::sloppy_div(const td_real &a, const td_real &b) {
 
   td::renorm(q0, q1, q2);
   td_real result(q0, q1, q2);
-  return rescale ? mul_pwr2(result, 0x1p+53) : result;
+  return td_div_finalize(result, rescale);
 }
 
 inline td_real operator/(const td_real &a, const td_real &b) {

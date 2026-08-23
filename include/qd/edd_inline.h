@@ -441,15 +441,86 @@ inline bool edd_real_div_needs_rescale(edd_word a_hi) {
   return edd::fabsx(a_hi) > edd::div_rescale_thresh();
 }
 
+inline edd_real edd_signed_zero(bool negative) {
+  return edd_real(edd::copysignx((edd_word) 0.0,
+                                 negative ? (edd_word) -1.0 : (edd_word) 1.0));
+}
+
+inline edd_real edd_div_special(edd_word a, edd_word b, bool &handled) {
+  const bool a_nan = edd::isnanx(a);
+  const bool b_nan = edd::isnanx(b);
+  const bool a_inf = edd::isinfx(a);
+  const bool b_inf = edd::isinfx(b);
+  const bool negative = edd::signbitx(a) != edd::signbitx(b);
+
+  if (a_nan || b_nan || (a_inf && b_inf) ||
+      (a == (edd_word) 0.0 && b == (edd_word) 0.0)) {
+    handled = true;
+    return edd_real::_nan;
+  }
+  if (b == (edd_word) 0.0 || a_inf) {
+    handled = true;
+    return negative ? -edd_real::_inf : edd_real::_inf;
+  }
+  if (a == (edd_word) 0.0 || b_inf) {
+    handled = true;
+    return edd_signed_zero(negative);
+  }
+
+  handled = false;
+  return edd_real();
+}
+
+inline edd_real edd_div_special(const edd_real &a, const edd_real &b,
+                                bool &handled) {
+  const bool negative = edd::signbitx(a.x[0]) != edd::signbitx(b.x[0]);
+
+  if (a.isnan() || b.isnan() || (a.isinf() && b.isinf()) ||
+      (a.is_zero() && b.is_zero())) {
+    handled = true;
+    return edd_real::_nan;
+  }
+  if (b.is_zero() || a.isinf()) {
+    handled = true;
+    return negative ? -edd_real::_inf : edd_real::_inf;
+  }
+  if (a.is_zero() || b.isinf()) {
+    handled = true;
+    return edd_signed_zero(negative);
+  }
+
+  handled = false;
+  return edd_real();
+}
+
+inline edd_real edd_div_overflow_result(edd_word quotient) {
+  return edd::signbitx(quotient) ? -edd_real::_inf : edd_real::_inf;
+}
+
+inline edd_real edd_div_finalize(const edd_real &result, bool rescale) {
+  const edd_real restored =
+      rescale ? mul_pwr2(result,
+                         edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG))
+              : result;
+  if (restored.isinf())
+    return edd::signbitx(restored.x[0]) ? -edd_real::_inf : edd_real::_inf;
+  return restored;
+}
+
 inline edd_real edd_real::div(edd_word a, edd_word b) {
   edd_word q1, q2;
   edd_word p1, p2;
   edd_word s, e;
 
+  bool handled;
+  edd_real special = edd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = edd_real_div_needs_rescale(a);
   const edd_word aa = rescale ? edd::ldexpx(a, -QD_EDD_WORD_MANT_DIG) : a;
 
   q1 = aa / b;
+  if (edd::isinfx(q1)) return edd_div_overflow_result(q1);
   p1 = edd::two_prod(q1, b, p2);
   s = edd::two_diff(aa, p1, e);
   e -= p2;
@@ -457,7 +528,7 @@ inline edd_real edd_real::div(edd_word a, edd_word b) {
   s = edd::quick_two_sum(q1, q2, e);
 
   edd_real r(s, e);
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
+  return edd_div_finalize(r, rescale);
 }
 
 inline edd_real operator/(const edd_real &a, edd_word b) {
@@ -466,10 +537,15 @@ inline edd_real operator/(const edd_real &a, edd_word b) {
   edd_word s, e;
   edd_real r;
 
+  bool handled;
+  edd_real special = edd_div_special(a, edd_real(b), handled);
+  if (handled) return special;
+
   const bool rescale = edd_real_div_needs_rescale(a.x[0]);
   const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_WORD_MANT_DIG)) : a;
 
   q1 = aa.x[0] / b;
+  if (edd::isinfx(q1)) return edd_div_overflow_result(q1);
   p1 = edd::two_prod(q1, b, p2);
   s = edd::two_diff(aa.x[0], p1, e);
   e += aa.x[1];
@@ -477,17 +553,22 @@ inline edd_real operator/(const edd_real &a, edd_word b) {
   q2 = (s + e) / b;
   r.x[0] = edd::quick_two_sum(q1, q2, r.x[1]);
 
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
+  return edd_div_finalize(r, rescale);
 }
 
 inline edd_real operator/(const edd_real &a, const edd_real &b) {
   edd_word q1, q2, q3;
   edd_real r;
 
+  bool handled;
+  edd_real special = edd_div_special(a, b, handled);
+  if (handled) return special;
+
   const bool rescale = edd_real_div_needs_rescale(a.x[0]);
   const edd_real aa = rescale ? mul_pwr2(a, edd::ldexpx((edd_word) 1.0, -QD_EDD_WORD_MANT_DIG)) : a;
 
   q1 = aa.x[0] / b.x[0];
+  if (edd::isinfx(q1)) return edd_div_overflow_result(q1);
   r = aa - q1 * b;
   q2 = r.x[0] / b.x[0];
   r -= q2 * b;
@@ -495,7 +576,7 @@ inline edd_real operator/(const edd_real &a, const edd_real &b) {
 
   q1 = edd::quick_two_sum(q1, q2, q2);
   r = edd_real(q1, q2) + q3;
-  return rescale ? mul_pwr2(r, edd::ldexpx((edd_word) 1.0, QD_EDD_WORD_MANT_DIG)) : r;
+  return edd_div_finalize(r, rescale);
 }
 
 inline edd_real operator/(edd_word a, const edd_real &b) {
