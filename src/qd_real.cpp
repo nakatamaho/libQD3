@@ -126,8 +126,9 @@ qd_real fsqrt_core(const qd_real &a, int &flag) {
   double e, eps;
 
   qd_real diff;
-  qd_real half = "0.5000000000000000000000000000000000"
-                 "000000000000000000000000000000000000";
+  // Keep the power-of-two factor exact.  A decimal qd_real literal can retain
+  // a tiny lower-limb tail which is magnified by the rescaled large-input path.
+  qd_real half(0.5);
 
   eps = std::numeric_limits<qd_real>::epsilon();
 
