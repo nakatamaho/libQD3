@@ -3,6 +3,12 @@
 This release adds binary32-based float expansion arithmetic and extends the
 C++ and Fortran QA and packaging coverage.
 
+## Numerical robustness
+
+- QD square-root rescaling now uses exact binary power-of-two factors, keeping
+  large power-of-two inputs correct in accurate as well as sloppy arithmetic
+  modes.
+
 ## Float expansion types
 
 - Added `ds_real`, `ts_real`, and `qs_real`, using two, three, and four
