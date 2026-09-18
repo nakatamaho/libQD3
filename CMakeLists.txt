@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.4.0 LANGUAGES CXX C)
+project(qd3 VERSION 1.5.0 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -98,6 +98,12 @@ set(QD_BASE_SOURCES
   src/c_td.cpp
   src/dd_real.cpp
   src/dd_const.cpp
+  src/ds_real.cpp
+  src/ds_const.cpp
+  src/ts_real.cpp
+  src/ts_const.cpp
+  src/qs_real.cpp
+  src/qs_const.cpp
   src/td_real.cpp
   src/td_const.cpp
   src/td_trig_reduce.h
@@ -126,6 +132,8 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/dd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ds_real.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ds_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_edd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/edd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/edd_real.h"
@@ -135,6 +143,12 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/td_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ts_real.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ts_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qs_real.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qs_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/single_real.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/single_real_direct.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_inline.h"
@@ -277,9 +291,18 @@ if(QD_HAVE_FORTRAN)
     fortran/qdmod.f
     fortran/tdext.f
     fortran/tdmod.f
+    fortran/dsext.f
+    fortran/dsmod.f
+    fortran/tsext.f
+    fortran/tsmod.f
+    fortran/qsext.f
+    fortran/qsmod.f
     fortran/f_dd.cpp
     fortran/f_qd.cpp
     fortran/f_td.cpp
+    fortran/f_ds.cpp
+    fortran/f_ts.cpp
+    fortran/f_qs.cpp
   )
   set(QD_FORTRAN_FREE_FORM_SOURCES
     fortran/ddext.f
@@ -288,6 +311,12 @@ if(QD_HAVE_FORTRAN)
     fortran/qdmod.f
     fortran/tdext.f
     fortran/tdmod.f
+    fortran/dsext.f
+    fortran/dsmod.f
+    fortran/tsext.f
+    fortran/tsmod.f
+    fortran/qsext.f
+    fortran/qsmod.f
   )
   set_source_files_properties(${QD_FORTRAN_FREE_FORM_SOURCES} PROPERTIES Fortran_FORMAT FREE)
 
@@ -396,6 +425,16 @@ if(BUILD_TESTING)
   target_link_libraries(regression_smoke PRIVATE qd)
   add_test(NAME regression_smoke COMMAND regression_smoke)
 
+  add_executable(single_smoke tests/single_smoke.cpp)
+  qd3_configure_internal_target(single_smoke)
+  target_link_libraries(single_smoke PRIVATE qd)
+  add_test(NAME single_smoke COMMAND single_smoke)
+
+  add_executable(single_test tests/single_test.cpp)
+  qd3_configure_internal_target(single_test)
+  target_link_libraries(single_test PRIVATE qd)
+  add_test(NAME single_test COMMAND single_test)
+
   add_executable(qd_timer EXCLUDE_FROM_ALL tests/qd_timer.cpp tests/tictoc.cpp tests/tictoc.h)
   qd3_configure_internal_target(qd_timer)
   target_link_libraries(qd_timer PRIVATE qd)
@@ -406,7 +445,7 @@ if(BUILD_TESTING)
   set_target_properties(quadt_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
   set(QD_DEMO_DEPS qd_test pslq_test c_test huge complex_test regression_smoke
-      qd_timer quadt_test)
+      single_smoke single_test qd_timer quadt_test)
 
   if(QD_HAVE_FORTRAN)
     set_source_files_properties(tests/f_test.f PROPERTIES Fortran_FORMAT FREE)
@@ -565,6 +604,20 @@ if(BUILD_TESTING)
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
     )
 
+    add_executable(oracle_test_single
+      tests/oracle/single_oracle.cpp
+      ${QD_ORACLE_COMMON_SOURCES}
+    )
+    qd3_configure_internal_target(oracle_test_single)
+    target_include_directories(oracle_test_single BEFORE PRIVATE
+      "${CMAKE_SOURCE_DIR}/tests/oracle"
+    )
+    target_link_libraries(oracle_test_single PRIVATE ${QD_ORACLE_LIBS})
+    set_target_properties(oracle_test_single PROPERTIES
+      OUTPUT_NAME single_oracle
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/oracle"
+    )
+
     foreach(qd_oracle_target
         oracle_test_arith
         oracle_test_unary
@@ -574,7 +627,8 @@ if(BUILD_TESTING)
         oracle_test_io
         oracle_test_capi
         oracle_test_rounding
-        oracle_test_bf_commutativity)
+        oracle_test_bf_commutativity
+        oracle_test_single)
       target_include_directories(${qd_oracle_target} BEFORE PRIVATE ${QD_ORACLE_INCLUDE_DIRS})
       target_link_directories(${qd_oracle_target} PRIVATE ${QD_ORACLE_LINK_DIRS})
     endforeach()
@@ -607,6 +661,9 @@ if(BUILD_TESTING)
       oracle_test_bf_commutativity_dd
       oracle_test_bf_commutativity_td
       oracle_test_bf_commutativity_qd
+      oracle_test_single_ds
+      oracle_test_single_ts
+      oracle_test_single_qs
     )
     add_test(NAME oracle_test_arith_dd COMMAND oracle_test_arith -dd)
     add_test(NAME oracle_test_arith_td COMMAND oracle_test_arith -td)
@@ -635,6 +692,9 @@ if(BUILD_TESTING)
     add_test(NAME oracle_test_bf_commutativity_dd COMMAND oracle_test_bf_commutativity -dd)
     add_test(NAME oracle_test_bf_commutativity_td COMMAND oracle_test_bf_commutativity -td)
     add_test(NAME oracle_test_bf_commutativity_qd COMMAND oracle_test_bf_commutativity -qd)
+    add_test(NAME oracle_test_single_ds COMMAND oracle_test_single -ds)
+    add_test(NAME oracle_test_single_ts COMMAND oracle_test_single -ts)
+    add_test(NAME oracle_test_single_qs COMMAND oracle_test_single -qs)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_arith_edd COMMAND oracle_test_arith -edd)
       add_test(NAME oracle_test_unary_edd COMMAND oracle_test_unary -edd)
@@ -668,6 +728,7 @@ if(BUILD_TESTING)
       oracle_test_capi
       oracle_test_rounding
       oracle_test_bf_commutativity
+      oracle_test_single
     )
   endif()
 

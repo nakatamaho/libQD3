@@ -20,6 +20,11 @@ available. These overload arithmetic, standard complex elementary functions,
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-09-18 libQD3 1.5.0 was released.  This release adds binary32-based
+`ds_real`, `ts_real`, and `qs_real` float expansion types, Fortran interfaces,
+and MPFR-backed oracle coverage, with expanded dependency-free regression smoke
+tests.  See [CHANGES.1.5.0.md](CHANGES.1.5.0.md) for the release notes.
+
 2026-08-23 libQD3 1.4.0 was released.  This numerical robustness
 release hardens division rescaling and IEEE special-value handling for DD, TD,
 QD, and EDD, adds square-root special-value handling, fixes the EDD maximum
@@ -77,8 +82,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.4.0 are in
-[CHANGES.1.4.0.md](CHANGES.1.4.0.md).
+Release-specific notes for libQD3 1.5.0 are in
+[CHANGES.1.5.0.md](CHANGES.1.5.0.md).
 
 ## Tips for developers
 

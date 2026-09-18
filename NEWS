@@ -1,3 +1,9 @@
+Changes for 1.5.0
+    libQD3 1.5.0 adds binary32-based ds_real, ts_real, and qs_real float
+    expansion types, Fortran interfaces, and MPFR-backed oracle coverage, with
+    expanded dependency-free regression smoke tests.  See CHANGES.1.5.0.md for
+    the release notes.
+
 Changes for 1.4.0
     Hardened division rescaling and IEEE special-value handling for dd_real,
     td_real, qd_real, and edd_real.  Quotients that overflow before or after

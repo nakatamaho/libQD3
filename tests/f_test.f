@@ -3,16 +3,25 @@ subroutine f_main
 ! A simple test of the fortran wrappers
 
   use ddmodule
+  use dsmodule
   use qdmodule
+  use qsmodule
   use tdmodule
+  use tsmodule
   implicit none
   integer*4 old_cw
   integer i
   type (dd_complex) ddcx
   type (dd_real) ddx
+  type (ds_complex) dscx, dscy, dscz
+  type (ds_real) dsx, dsy, dsz
   type (qd_complex) qdcx
+  type (qs_complex) qscx, qscy, qscz
+  type (qs_real) qsx, qsy, qsz
   type (td_complex) tcx, tcy, tcz
   type (td_real) tx, ty
+  type (ts_complex) tscx, tscy, tscz
+  type (ts_real) tsx, tsy, tsz
   type (qd_real) x, y, z
   complex(kind(0.d0)) dc
 
@@ -91,6 +100,67 @@ subroutine f_main
   tcz = tdcomplex(qdcx)
   if (abs(real(tcz) - real(tcx)) > tdreal("1.0d-40")) stop 34
   if (abs(aimag(tcz) - aimag(tcx)) > tdreal("1.0d-40")) stop 35
+
+  ! Test the double-single, triple-single, and quad-single Fortran modules.
+  dsx = dsreal("1.25")
+  dsy = dsreal("2.0")
+  dsz = dsx + dsy
+  if (abs(dsz - dsreal("3.25")) > dsreal("1.0e-5")) stop 36
+  dsz = dsx * dsy
+  if (abs(dsz - dsreal("2.5")) > dsreal("1.0e-5")) stop 37
+  dsz = dsz / dsy
+  if (abs(dsz - dsx) > dsreal("1.0e-5")) stop 38
+  dsz = exp(log(dsy))
+  if (abs(dsz - dsy) > dsreal("1.0e-5")) stop 39
+  if (digits(dsx) /= 46 .or. maxexponent(dsx) /= 127 .or. &
+      minexponent(dsx) /= -102) stop 40
+  dscx = dscomplex(dsx, dsy)
+  dscy = conjg(dscx)
+  dscz = dscx * dscy
+  if (abs(aimag(dscz)) > dsreal("1.0e-5")) stop 41
+  call dsrand(dsx)
+  if (dsx < dsreal(0.0e0) .or. dsx > dsreal(1.0e0)) stop 42
+
+  tsx = tsreal("1.25")
+  tsy = tsreal("2.0")
+  tsz = tsx + tsy
+  if (abs(tsz - tsreal("3.25")) > tsreal("1.0e-5")) stop 43
+  tsz = tsx * tsy
+  if (abs(tsz - tsreal("2.5")) > tsreal("1.0e-5")) stop 44
+  tsz = tsz / tsy
+  if (abs(tsz - tsx) > tsreal("1.0e-5")) stop 45
+  tsz = exp(log(tsy))
+  if (abs(tsz - tsy) > tsreal("1.0e-5")) stop 46
+  tsz = floor(tsreal("2.75"))
+  if (abs(tsz - tsreal("2.0")) > tsreal("1.0e-5")) stop 47
+  if (abs(ceil(tsreal("2.25")) - tsreal("3.0")) > tsreal("1.0e-5")) stop 48
+  if (digits(tsx) /= 70 .or. maxexponent(tsx) /= 127 .or. &
+      minexponent(tsx) /= -78) stop 49
+  tscx = tscomplex(tsx, tsy)
+  tscy = conjg(tscx)
+  tscz = tscx * tscy
+  if (abs(aimag(tscz)) > tsreal("1.0e-5")) stop 50
+  call tsrand(tsx)
+  if (tsx < tsreal(0.0e0) .or. tsx > tsreal(1.0e0)) stop 51
+
+  qsx = qsreal("1.25")
+  qsy = qsreal("2.0")
+  qsz = qsx + qsy
+  if (abs(qsz - qsreal("3.25")) > qsreal("1.0e-5")) stop 52
+  qsz = qsx * qsy
+  if (abs(qsz - qsreal("2.5")) > qsreal("1.0e-5")) stop 53
+  qsz = qsz / qsy
+  if (abs(qsz - qsx) > qsreal("1.0e-5")) stop 54
+  qsz = exp(log(qsy))
+  if (abs(qsz - qsy) > qsreal("1.0e-5")) stop 55
+  if (digits(qsx) /= 94 .or. maxexponent(qsx) /= 127 .or. &
+      minexponent(qsx) /= -54) stop 56
+  qscx = qscomplex(qsx, qsy)
+  qscy = conjg(qscx)
+  qscz = qscx * qscy
+  if (abs(aimag(qscz)) > qsreal("1.0e-5")) stop 57
+  call qsrand(qsx)
+  if (qsx < qsreal(0.0e0) .or. qsx > qsreal(1.0e0)) stop 58
 
   call f_fpu_fix_end (old_cw)
 end

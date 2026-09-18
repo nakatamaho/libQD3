@@ -11,8 +11,11 @@
 #include <string>
 
 #include <qd/dd_real.h>
+#include <qd/ds_real.h>
 #include <qd/qd_real.h>
+#include <qd/qs_real.h>
 #include <qd/td_real.h>
+#include <qd/ts_real.h>
 #ifdef QD_HAVE_EDD_REAL
 #include <qd/edd_real.h>
 #endif
@@ -69,6 +72,24 @@ struct TypeTraits<qd_real> {
   static int set_eps(mpfr_t out) { return mpfr_set_d(out, qd_real::_eps, MPFR_RNDN); }
   static int set_min_normalized(mpfr_t out) {
     return mpfr_set_d(out, qd_real::_min_normalized, MPFR_RNDN);
+  }
+};
+
+template <int N>
+struct TypeTraits<single_real<N> > {
+  typedef float limb_type;
+  static const int limbs = N;
+  static const char *name() { return qd_single_detail::traits<N>::name(); }
+  static limb_type limb(const single_real<N> &x, int i) { return x.x[i]; }
+  static single_real<N> make(const limb_type *x) { return single_real<N>(x); }
+  static int set_limb(mpfr_t out, limb_type x) {
+    return mpfr_set_flt(out, x, MPFR_RNDN);
+  }
+  static int set_eps(mpfr_t out) {
+    return mpfr_set_flt(out, single_real<N>::_eps, MPFR_RNDN);
+  }
+  static int set_min_normalized(mpfr_t out) {
+    return mpfr_set_flt(out, single_real<N>::_min_normalized, MPFR_RNDN);
   }
 };
 
