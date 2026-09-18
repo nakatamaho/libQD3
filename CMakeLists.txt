@@ -391,6 +391,11 @@ if(BUILD_TESTING)
   target_link_libraries(arithmetic_smoke PRIVATE qd)
   add_test(NAME arithmetic_smoke COMMAND arithmetic_smoke)
 
+  add_executable(regression_smoke tests/regression_smoke.cpp)
+  qd3_configure_internal_target(regression_smoke)
+  target_link_libraries(regression_smoke PRIVATE qd)
+  add_test(NAME regression_smoke COMMAND regression_smoke)
+
   add_executable(qd_timer EXCLUDE_FROM_ALL tests/qd_timer.cpp tests/tictoc.cpp tests/tictoc.h)
   qd3_configure_internal_target(qd_timer)
   target_link_libraries(qd_timer PRIVATE qd)
@@ -400,7 +405,8 @@ if(BUILD_TESTING)
   target_link_libraries(quadt_test PRIVATE qd)
   set_target_properties(quadt_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
-  set(QD_DEMO_DEPS qd_test pslq_test c_test huge complex_test qd_timer quadt_test)
+  set(QD_DEMO_DEPS qd_test pslq_test c_test huge complex_test regression_smoke
+      qd_timer quadt_test)
 
   if(QD_HAVE_FORTRAN)
     set_source_files_properties(tests/f_test.f PROPERTIES Fortran_FORMAT FREE)
