@@ -51,6 +51,9 @@ module dsmodule
     module procedure assign_dsc_dc
     module procedure assign_dc_dsc
     module procedure assign_dsc_i
+    module procedure assign_ds_dp
+    module procedure assign_dp_ds
+    module procedure assign_dsc_zc
   end interface
 
   interface operator (+)
@@ -64,6 +67,12 @@ module dsmodule
     module procedure add_ds_dsc
     module procedure add_dsc_d
     module procedure add_d_dsc
+    module procedure add_dsc_i
+    module procedure add_i_dsc
+    module procedure add_ds_dp
+    module procedure add_dp_ds
+    module procedure add_dsc_dp
+    module procedure add_dp_dsc
   end interface
 
   interface operator (-)
@@ -77,6 +86,14 @@ module dsmodule
     module procedure sub_dsc_d
     module procedure sub_d_dsc
     module procedure neg_dsc
+    module procedure sub_ds_i
+    module procedure sub_i_ds
+    module procedure sub_dsc_i
+    module procedure sub_i_dsc
+    module procedure sub_ds_dp
+    module procedure sub_dp_ds
+    module procedure sub_dsc_dp
+    module procedure sub_dp_dsc
   end interface
 
   interface operator (*)
@@ -92,6 +109,10 @@ module dsmodule
     module procedure mul_d_dsc
     module procedure mul_dsc_i
     module procedure mul_i_dsc
+    module procedure mul_ds_dp
+    module procedure mul_dp_ds
+    module procedure mul_dsc_dp
+    module procedure mul_dp_dsc
   end interface
 
   interface operator (/)
@@ -104,6 +125,13 @@ module dsmodule
     module procedure div_dsc_ds
     module procedure div_ds_dsc
     module procedure div_dsc_d
+    module procedure div_dsc_i
+    module procedure div_i_dsc
+    module procedure div_d_dsc
+    module procedure div_ds_dp
+    module procedure div_dp_ds
+    module procedure div_dsc_dp
+    module procedure div_dp_dsc
   end interface
 
   interface operator (**)
@@ -119,6 +147,7 @@ module dsmodule
     module procedure to_ds_ds
     module procedure to_ds_str
     module procedure to_ds_dsc
+    module procedure to_ds_dp
   end interface
 
   interface dscomplex
@@ -126,6 +155,7 @@ module dsmodule
      module procedure to_dsc_ds2
      module procedure to_dsc_d
      module procedure to_dsc_dc
+    module procedure to_dsc_zc
   end interface
 
   interface real
@@ -247,6 +277,12 @@ module dsmodule
     module procedure eq_dsc
     module procedure eq_dsc_ds
     module procedure eq_ds_dsc
+    module procedure eq_dsc_d
+    module procedure eq_d_dsc
+    module procedure eq_ds_dp
+    module procedure eq_dp_ds
+    module procedure eq_dsc_dp
+    module procedure eq_dp_dsc
   end interface
 
   interface operator (/=)
@@ -258,6 +294,12 @@ module dsmodule
     module procedure ne_dsc
     module procedure ne_dsc_ds
     module procedure ne_ds_dsc
+    module procedure ne_dsc_d
+    module procedure ne_d_dsc
+    module procedure ne_ds_dp
+    module procedure ne_dp_ds
+    module procedure ne_dsc_dp
+    module procedure ne_dp_dsc
   end interface
 
   interface operator (>)
@@ -266,6 +308,8 @@ module dsmodule
     module procedure gt_d_ds
     module procedure gt_ds_i
     module procedure gt_i_ds
+    module procedure gt_ds_dp
+    module procedure gt_dp_ds
   end interface
 
   interface operator (<)
@@ -274,6 +318,8 @@ module dsmodule
     module procedure lt_d_ds
     module procedure lt_ds_i
     module procedure lt_i_ds
+    module procedure lt_ds_dp
+    module procedure lt_dp_ds
   end interface
 
   interface operator (>=)
@@ -282,6 +328,8 @@ module dsmodule
     module procedure ge_d_ds
     module procedure ge_ds_i
     module procedure ge_i_ds
+    module procedure ge_ds_dp
+    module procedure ge_dp_ds
   end interface
 
   interface operator (<=)
@@ -290,6 +338,8 @@ module dsmodule
     module procedure le_d_ds
     module procedure le_ds_i
     module procedure le_i_ds
+    module procedure le_ds_dp
+    module procedure le_dp_ds
   end interface
 
   interface read_scalar
@@ -319,8 +369,8 @@ module dsmodule
   end interface
 
   interface dble
-    module procedure to_d_ds
-    module procedure to_d_dsc
+    module procedure to_dp_ds
+    module procedure to_dp_dsc
   end interface
 
   interface cmplx
@@ -417,14 +467,13 @@ contains
   elemental subroutine assign_ds_i(a, i)
     type (ds_real), intent(inout) :: a
     integer, intent(in) :: i
-    a%re(1) = i
-    a%re(2) = 0.0e0
+    a%re = ds_int_limbs(i)
   end subroutine assign_ds_i
 
   elemental subroutine assign_i_ds(i, a)
     integer, intent(inout) :: i
     type (ds_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_ds(a)
   end subroutine assign_i_ds
 
   elemental subroutine assign_dsc (a, b)
@@ -456,8 +505,8 @@ contains
   elemental subroutine assign_dsc_i (dsc, i)
     type (ds_complex), intent (inout) :: dsc
     integer, intent(in) :: i
-    dsc%cmp(1) = i
-    dsc%cmp(2:4) = 0.e0
+    dsc%cmp = 0.e0
+    dsc%cmp(1:2) = ds_int_limbs(i)
   end subroutine assign_dsc_i
 
   elemental subroutine assign_d_dsc (d, dsc)
@@ -486,8 +535,7 @@ contains
 
   elemental type (ds_real) function to_ds_i(ia)
     integer, intent(in) :: ia
-    to_ds_i%re(1) = ia
-    to_ds_i%re(2) = 0.e0
+    to_ds_i%re = ds_int_limbs(ia)
   end function to_ds_i
 
   elemental type (ds_real) function to_ds_d(a)
@@ -589,13 +637,13 @@ contains
   elemental type (ds_real) function add_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    call f_ds_add_ds_d(b%re, ds_int_to_float(a), add_i_ds%re)
+    call f_ds_add(b%re, ds_int_limbs(a), add_i_ds%re)
   end function add_i_ds
 
   elemental type (ds_real) function add_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_ds_add_ds_d(a%re, ds_int_to_float(b), add_ds_i%re)
+    call f_ds_add(a%re, ds_int_limbs(b), add_ds_i%re)
   end function add_ds_i
 
   elemental type (ds_complex) function add_dsc(a, b)
@@ -728,13 +776,13 @@ contains
   elemental type (ds_real) function mul_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_ds_mul_ds_d(a%re, ds_int_to_float(b), mul_ds_i%re)
+    call f_ds_mul(a%re, ds_int_limbs(b), mul_ds_i%re)
   end function mul_ds_i
 
   elemental type (ds_real) function mul_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    call f_ds_mul_ds_d(b%re, ds_int_to_float(a), mul_i_ds%re)
+    call f_ds_mul(b%re, ds_int_limbs(a), mul_i_ds%re)
   end function mul_i_ds
 
   elemental type (ds_complex) function mul_dsc(a, b)
@@ -765,15 +813,15 @@ contains
   elemental type (ds_complex) function mul_dsc_i(a, b)
     type (ds_complex), intent(in) :: a
     integer, intent(in) :: b
-    call f_ds_mul_ds_d (a%cmp(1:2), ds_int_to_float(b), mul_dsc_i%cmp(1:2))
-    call f_ds_mul_ds_d (a%cmp(3:4), ds_int_to_float(b), mul_dsc_i%cmp(3:4))
+    call f_ds_mul(a%cmp(1:2), ds_int_limbs(b), mul_dsc_i%cmp(1:2))
+    call f_ds_mul(a%cmp(3:4), ds_int_limbs(b), mul_dsc_i%cmp(3:4))
   end function mul_dsc_i
 
   elemental type (ds_complex) function mul_i_dsc(a, b)
     integer, intent(in) :: a
     type (ds_complex), intent(in) :: b
-    call f_ds_mul_ds_d (b%cmp(1:2), ds_int_to_float(a), mul_i_dsc%cmp(1:2))
-    call f_ds_mul_ds_d (b%cmp(3:4), ds_int_to_float(a), mul_i_dsc%cmp(3:4))
+    call f_ds_mul(b%cmp(1:2), ds_int_limbs(a), mul_i_dsc%cmp(1:2))
+    call f_ds_mul(b%cmp(3:4), ds_int_limbs(a), mul_i_dsc%cmp(3:4))
   end function mul_i_dsc
 
   elemental type (ds_complex) function mul_dsc_ds(a, b)
@@ -811,13 +859,13 @@ contains
   elemental type (ds_real) function div_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_ds_div_ds_d(a%re, ds_int_to_float(b), div_ds_i%re)
+    call f_ds_div(a%re, ds_int_limbs(b), div_ds_i%re)
   end function div_ds_i
 
   elemental type (ds_real) function div_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    call f_ds_div_d_ds(ds_int_to_float(a), b%re, div_i_ds%re)
+    call f_ds_div(ds_int_limbs(a), b%re, div_i_ds%re)
   end function div_i_ds
 
   elemental type (ds_complex) function div_dsc(a, b)
@@ -1156,13 +1204,13 @@ contains
   elemental logical function eq_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    eq_ds_i = eq_ds_d(a, ds_int_to_float(b))
+    eq_ds_i = eq_ds(a, ds_real(ds_int_limbs(b)))
   end function eq_ds_i
 
   elemental logical function eq_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    eq_i_ds = eq_d_ds(ds_int_to_float(a), b)
+    eq_i_ds = eq_ds(ds_real(ds_int_limbs(a)), b)
   end function eq_i_ds
 
   elemental logical function eq_dsc (a, b)
@@ -1241,13 +1289,13 @@ contains
   elemental logical function ne_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    ne_ds_i = ne_ds_d(a, ds_int_to_float(b))
+    ne_ds_i = ne_ds(a, ds_real(ds_int_limbs(b)))
   end function ne_ds_i
 
   elemental logical function ne_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    ne_i_ds = ne_d_ds(ds_int_to_float(a), b)
+    ne_i_ds = ne_ds(ds_real(ds_int_limbs(a)), b)
   end function ne_i_ds
 
   elemental logical function ne_dsc (a, b)
@@ -1326,13 +1374,13 @@ contains
   elemental logical function gt_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    gt_ds_i = gt_ds_d(a, ds_int_to_float(b))
+    gt_ds_i = gt_ds(a, ds_real(ds_int_limbs(b)))
   end function gt_ds_i
 
   elemental logical function gt_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    gt_i_ds = gt_d_ds(ds_int_to_float(a), b)
+    gt_i_ds = gt_ds(ds_real(ds_int_limbs(a)), b)
   end function gt_i_ds
 
 
@@ -1375,13 +1423,13 @@ contains
   elemental logical function lt_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    lt_ds_i = lt_ds_d(a, ds_int_to_float(b))
+    lt_ds_i = lt_ds(a, ds_real(ds_int_limbs(b)))
   end function lt_ds_i
 
   elemental logical function lt_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    lt_i_ds = lt_d_ds(ds_int_to_float(a), b)
+    lt_i_ds = lt_ds(ds_real(ds_int_limbs(a)), b)
   end function lt_i_ds
 
 ! Greater-Than-Or-Equal-To
@@ -1423,13 +1471,13 @@ contains
   elemental logical function ge_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    ge_ds_i = ge_ds_d(a, ds_int_to_float(b))
+    ge_ds_i = ge_ds(a, ds_real(ds_int_limbs(b)))
   end function ge_ds_i
 
   elemental logical function ge_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    ge_i_ds = ge_d_ds(ds_int_to_float(a), b)
+    ge_i_ds = ge_ds(ds_real(ds_int_limbs(a)), b)
   end function ge_i_ds
 
 ! Less-Than-Or-Equal-To
@@ -1471,13 +1519,13 @@ contains
   elemental logical function le_ds_i(a, b)
     type (ds_real), intent(in) :: a
     integer, intent(in) :: b
-    le_ds_i = le_ds_d(a, ds_int_to_float(b))
+    le_ds_i = le_ds(a, ds_real(ds_int_limbs(b)))
   end function le_ds_i
 
   elemental logical function le_i_ds(a, b)
     integer, intent(in) :: a
     type (ds_real), intent(in) :: b
-    le_i_ds = le_d_ds(ds_int_to_float(a), b)
+    le_i_ds = le_ds(ds_real(ds_int_limbs(a)), b)
   end function le_i_ds
 
 ! Absolute Value
@@ -1786,129 +1834,28 @@ end subroutine
 
 subroutine dsinpc (a, b)
 
-!   Converts the CHARACTER*80 array A into the DD number B.
+!   Converts the CHARACTER*80 array A into the DS number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
 implicit none
-integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-parameter (ln = 80)
-real*4 bi
 character*80 a
-character*1 ai
-character*10 dig
-character*16 ca
-parameter (dig = '0123456789')
-real*4 b(2), f(2), s0(2), s1(2), s2(2)
+real*4 b(2)
+character*80 t
+integer i, n, ierr
 
-id = 0
-ip = -1
-is = 0
-inz = 0
-s1(1) = 0.e0
-s1(2) = 0.e0
-
-beg = 0
-do i = 1, 80
-  if (a(i:i) /= ' ') then
-    beg = i
-    goto 80
-  end if
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
 end do
-
-goto 210
-80 continue
-
-do i = beg, 80
-  if (a(i:i) == ' ') then
-    lnn = i-1
-    goto 90
-  end if
- enddo
-
-lnn = 80
-90 continue
-
-!   Scan for digits, looking for the period also.
-
-do i = beg, lnn
-  ai = a(i:i)
-  if (ai .eq. '.') then
-    if (ip >= 0) goto 210
-    ip = id
-    inz = 1
-  elseif (ai .eq. '+') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-    goto 100
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-!    read (ai, '(f1.0)') bi
-    bi = index (dig, ai) - 1
-    if (inz > 0 .or. bi > 0.e0) then
-      inz = 1
-      id = id + 1
-!    call dsmuld (s1, 10.e0, s0)
-      call f_ds_mul_ds_d (s1, 10.e0, s0)
-      f(1) = bi
-      f(2) = 0.e0
-!    call dsdqc (bi, f)
-!    call dsadd (s0, f, s1)
-      call f_ds_add (s0, f, s1)
-    endif
-  endif
-enddo
-
-100   continue
-if (is .eq. -1) then
-  s1(1) = - s1(1)
-  s1(2) = - s1(2)
-endif
-k = i
-if (ip == -1) ip = id
-ie = 0
-is = 0
-ca = ' '
-
-do i = k + 1, lnn
-  ai = a(i:i)
-  if (ai .eq. ' ') then
-  elseif (ai .eq. '+') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-    ie = ie + 1
-    if (ie .gt. 3) goto 210
-    ca(ie:ie) = ai
-  endif
-enddo
-
-! read (ca, '(i4)') ie
-ie = dsdigin (ca, 4)
-if (is .eq. -1) ie = - ie
-ie = ie + ip - id
-s0(1) = 10.e0
-s0(2) = 0.e0
-! call dsnpwr (s0, ie, s2)
-call f_ds_npwr (s0, ie, s2)
-! call dsmul (s1, s2, b)
-call f_ds_mul (s1, s2, b)
-goto 220
-
-210  write (6, 1) a
+ierr = -1
+if (n > 0) call f_ds_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** dsinpc: Syntax error in literal string: ', a)
-! call dsabrt
-stop
-
-220  return
+  stop
+end if
 end subroutine
 
 subroutine dsout (iu, a)
@@ -2055,11 +2002,325 @@ elemental type (ds_real) function ds_aimag(a)
   ds_aimag%re = a%cmp(3:4)
 end function
 
-elemental real*4 function ds_int_to_float(i)
+! Exact conversion of a default integer to 2 binary32 limbs: the leading
+! limb is the rounded value and the remainder (at most 2**7) is exact.
+pure function ds_int_limbs(i) result(r)
   implicit none
   integer, intent(in) :: i
-  intrinsic :: real
-  ds_int_to_float = real(i, kind=4)
-end function ds_int_to_float
+  real*4 :: r(2)
+  r = 0.0e0
+  r(1) = real(i, kind=4)
+  r(2) = real(int(i, kind=8) - int(r(1), kind=8), kind=4)
+end function ds_int_limbs
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (ds_real) function sub_ds_i(a, b)
+    type (ds_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_ds_i = sub_ds(a, to_ds_i(b))
+  end function sub_ds_i
+
+  elemental type (ds_real) function sub_i_ds(a, b)
+    integer, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    sub_i_ds = sub_ds(to_ds_i(a), b)
+  end function sub_i_ds
+
+  elemental type (ds_complex) function add_dsc_i(a, b)
+    type (ds_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_dsc_i = add_dsc_ds(a, to_ds_i(b))
+  end function add_dsc_i
+
+  elemental type (ds_complex) function add_i_dsc(a, b)
+    integer, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    add_i_dsc = add_ds_dsc(to_ds_i(a), b)
+  end function add_i_dsc
+
+  elemental type (ds_complex) function sub_dsc_i(a, b)
+    type (ds_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_dsc_i = sub_dsc_ds(a, to_ds_i(b))
+  end function sub_dsc_i
+
+  elemental type (ds_complex) function sub_i_dsc(a, b)
+    integer, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    sub_i_dsc = sub_ds_dsc(to_ds_i(a), b)
+  end function sub_i_dsc
+
+  elemental type (ds_complex) function div_dsc_i(a, b)
+    type (ds_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_dsc_i = div_dsc_ds(a, to_ds_i(b))
+  end function div_dsc_i
+
+  elemental type (ds_complex) function div_i_dsc(a, b)
+    integer, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    div_i_dsc = div_ds_dsc(to_ds_i(a), b)
+  end function div_i_dsc
+
+  elemental type (ds_complex) function div_d_dsc(a, b)
+    real*4, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    div_d_dsc = div_ds_dsc(to_ds_d(a), b)
+  end function div_d_dsc
+
+  elemental logical function eq_dsc_d(a, b)
+    type (ds_complex), intent(in) :: a
+    real*4, intent(in) :: b
+    eq_dsc_d = eq_dsc_ds(a, to_ds_d(b))
+  end function eq_dsc_d
+
+  elemental logical function eq_d_dsc(a, b)
+    real*4, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    eq_d_dsc = eq_ds_dsc(to_ds_d(a), b)
+  end function eq_d_dsc
+
+  elemental logical function ne_dsc_d(a, b)
+    type (ds_complex), intent(in) :: a
+    real*4, intent(in) :: b
+    ne_dsc_d = ne_dsc_ds(a, to_ds_d(b))
+  end function ne_dsc_d
+
+  elemental logical function ne_d_dsc(a, b)
+    real*4, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    ne_d_dsc = ne_ds_dsc(to_ds_d(a), b)
+  end function ne_d_dsc
+
+! binary64 interoperability for the binary32-based type.
+  elemental type (ds_real) function to_ds_dp(a)
+    real*8, intent(in) :: a
+    call f_ds_from_double(a, to_ds_dp%re)
+  end function to_ds_dp
+
+  elemental real*8 function to_dp_ds(a)
+    type (ds_real), intent(in) :: a
+    call f_ds_to_double(a%re, to_dp_ds)
+  end function to_dp_ds
+
+  elemental real*8 function to_dp_dsc(a)
+    type (ds_complex), intent(in) :: a
+    to_dp_dsc = to_dp_ds(to_ds_dsc(a))
+  end function to_dp_dsc
+
+  elemental type (ds_complex) function to_dsc_zc(a)
+    complex*16, intent(in) :: a
+    to_dsc_zc = to_dsc_ds2(to_ds_dp(dble(a)), to_ds_dp(aimag(a)))
+  end function to_dsc_zc
+
+  elemental subroutine assign_ds_dp(a, b)
+    type (ds_real), intent(inout) :: a
+    real*8, intent(in) :: b
+    a = to_ds_dp(b)
+  end subroutine assign_ds_dp
+
+  elemental subroutine assign_dp_ds(a, b)
+    real*8, intent(inout) :: a
+    type (ds_real), intent(in) :: b
+    a = to_dp_ds(b)
+  end subroutine assign_dp_ds
+
+  elemental subroutine assign_dsc_zc(a, b)
+    type (ds_complex), intent(inout) :: a
+    complex*16, intent(in) :: b
+    a = to_dsc_zc(b)
+  end subroutine assign_dsc_zc
+
+  elemental type (ds_real) function add_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    add_ds_dp = add_ds(a, to_ds_dp(b))
+  end function add_ds_dp
+
+  elemental type (ds_real) function add_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    add_dp_ds = add_ds(to_ds_dp(a), b)
+  end function add_dp_ds
+
+  elemental type (ds_complex) function add_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    add_dsc_dp = add_dsc_ds(a, to_ds_dp(b))
+  end function add_dsc_dp
+
+  elemental type (ds_complex) function add_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    add_dp_dsc = add_ds_dsc(to_ds_dp(a), b)
+  end function add_dp_dsc
+
+  elemental type (ds_real) function sub_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    sub_ds_dp = sub_ds(a, to_ds_dp(b))
+  end function sub_ds_dp
+
+  elemental type (ds_real) function sub_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    sub_dp_ds = sub_ds(to_ds_dp(a), b)
+  end function sub_dp_ds
+
+  elemental type (ds_complex) function sub_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    sub_dsc_dp = sub_dsc_ds(a, to_ds_dp(b))
+  end function sub_dsc_dp
+
+  elemental type (ds_complex) function sub_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    sub_dp_dsc = sub_ds_dsc(to_ds_dp(a), b)
+  end function sub_dp_dsc
+
+  elemental type (ds_real) function mul_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    mul_ds_dp = mul_ds(a, to_ds_dp(b))
+  end function mul_ds_dp
+
+  elemental type (ds_real) function mul_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    mul_dp_ds = mul_ds(to_ds_dp(a), b)
+  end function mul_dp_ds
+
+  elemental type (ds_complex) function mul_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    mul_dsc_dp = mul_dsc_ds(a, to_ds_dp(b))
+  end function mul_dsc_dp
+
+  elemental type (ds_complex) function mul_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    mul_dp_dsc = mul_ds_dsc(to_ds_dp(a), b)
+  end function mul_dp_dsc
+
+  elemental type (ds_real) function div_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    div_ds_dp = div_ds(a, to_ds_dp(b))
+  end function div_ds_dp
+
+  elemental type (ds_real) function div_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    div_dp_ds = div_ds(to_ds_dp(a), b)
+  end function div_dp_ds
+
+  elemental type (ds_complex) function div_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    div_dsc_dp = div_dsc_ds(a, to_ds_dp(b))
+  end function div_dsc_dp
+
+  elemental type (ds_complex) function div_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    div_dp_dsc = div_ds_dsc(to_ds_dp(a), b)
+  end function div_dp_dsc
+
+  elemental logical function eq_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_ds_dp = eq_ds(a, to_ds_dp(b))
+  end function eq_ds_dp
+
+  elemental logical function eq_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    eq_dp_ds = eq_ds(to_ds_dp(a), b)
+  end function eq_dp_ds
+
+  elemental logical function ne_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_ds_dp = ne_ds(a, to_ds_dp(b))
+  end function ne_ds_dp
+
+  elemental logical function ne_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    ne_dp_ds = ne_ds(to_ds_dp(a), b)
+  end function ne_dp_ds
+
+  elemental logical function gt_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    gt_ds_dp = gt_ds(a, to_ds_dp(b))
+  end function gt_ds_dp
+
+  elemental logical function gt_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    gt_dp_ds = gt_ds(to_ds_dp(a), b)
+  end function gt_dp_ds
+
+  elemental logical function lt_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    lt_ds_dp = lt_ds(a, to_ds_dp(b))
+  end function lt_ds_dp
+
+  elemental logical function lt_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    lt_dp_ds = lt_ds(to_ds_dp(a), b)
+  end function lt_dp_ds
+
+  elemental logical function ge_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    ge_ds_dp = ge_ds(a, to_ds_dp(b))
+  end function ge_ds_dp
+
+  elemental logical function ge_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    ge_dp_ds = ge_ds(to_ds_dp(a), b)
+  end function ge_dp_ds
+
+  elemental logical function le_ds_dp(a, b)
+    type (ds_real), intent(in) :: a
+    real*8, intent(in) :: b
+    le_ds_dp = le_ds(a, to_ds_dp(b))
+  end function le_ds_dp
+
+  elemental logical function le_dp_ds(a, b)
+    real*8, intent(in) :: a
+    type (ds_real), intent(in) :: b
+    le_dp_ds = le_ds(to_ds_dp(a), b)
+  end function le_dp_ds
+
+  elemental logical function eq_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_dsc_dp = eq_dsc_ds(a, to_ds_dp(b))
+  end function eq_dsc_dp
+
+  elemental logical function eq_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    eq_dp_dsc = eq_ds_dsc(to_ds_dp(a), b)
+  end function eq_dp_dsc
+
+  elemental logical function ne_dsc_dp(a, b)
+    type (ds_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_dsc_dp = ne_dsc_ds(a, to_ds_dp(b))
+  end function ne_dsc_dp
+
+  elemental logical function ne_dp_dsc(a, b)
+    real*8, intent(in) :: a
+    type (ds_complex), intent(in) :: b
+    ne_dp_dsc = ne_ds_dsc(to_ds_dp(a), b)
+  end function ne_dp_dsc
 
 end module dsmodule

@@ -65,6 +65,8 @@ module ddmodule
     module procedure add_dd_ddc
     module procedure add_ddc_d
     module procedure add_d_ddc
+    module procedure add_ddc_i
+    module procedure add_i_ddc
   end interface
 
   interface operator (-)
@@ -78,6 +80,10 @@ module ddmodule
     module procedure sub_ddc_d
     module procedure sub_d_ddc
     module procedure neg_ddc
+    module procedure sub_dd_i
+    module procedure sub_i_dd
+    module procedure sub_ddc_i
+    module procedure sub_i_ddc
   end interface
 
   interface operator (*)
@@ -105,6 +111,9 @@ module ddmodule
     module procedure div_ddc_dd
     module procedure div_dd_ddc
     module procedure div_ddc_d
+    module procedure div_ddc_i
+    module procedure div_i_ddc
+    module procedure div_d_ddc
   end interface
 
   interface operator (**)
@@ -248,6 +257,8 @@ module ddmodule
     module procedure eq_ddc
     module procedure eq_ddc_dd
     module procedure eq_dd_ddc
+    module procedure eq_ddc_d
+    module procedure eq_d_ddc
   end interface
 
   interface operator (/=)
@@ -259,6 +270,8 @@ module ddmodule
     module procedure ne_ddc
     module procedure ne_ddc_dd
     module procedure ne_dd_ddc
+    module procedure ne_ddc_d
+    module procedure ne_d_ddc
   end interface
 
   interface operator (>)
@@ -425,7 +438,7 @@ contains
   elemental subroutine assign_i_dd(i, a)
     integer, intent(inout) :: i
     type (dd_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_dd(a)
   end subroutine assign_i_dd
 
   elemental subroutine assign_ddc (a, b)
@@ -1787,129 +1800,28 @@ end subroutine
 
 subroutine ddinpc (a, b)
 
-!   Converts the CHARACTER*80 array A into the DD number B.
+!   Converts the CHARACTER*80 array A into the DD number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
 implicit none
-integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-parameter (ln = 80)
-real*8 bi
 character*80 a
-character*1 ai
-character*10 dig
-character*16 ca
-parameter (dig = '0123456789')
-real*8 b(2), f(2), s0(2), s1(2), s2(2)
+real*8 b(2)
+character*80 t
+integer i, n, ierr
 
-id = 0
-ip = -1
-is = 0
-inz = 0
-s1(1) = 0.d0
-s1(2) = 0.d0
-
-beg = 0
-do i = 1, 80
-  if (a(i:i) /= ' ') then
-    beg = i
-    goto 80
-  end if
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
 end do
-
-goto 210
-80 continue
-
-do i = beg, 80
-  if (a(i:i) == ' ') then
-    lnn = i-1
-    goto 90
-  end if
- enddo
-
-lnn = 80
-90 continue
-
-!   Scan for digits, looking for the period also.
-
-do i = beg, lnn
-  ai = a(i:i)
-  if (ai .eq. '.') then
-    if (ip >= 0) goto 210
-    ip = id
-    inz = 1
-  elseif (ai .eq. '+') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-    goto 100
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-!    read (ai, '(f1.0)') bi
-    bi = index (dig, ai) - 1
-    if (inz > 0 .or. bi > 0.d0) then
-      inz = 1
-      id = id + 1
-!    call ddmuld (s1, 10.d0, s0)
-      call f_dd_mul_dd_d (s1, 10.d0, s0)
-      f(1) = bi
-      f(2) = 0.d0
-!    call dddqc (bi, f)
-!    call ddadd (s0, f, s1)
-      call f_dd_add (s0, f, s1)
-    endif
-  endif
-enddo
-
-100   continue
-if (is .eq. -1) then
-  s1(1) = - s1(1)
-  s1(2) = - s1(2)
-endif
-k = i
-if (ip == -1) ip = id
-ie = 0
-is = 0
-ca = ' '
-
-do i = k + 1, lnn
-  ai = a(i:i)
-  if (ai .eq. ' ') then
-  elseif (ai .eq. '+') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-    ie = ie + 1
-    if (ie .gt. 3) goto 210
-    ca(ie:ie) = ai
-  endif
-enddo
-
-! read (ca, '(i4)') ie
-ie = dddigin (ca, 4)
-if (is .eq. -1) ie = - ie
-ie = ie + ip - id
-s0(1) = 10.d0
-s0(2) = 0.d0
-! call ddnpwr (s0, ie, s2)
-call f_dd_npwr (s0, ie, s2)
-! call ddmul (s1, s2, b)
-call f_dd_mul (s1, s2, b)
-goto 220
-
-210  write (6, 1) a
+ierr = -1
+if (n > 0) call f_dd_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** ddinpc: Syntax error in literal string: ', a)
-! call ddabrt
-stop
-
-220  return
+  stop
+end if
 end subroutine
 
 subroutine ddout (iu, a)
@@ -2057,6 +1969,85 @@ elemental type (dd_real) function dd_aimag(a)
   type (dd_complex), intent(in) :: a
   dd_aimag%re = a%cmp(3:4)
 end function
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (dd_real) function sub_dd_i(a, b)
+    type (dd_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_dd_i = sub_dd(a, to_dd_i(b))
+  end function sub_dd_i
+
+  elemental type (dd_real) function sub_i_dd(a, b)
+    integer, intent(in) :: a
+    type (dd_real), intent(in) :: b
+    sub_i_dd = sub_dd(to_dd_i(a), b)
+  end function sub_i_dd
+
+  elemental type (dd_complex) function add_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_ddc_i = add_ddc_dd(a, to_dd_i(b))
+  end function add_ddc_i
+
+  elemental type (dd_complex) function add_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    add_i_ddc = add_dd_ddc(to_dd_i(a), b)
+  end function add_i_ddc
+
+  elemental type (dd_complex) function sub_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_ddc_i = sub_ddc_dd(a, to_dd_i(b))
+  end function sub_ddc_i
+
+  elemental type (dd_complex) function sub_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    sub_i_ddc = sub_dd_ddc(to_dd_i(a), b)
+  end function sub_i_ddc
+
+  elemental type (dd_complex) function div_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_ddc_i = div_ddc_dd(a, to_dd_i(b))
+  end function div_ddc_i
+
+  elemental type (dd_complex) function div_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    div_i_ddc = div_dd_ddc(to_dd_i(a), b)
+  end function div_i_ddc
+
+  elemental type (dd_complex) function div_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    div_d_ddc = div_dd_ddc(to_dd_d(a), b)
+  end function div_d_ddc
+
+  elemental logical function eq_ddc_d(a, b)
+    type (dd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_ddc_d = eq_ddc_dd(a, to_dd_d(b))
+  end function eq_ddc_d
+
+  elemental logical function eq_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    eq_d_ddc = eq_dd_ddc(to_dd_d(a), b)
+  end function eq_d_ddc
+
+  elemental logical function ne_ddc_d(a, b)
+    type (dd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_ddc_d = ne_ddc_dd(a, to_dd_d(b))
+  end function ne_ddc_d
+
+  elemental logical function ne_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    ne_d_ddc = ne_dd_ddc(to_dd_d(a), b)
+  end function ne_d_ddc
 
 end module ddmodule
 

@@ -251,8 +251,12 @@ int edd_real::read(const char *s, edd_real &a) {
   if (point >= 0)
     e -= (nd - point);
 
-  if (e != 0)
+  /* Divide by the exact power 10^-e rather than multiplying by the inexact
+     10^e, so decimals that are representable parse exactly. */
+  if (e > 0)
     r *= (edd_real((edd_word) 10.0) ^ e);
+  else if (e < 0)
+    r /= (edd_real((edd_word) 10.0) ^ (-e));
 
   a = (sign < 0) ? -r : r;
   return 0;

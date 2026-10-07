@@ -8,6 +8,9 @@ subroutine check_dd()
   implicit none
   character(len=*), parameter :: tname = 'dd'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+  end subroutine extra_checks
 end subroutine check_dd
 
 subroutine check_td()
@@ -17,6 +20,9 @@ subroutine check_td()
   implicit none
   character(len=*), parameter :: tname = 'td'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+  end subroutine extra_checks
 end subroutine check_td
 
 subroutine check_qd()
@@ -26,6 +32,9 @@ subroutine check_qd()
   implicit none
   character(len=*), parameter :: tname = 'qd'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+  end subroutine extra_checks
 end subroutine check_qd
 
 subroutine check_ds()
@@ -35,24 +44,112 @@ subroutine check_ds()
   implicit none
   character(len=*), parameter :: tname = 'ds'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+    call check_binary64()
+  end subroutine extra_checks
+
+  include 'f_suite_single.inc'
 end subroutine check_ds
 
 subroutine check_ts()
   use tsmodule, rt => ts_real, ct => ts_complex, mkr => tsreal, &
                 mkc => tscomplex, pi_r => tspi
+  use ddmodule
+  use qdmodule
   use f_suite_support
   implicit none
   character(len=*), parameter :: tname = 'ts'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+    call check_binary64()
+    call check_dd_conversion()
+    call check_qd_conversion()
+  end subroutine extra_checks
+
+  include 'f_suite_single.inc'
+
+  ! Conversions between ts_real and dd_real must keep the precision of the
+  ! narrower type rather than truncating limbs.
+  subroutine check_dd_conversion()
+    type(dd_real) :: w, ref
+    type(rt) :: v
+    real*8 :: tol
+    type(dd_complex) :: wc
+    type(ct) :: vc
+    ref = ddreal(1) / ddreal(3)
+    tol = 4 * max(dble(epsilon(v)), dble(epsilon(ref)))
+    v = ref
+    call report(near(v, mkr(c_third), 4), tname, 'ts = dd')
+    call report(near(mkr(ref), mkr(c_third), 4), tname, 'tsreal(dd)')
+    w = mkr(c_third)
+    call report(abs(dble(w - ref)) <= tol, tname, 'dd = ts')
+    call report(abs(dble(ddreal(mkr(c_third)) - ref)) <= tol, tname, 'ddreal(ts)')
+    wc = ddcomplex(ref, -ref)
+    vc = wc
+    call report(near(real(vc), mkr(c_third), 4) .and. near(aimag(vc), -mkr(c_third), 4), tname, 'tsc = ddc')
+    vc = mkc(mkr(c_third), -mkr(c_third))
+    wc = vc
+    call report(abs(dble(real(wc) - ref)) <= tol .and. abs(dble(aimag(wc) + ref)) <= tol, tname, 'ddc = tsc')
+  end subroutine check_dd_conversion
+
+  ! Conversions between ts_real and qd_real must keep the precision of the
+  ! narrower type rather than truncating limbs.
+  subroutine check_qd_conversion()
+    type(qd_real) :: w, ref
+    type(rt) :: v
+    real*8 :: tol
+    type(qd_complex) :: wc
+    type(ct) :: vc
+    ref = qdreal(1) / qdreal(3)
+    tol = 4 * max(dble(epsilon(v)), dble(epsilon(ref)))
+    v = ref
+    call report(near(v, mkr(c_third), 4), tname, 'ts = qd')
+    call report(near(mkr(ref), mkr(c_third), 4), tname, 'tsreal(qd)')
+    w = mkr(c_third)
+    call report(abs(dble(w - ref)) <= tol, tname, 'qd = ts')
+    call report(abs(dble(qdreal(mkr(c_third)) - ref)) <= tol, tname, 'qdreal(ts)')
+    wc = qdcomplex(ref, -ref)
+    vc = wc
+    call report(near(real(vc), mkr(c_third), 4) .and. near(aimag(vc), -mkr(c_third), 4), tname, 'tsc = qdc')
+    vc = mkc(mkr(c_third), -mkr(c_third))
+    wc = vc
+    call report(abs(dble(real(wc) - ref)) <= tol .and. abs(dble(aimag(wc) + ref)) <= tol, tname, 'qdc = tsc')
+  end subroutine check_qd_conversion
 end subroutine check_ts
 
 subroutine check_qs()
   use qsmodule, rt => qs_real, ct => qs_complex, mkr => qsreal, &
                 mkc => qscomplex, pi_r => qspi
+  use ddmodule
   use f_suite_support
   implicit none
   character(len=*), parameter :: tname = 'qs'
   include 'f_suite_body.inc'
+
+  subroutine extra_checks()
+    call check_binary64()
+    call check_dd_conversion()
+  end subroutine extra_checks
+
+  include 'f_suite_single.inc'
+
+  ! Conversions between qs_real and dd_real must keep the precision of the
+  ! narrower type rather than truncating limbs.
+  subroutine check_dd_conversion()
+    type(dd_real) :: w, ref
+    type(rt) :: v
+    real*8 :: tol
+    ref = ddreal(1) / ddreal(3)
+    tol = 4 * max(dble(epsilon(v)), dble(epsilon(ref)))
+    v = ref
+    call report(near(v, mkr(c_third), 4), tname, 'qs = dd')
+    call report(near(mkr(ref), mkr(c_third), 4), tname, 'qsreal(dd)')
+    w = mkr(c_third)
+    call report(abs(dble(w - ref)) <= tol, tname, 'dd = qs')
+    call report(abs(dble(ddreal(mkr(c_third)) - ref)) <= tol, tname, 'ddreal(qs)')
+  end subroutine check_dd_conversion
 end subroutine check_qs
 
 subroutine f_main

@@ -385,8 +385,12 @@ int qd_real::read(const char *s, qd_real &qd) {
   }
 
   /* Multiply the the exponent */
-  if (e != 0) {
+  /* Divide by the exact power 10^-e rather than multiplying by the inexact
+     10^e, so decimals that are representable parse exactly. */
+  if (e > 0) {
     r *= (qd_real(10.0) ^ e);
+  } else if (e < 0) {
+    r /= (qd_real(10.0) ^ (-e));
   }
 
   qd = (sign < 0) ? -r : r;

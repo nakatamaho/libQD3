@@ -3,11 +3,13 @@
 ! The including subroutine must import one libQD3 Fortran module with the
 ! renames rt (real type), ct (complex type), mkr (real constructor),
 ! mkc (complex constructor) and pi_r (pi), use f_suite_support, and declare
-! the character parameter tname.  Tolerances are multiples of epsilon(rt),
+! the character parameter tname; it must also provide extra_checks after the
+! include (it may be empty).  Tolerances are multiples of epsilon(rt),
 ! so a check only passes at the precision of the type under test.
 
   type(rt) :: x, y, z, s, c, one
   type(ct) :: cx, cy, cz
+  integer :: i
 
   one = mkr(1)
 
@@ -80,6 +82,19 @@
   call report(min(mkr(3), one, mkr(2)) == one, tname, 'min')
   call report(max(mkr(3), one, mkr(2)) == mkr(3), tname, 'max')
 
+  ! Mixed integer arithmetic, including integers wider than one limb.
+  call report(mkr(5) - 2 == mkr(3) .and. 5 - mkr(2) == mkr(3), tname, 'sub_i')
+  call report(near(one - 1 + x, x, 1), tname, 'sub_i keeps precision')
+  call report(mkr(16777217) == mkr('16777217'), tname, 'to_real large int')
+  call report(mkr('16777217') == 16777217 .and. 16777217 == mkr('16777217'), &
+              tname, 'compare large int')
+  call report(mkr(0) + 16777217 == mkr('16777217'), tname, 'add large int')
+  call report(mkr('16777217') - 16777217 == mkr(0), tname, 'sub large int')
+  call report(mkr(2147483647) == mkr('2147483647') .and. &
+              int(mkr(2147483647)) == 2147483647, tname, 'int range limit')
+  i = mkr(3) - epsilon(x)
+  call report(i == 2, tname, 'assign integer = real')
+
   ! Comparisons, including mixed integer forms.
   x = one + epsilon(one)
   call report(x > one .and. one < x .and. x /= one, tname, 'compare eps')
@@ -115,9 +130,22 @@
   cz = log(cx)
   call report(near(real(cz), mkr(c_clog_re), 32) .and. &
               near(aimag(cz), mkr(c_clog_im), 32), tname, 'complex log')
+  cz = cx + 1
+  call report(real(cz) == mkr(2) .and. aimag(cz) == mkr(2), tname, 'complex add_i')
+  cz = 1 - cx
+  call report(real(cz) == mkr(0) .and. aimag(cz) == mkr(-2), tname, 'complex sub_i')
+  cz = cx / 2
+  call report(real(cz) == mkr('0.5') .and. aimag(cz) == one, tname, 'complex div_i')
+  cz = 5 / cx
+  call report(near(real(cz), one, 8) .and. near(aimag(cz), mkr(-2), 8), &
+              tname, 'complex i/complex')
+  call report(mkc(mkr(3), mkr(0)) == mkr(3) .and. cx /= one, tname, &
+              'complex compare real')
   cz = cx ** 2
   call report(near(real(cz), mkr(-3), 8) .and. near(aimag(cz), mkr(4), 8), &
               tname, 'complex pwr_i')
+
+  call extra_checks()
 
 contains
 

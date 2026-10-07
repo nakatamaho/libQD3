@@ -247,5 +247,41 @@ module qsext
     pure subroutine f_qs_nan(a)
       real*4, intent(out) :: a(4)
     end subroutine
+    pure subroutine f_qs_from_double(a, c)
+      real*8, intent(in) :: a
+      real*4, intent(out) :: c(4)
+    end subroutine
+
+    pure subroutine f_qs_to_double(a, c)
+      real*4, intent(in) :: a(4)
+      real*8, intent(out) :: c
+    end subroutine
+
+    pure subroutine f_qs_from_dd(a, c)
+      real*8, intent(in) :: a(2)
+      real*4, intent(out) :: c(4)
+    end subroutine
+
+    pure subroutine f_qs_to_dd(a, c)
+      real*4, intent(in) :: a(4)
+      real*8, intent(out) :: c(2)
+    end subroutine
+
+    pure subroutine f_qs_from_qd(a, c)
+      real*8, intent(in) :: a(4)
+      real*4, intent(out) :: c(4)
+    end subroutine
+
+    pure subroutine f_qs_to_qd(a, c)
+      real*4, intent(in) :: a(4)
+      real*8, intent(out) :: c(4)
+    end subroutine
+    subroutine f_qs_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*4, intent(out) :: a(4)
+      integer, intent(out) :: ierr
+    end subroutine
+
   end interface
 end

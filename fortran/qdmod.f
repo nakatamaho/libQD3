@@ -69,6 +69,8 @@ module qdmodule
     module procedure add_qd_qdc
     module procedure add_qdc_d
     module procedure add_d_qdc
+    module procedure add_qdc_i
+    module procedure add_i_qdc
   end interface
 
   interface operator (-)
@@ -82,6 +84,10 @@ module qdmodule
     module procedure sub_qdc_d
     module procedure sub_d_qdc
     module procedure neg_qdc
+    module procedure sub_qd_i
+    module procedure sub_i_qd
+    module procedure sub_qdc_i
+    module procedure sub_i_qdc
   end interface
 
   interface operator (*)
@@ -109,6 +115,9 @@ module qdmodule
     module procedure div_qdc_qd
     module procedure div_qd_qdc
     module procedure div_qdc_d
+    module procedure div_qdc_i
+    module procedure div_i_qdc
+    module procedure div_d_qdc
   end interface
 
   interface operator (**)
@@ -257,6 +266,8 @@ module qdmodule
     module procedure eq_qdc
     module procedure eq_qdc_qd
     module procedure eq_qd_qdc
+    module procedure eq_qdc_d
+    module procedure eq_d_qdc
   end interface
 
   interface operator (/=)
@@ -268,6 +279,8 @@ module qdmodule
     module procedure ne_qdc
     module procedure ne_qdc_qd
     module procedure ne_qd_qdc
+    module procedure ne_qdc_d
+    module procedure ne_d_qdc
   end interface
 
   interface operator (>)
@@ -441,7 +454,7 @@ contains
   elemental subroutine assign_i_qd(i, a)
     integer, intent(inout) :: i
     type (qd_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_qd(a)
   end subroutine assign_i_qd
 
   elemental subroutine assign_dd_qd(dd, qd)
@@ -1825,138 +1838,28 @@ end subroutine
 
 subroutine qdinpc (a, b)
 
-!   Converts the CHARACTER*80 array A into the DD number B.
+!   Converts the CHARACTER*80 array A into the QD number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
 implicit none
-integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-parameter (ln = 80)
-real*8 bi
 character*80 a
-character*1 ai
-character*10 dig
-character*16 ca
-parameter (dig = '0123456789')
-real*8 b(4), f(4), s0(4), s1(4), s2(4)
+real*8 b(4)
+character*80 t
+integer i, n, ierr
 
-id = 0
-ip = -1
-is = 0
-inz = 0
-s1(1) = 0.d0
-s1(2) = 0.d0
-s1(3) = 0.d0
-s1(4) = 0.d0
-
-beg = 0
-do i = 1, 80
-  if (a(i:i) /= ' ') then
-    beg = i
-    goto 80
-  end if
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
 end do
-
-goto 210
-80 continue
-
-do i = beg, 80
-  if (a(i:i) == ' ') then
-    lnn = i-1
-    goto 90
-  end if
-enddo
-
-lnn = 80
-90 continue
-
-!   Scan for digits, looking for the period also.
-
-do i = beg, lnn
-  ai = a(i:i)
-  if (ai .eq. '.') then
-    if (ip >= 0) goto 210
-    ip = id
-    inz = 1
-  elseif (ai .eq. '+') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-    goto 100
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-!    read (ai, '(f1.0)') bi
-    bi = index (dig, ai) - 1
-    if (inz > 0 .or. bi > 0.d0) then
-      inz = 1
-      id = id + 1
-! call qdmuld (s1, 10.d0, s0)
-      call f_qd_mul_qd_d (s1, 10.d0, s0)
-      f(1) = bi
-      f(2) = 0.d0
-      f(3) = 0.d0
-      f(4) = 0.d0
-!    call qddqc (bi, f)
-!    call qdadd (s0, f, s1)
-      call f_qd_add (s0, f, s1)
-    endif
-  endif
-enddo
-
-100   continue
-if (is .eq. -1) then
-  s1(1) = - s1(1)
-  s1(2) = - s1(2)
-  s1(3) = - s1(3)
-  s1(4) = - s1(4)
-endif
-k = i
-if (ip == -1) ip = id
-ie = 0
-is = 0
-ca = ' '
-
-do i = k + 1, lnn
-  ai = a(i:i)
-  if (ai .eq. ' ') then
-  elseif (ai .eq. '+') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-    ie = ie + 1
-    if (ie .gt. 3) goto 210
-    ca(ie:ie) = ai
-  endif
-enddo
-
-! read (ca, '(i4)') ie
-ie = dddigin (ca, 4)
-if (is .eq. -1) ie = - ie
-ie = ie + ip - id
-s0(1) = 10.d0
-s0(2) = 0.d0
-s0(3) = 0.d0
-s0(4) = 0.d0
-! call qdnpwr (s0, ie, s2)
-call f_qd_npwr (s0, ie, s2)
-! call qdmul (s1, s2, b)
-call f_qd_mul (s1, s2, b)
-goto 220
-
-210  write (6, 1) a
+ierr = -1
+if (n > 0) call f_qd_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** qdinpc: Syntax error in literal string: ', a)
-! call qdabrt
-stop
-
-220  return
-
+  stop
+end if
 end subroutine
 
 subroutine qdout (iu, a)
@@ -2047,6 +1950,85 @@ elemental type (qd_real) function qd_aimag(a)
   type (qd_complex), intent(in) :: a
   qd_aimag%re = a%cmp(5:8)
 end function
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (qd_real) function sub_qd_i(a, b)
+    type (qd_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_qd_i = sub_qd(a, to_qd_i(b))
+  end function sub_qd_i
+
+  elemental type (qd_real) function sub_i_qd(a, b)
+    integer, intent(in) :: a
+    type (qd_real), intent(in) :: b
+    sub_i_qd = sub_qd(to_qd_i(a), b)
+  end function sub_i_qd
+
+  elemental type (qd_complex) function add_qdc_i(a, b)
+    type (qd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_qdc_i = add_qdc_qd(a, to_qd_i(b))
+  end function add_qdc_i
+
+  elemental type (qd_complex) function add_i_qdc(a, b)
+    integer, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    add_i_qdc = add_qd_qdc(to_qd_i(a), b)
+  end function add_i_qdc
+
+  elemental type (qd_complex) function sub_qdc_i(a, b)
+    type (qd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_qdc_i = sub_qdc_qd(a, to_qd_i(b))
+  end function sub_qdc_i
+
+  elemental type (qd_complex) function sub_i_qdc(a, b)
+    integer, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    sub_i_qdc = sub_qd_qdc(to_qd_i(a), b)
+  end function sub_i_qdc
+
+  elemental type (qd_complex) function div_qdc_i(a, b)
+    type (qd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_qdc_i = div_qdc_qd(a, to_qd_i(b))
+  end function div_qdc_i
+
+  elemental type (qd_complex) function div_i_qdc(a, b)
+    integer, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    div_i_qdc = div_qd_qdc(to_qd_i(a), b)
+  end function div_i_qdc
+
+  elemental type (qd_complex) function div_d_qdc(a, b)
+    real*8, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    div_d_qdc = div_qd_qdc(to_qd_d(a), b)
+  end function div_d_qdc
+
+  elemental logical function eq_qdc_d(a, b)
+    type (qd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_qdc_d = eq_qdc_qd(a, to_qd_d(b))
+  end function eq_qdc_d
+
+  elemental logical function eq_d_qdc(a, b)
+    real*8, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    eq_d_qdc = eq_qd_qdc(to_qd_d(a), b)
+  end function eq_d_qdc
+
+  elemental logical function ne_qdc_d(a, b)
+    type (qd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_qdc_d = ne_qdc_qd(a, to_qd_d(b))
+  end function ne_qdc_d
+
+  elemental logical function ne_d_qdc(a, b)
+    real*8, intent(in) :: a
+    type (qd_complex), intent(in) :: b
+    ne_d_qdc = ne_qd_qdc(to_qd_d(a), b)
+  end function ne_d_qdc
 
 end module qdmodule
 

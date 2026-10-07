@@ -14,6 +14,7 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 
 #include "config.h"
 #include <qd/qd_real.h>
@@ -86,6 +87,7 @@
 
 #define f_qd_pi           FC_FUNC_(f_qd_pi, F_QD_PI)
 #define f_qd_nan          FC_FUNC_(f_qd_nan, F_QD_NAN)
+#define f_qd_read         FC_FUNC_(f_qd_read, F_QD_READ)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1]; \
                               ptr[2] = a.x[2]; ptr[3] = a.x[3];
@@ -494,6 +496,17 @@ void f_qd_pi(double *a) {
 
 void f_qd_nan(double *a) {
   TO_DOUBLE_PTR(qd_real::_nan, a);
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_qd_read(const char *s, int *n, double *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  qd_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_DOUBLE_PTR(r, a);
+  }
 }
 
 }

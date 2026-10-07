@@ -32,6 +32,7 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
@@ -95,6 +96,7 @@
 #define f_td_comp_d_td    FC_FUNC_(f_td_comp_d_td, F_TD_COMP_D_TD)
 #define f_td_pi           FC_FUNC_(f_td_pi, F_TD_PI)
 #define f_td_nan          FC_FUNC_(f_td_nan, F_TD_NAN)
+#define f_td_read         FC_FUNC_(f_td_read, F_TD_READ)
 
 #define TO_DOUBLE_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
@@ -376,6 +378,17 @@ void f_td_pi(double *a) {
 
 void f_td_nan(double *a) {
   TO_DOUBLE_PTR(td_real::_nan, a);
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_td_read(const char *s, int *n, double *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  td_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_DOUBLE_PTR(r, a);
+  }
 }
 
 }

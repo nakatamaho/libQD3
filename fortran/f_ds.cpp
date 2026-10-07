@@ -32,10 +32,13 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
 #include <qd/ds_real.h>
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
 #include <qd/inline.h>
 
 #define f_ds_add          FC_FUNC_(f_ds_add, F_DS_ADD)
@@ -95,6 +98,13 @@
 #define f_ds_comp_d_ds    FC_FUNC_(f_ds_comp_d_ds, F_DS_COMP_D_DS)
 #define f_ds_pi           FC_FUNC_(f_ds_pi, F_DS_PI)
 #define f_ds_nan          FC_FUNC_(f_ds_nan, F_DS_NAN)
+#define f_ds_from_double  FC_FUNC_(f_ds_from_double, F_DS_FROM_DOUBLE)
+#define f_ds_to_double    FC_FUNC_(f_ds_to_double, F_DS_TO_DOUBLE)
+#define f_ds_from_dd      FC_FUNC_(f_ds_from_dd, F_DS_FROM_DD)
+#define f_ds_to_dd        FC_FUNC_(f_ds_to_dd, F_DS_TO_DD)
+#define f_ds_from_qd      FC_FUNC_(f_ds_from_qd, F_DS_FROM_QD)
+#define f_ds_to_qd        FC_FUNC_(f_ds_to_qd, F_DS_TO_QD)
+#define f_ds_read         FC_FUNC_(f_ds_read, F_DS_READ)
 
 #define TO_FLOAT_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
@@ -342,6 +352,55 @@ void f_ds_pi(float *a) {
 
 void f_ds_nan(float *a) {
   TO_FLOAT_PTR(ds_real::_nan, a);
+}
+
+
+/* Conversions between ds_real and the binary64-based types.  Each binary64
+   limb is converted exactly to ds_real (or rounded once, for limbs wider
+   than ds_real) and the limbs are summed in the target arithmetic, so no
+   precision is lost beyond the narrower of the two formats. */
+void f_ds_from_double(const double *a, float *c) {
+  ds_real r(*a);
+  TO_FLOAT_PTR(r, c);
+}
+
+void f_ds_to_double(const float *a, double *c) {
+  *c = to_double(ds_real(a));
+}
+
+void f_ds_from_dd(const double *a, float *c) {
+  ds_real r = ds_real(a[0]) + ds_real(a[1]);
+  TO_FLOAT_PTR(r, c);
+}
+
+void f_ds_to_dd(const float *a, double *c) {
+  dd_real s(static_cast<double>(a[0]));
+  for (int i = 1; i < 2; ++i) s += static_cast<double>(a[i]);
+  c[0] = s.x[0];
+  c[1] = s.x[1];
+}
+
+void f_ds_from_qd(const double *a, float *c) {
+  ds_real s(a[0]);
+  for (int i = 1; i < 4; ++i) s += ds_real(a[i]);
+  TO_FLOAT_PTR(s, c);
+}
+
+void f_ds_to_qd(const float *a, double *c) {
+  qd_real s(static_cast<double>(a[0]));
+  for (int i = 1; i < 2; ++i) s += static_cast<double>(a[i]);
+  for (int i = 0; i < 4; ++i) c[i] = s[i];
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_ds_read(const char *s, int *n, float *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  ds_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_FLOAT_PTR(r, a);
+  }
 }
 
 }

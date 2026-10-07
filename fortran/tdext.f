@@ -247,5 +247,12 @@ module tdext
     pure subroutine f_td_nan(a)
       real*8, intent(out) :: a(3)
     end subroutine
+    subroutine f_td_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*8, intent(out) :: a(3)
+      integer, intent(out) :: ierr
+    end subroutine
+
   end interface
 end

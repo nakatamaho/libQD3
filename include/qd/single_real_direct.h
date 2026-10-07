@@ -44,6 +44,15 @@ QD_API extern bool ds_suppress_error_messages;
 QD_API extern bool ts_suppress_error_messages;
 QD_API extern bool qs_suppress_error_messages;
 
+namespace qd_single_detail {
+// Converts the decimal integer given by count digits times 10^scale10 to a
+// quad-double expansion (four binary64 limbs).  Used by the binary32 decimal
+// reader so that parsing is carried out with far more precision than the
+// target type and rounded only once.
+QD_API void decimal_to_qd(const char *digits, int count, int scale10,
+                          double out[4]);
+} // namespace qd_single_detail
+
 template <int N>
 struct single_real;
 
@@ -546,17 +555,9 @@ inline single_real<N> parse_decimal(const char *text) {
   }
   const int total_significant =
       static_cast<int>(digits.size() - first_digit);
-  const int significant = std::min(total_significant,
-                                   static_cast<int>(traits<N>::ndigits));
-  // Build an integer prefix using exact binary powers of ten, then scale it
-  // by the decimal position.  Repeatedly multiplying a fractional expansion
-  // by the float literal 0.1f would permanently retain the binary32
-  // approximation of one tenth and lose the decimal digits being parsed.
-  single_real<N> mantissa(0.0f);
-  for (int i = 0; i < significant; ++i) {
-    mantissa *= 10.0f;
-    mantissa += static_cast<float>(digits[first_digit + i] - '0');
-  }
+  // Digits beyond the 72nd change the value by less than 1e-71 relative,
+  // far below the precision of any binary32 expansion.
+  const int significant = std::min(total_significant, 72);
   const int fractional_digits = after_decimal
       ? static_cast<int>(digits.size()) - integer_digits : 0;
   int decimal_scale = fractional_digits - (total_significant - significant);
@@ -567,11 +568,23 @@ inline single_real<N> parse_decimal(const char *text) {
   if (decimal_scale < -10000) {
     return single_real<N>(negative ? -0.0f : 0.0f);
   }
-  if (decimal_scale > 0) {
-    mantissa /= npwr(single_real<N>(10.0f), decimal_scale);
-  } else {
-    mantissa *= npwr(single_real<N>(10.0f), -decimal_scale);
+  // Convert with quad-double precision, then split every binary64 limb into
+  // exact binary32 terms and round the exact sum to N limbs once.
+  double q[4];
+  decimal_to_qd(digits.c_str() + first_digit, significant, -decimal_scale, q);
+  float terms[12];
+  int count = 0;
+  for (int i = 0; i < 4; ++i) {
+    double rest = q[i];
+    for (int j = 0; j < 3 && rest != 0.0; ++j) {
+      const float term = static_cast<float>(rest);
+      terms[count++] = term;
+      if (!std::isfinite(term)) break;
+      rest -= static_cast<double>(term);
+    }
   }
+  if (count == 0) return single_real<N>(negative ? -0.0f : 0.0f);
+  single_real<N> mantissa = from_terms<N>(terms, count);
   return negative ? -mantissa : mantissa;
 }
 

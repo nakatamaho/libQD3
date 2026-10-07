@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -18,6 +19,10 @@
 #include <qd/fpu.h>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
+#include <qd/ds_real.h>
+#include <qd/ts_real.h>
+#include <qd/qs_real.h>
+#include <limits>
 
 namespace {
 
@@ -240,6 +245,40 @@ void check_td_regressions(TestContext &test) {
                                                td_reference(value), 64.0));
 }
 
+// Decimal literals that are exactly representable must parse exactly; the
+// readers used to multiply by an inexact 10^-k, so td_real("3.0") was off.
+template <class T>
+void check_exact_decimal_parse(TestContext &test, const char *name) {
+  static const char *const literals[] = {"0.5", "0.25", "1.5", "2.75", "3.0",
+                                         "7.5", "0.0625", "-0.5", "123.375",
+                                         "1e1", "5e-1", "1024"};
+  for (const char *literal : literals) {
+    const std::string label = std::string(name) + " parses " + literal + " exactly";
+    test.check(label.c_str(), T(literal) == T(std::strtod(literal, 0)));
+  }
+}
+
+// Long decimal literals must round to within one epsilon of the
+// quad-double value for the binary32-based types.
+template <class T>
+void check_long_decimal_parse(TestContext &test, const char *name) {
+  static const char *const literals[] = {
+      "1.414213562373095048801688724209698078569671875376948073176679737990732e0",
+      "1.259921049894873164767210607278228350570251464701507980081975112155299e0",
+      "3.333333333333333333333333333333333333333333333333333333333333333333333e-1",
+      "-2.718281828459045235360287471352662497757247093699959574966967627724076e-7"};
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  for (const char *literal : literals) {
+    const T got(literal);
+    const qd_real reference(literal);
+    qd_real sum(0.0);
+    for (double limb : got.x) sum += limb;
+    const double error = to_double(abs((sum - reference) / reference));
+    const std::string label = std::string(name) + " long literal within 1 eps";
+    test.check(label.c_str(), error <= eps);
+  }
+}
+
 } // namespace
 
 int main() {
@@ -253,6 +292,15 @@ int main() {
   check_special_comparisons<td_real>(test, "td_real");
   check_special_comparisons<qd_real>(test, "qd_real");
   check_td_regressions(test);
+  check_exact_decimal_parse<dd_real>(test, "dd_real");
+  check_exact_decimal_parse<td_real>(test, "td_real");
+  check_exact_decimal_parse<qd_real>(test, "qd_real");
+  check_exact_decimal_parse<ds_real>(test, "ds_real");
+  check_exact_decimal_parse<ts_real>(test, "ts_real");
+  check_exact_decimal_parse<qs_real>(test, "qs_real");
+  check_long_decimal_parse<ds_real>(test, "ds_real");
+  check_long_decimal_parse<ts_real>(test, "ts_real");
+  check_long_decimal_parse<qs_real>(test, "qs_real");
 
   fpu_fix_end(&old_cw);
   std::cout << (test.pass ? "PASS regression_smoke" : "FAIL regression_smoke")

@@ -53,6 +53,9 @@ module qsmodule
     module procedure assign_d_qsc
     module procedure assign_qsc_dc
     module procedure assign_dc_qsc
+    module procedure assign_qs_dp
+    module procedure assign_dp_qs
+    module procedure assign_qsc_zc
   end interface
 
   interface operator (+)
@@ -66,6 +69,12 @@ module qsmodule
     module procedure add_qs_qsc
     module procedure add_qsc_d
     module procedure add_d_qsc
+    module procedure add_qsc_i
+    module procedure add_i_qsc
+    module procedure add_qs_dp
+    module procedure add_dp_qs
+    module procedure add_qsc_dp
+    module procedure add_dp_qsc
   end interface
 
   interface operator (-)
@@ -79,6 +88,14 @@ module qsmodule
     module procedure sub_qsc_d
     module procedure sub_d_qsc
     module procedure neg_qsc
+    module procedure sub_qs_i
+    module procedure sub_i_qs
+    module procedure sub_qsc_i
+    module procedure sub_i_qsc
+    module procedure sub_qs_dp
+    module procedure sub_dp_qs
+    module procedure sub_qsc_dp
+    module procedure sub_dp_qsc
   end interface
 
   interface operator (*)
@@ -94,6 +111,10 @@ module qsmodule
     module procedure mul_d_qsc
     module procedure mul_i_qsc
     module procedure mul_qsc_i
+    module procedure mul_qs_dp
+    module procedure mul_dp_qs
+    module procedure mul_qsc_dp
+    module procedure mul_dp_qsc
   end interface
 
   interface operator (/)
@@ -106,6 +127,13 @@ module qsmodule
     module procedure div_qsc_qs
     module procedure div_qs_qsc
     module procedure div_qsc_d
+    module procedure div_qsc_i
+    module procedure div_i_qsc
+    module procedure div_d_qsc
+    module procedure div_qs_dp
+    module procedure div_dp_qs
+    module procedure div_qsc_dp
+    module procedure div_dp_qsc
   end interface
 
   interface operator (**)
@@ -122,6 +150,7 @@ module qsmodule
     module procedure to_qs_qs
     module procedure to_qs_str
     module procedure to_qs_qsc
+    module procedure to_qs_dp
   end interface
 
   interface ddreal
@@ -138,6 +167,7 @@ module qsmodule
     module procedure to_qsc_qs2
     module procedure to_qsc_d
     module procedure to_qsc_dc
+    module procedure to_qsc_zc
   end interface
 
   interface int
@@ -254,6 +284,12 @@ module qsmodule
     module procedure eq_qsc
     module procedure eq_qsc_qs
     module procedure eq_qs_qsc
+    module procedure eq_qsc_d
+    module procedure eq_d_qsc
+    module procedure eq_qs_dp
+    module procedure eq_dp_qs
+    module procedure eq_qsc_dp
+    module procedure eq_dp_qsc
   end interface
 
   interface operator (/=)
@@ -265,6 +301,12 @@ module qsmodule
     module procedure ne_qsc
     module procedure ne_qsc_qs
     module procedure ne_qs_qsc
+    module procedure ne_qsc_d
+    module procedure ne_d_qsc
+    module procedure ne_qs_dp
+    module procedure ne_dp_qs
+    module procedure ne_qsc_dp
+    module procedure ne_dp_qsc
   end interface
 
   interface operator (>)
@@ -273,6 +315,8 @@ module qsmodule
     module procedure gt_d_qs
     module procedure gt_qs_i
     module procedure gt_i_qs
+    module procedure gt_qs_dp
+    module procedure gt_dp_qs
   end interface
 
   interface operator (<)
@@ -281,6 +325,8 @@ module qsmodule
     module procedure lt_d_qs
     module procedure lt_qs_i
     module procedure lt_i_qs
+    module procedure lt_qs_dp
+    module procedure lt_dp_qs
   end interface
 
   interface operator (>=)
@@ -289,6 +335,8 @@ module qsmodule
     module procedure ge_d_qs
     module procedure ge_qs_i
     module procedure ge_i_qs
+    module procedure ge_qs_dp
+    module procedure ge_dp_qs
   end interface
 
   interface operator (<=)
@@ -297,6 +345,8 @@ module qsmodule
     module procedure le_d_qs
     module procedure le_qs_i
     module procedure le_i_qs
+    module procedure le_qs_dp
+    module procedure le_dp_qs
   end interface
 
   interface read_scalar
@@ -326,8 +376,8 @@ module qsmodule
   end interface
 
   interface dble
-    module procedure to_d_qs
-    module procedure to_d_qsc
+    module procedure to_dp_qs
+    module procedure to_dp_qsc
   end interface
 
   interface cmplx
@@ -431,27 +481,25 @@ contains
   elemental subroutine assign_qs_i(a, i)
     type (qs_real), intent(inout) :: a
     integer, intent(in) :: i
-    a%re(1) = i
-    a%re(2:4) = 0.0e0
+    a%re = qs_int_limbs(i)
   end subroutine assign_qs_i
 
   elemental subroutine assign_i_qs(i, a)
     integer, intent(inout) :: i
     type (qs_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_qs(a)
   end subroutine assign_i_qs
 
   elemental subroutine assign_dd_qs(dd, qs)
     type (dd_real), intent(inout) :: dd
     type (qs_real), intent(in) :: qs
-    dd%re(1:2) = qs%re(1:2)
+    call f_qs_to_dd(qs%re, dd%re)
   end subroutine assign_dd_qs
 
   elemental subroutine assign_qs_dd(qs, dd)
     type (qs_real), intent(inout) :: qs
     type (dd_real), intent(in) :: dd
-    qs%re(1:2) = dd%re
-    qs%re(3:4) = 0.e0
+    call f_qs_from_dd(dd%re, qs%re)
   end subroutine assign_qs_dd
 
   elemental subroutine assign_qsc (a, b)
@@ -483,8 +531,8 @@ contains
   elemental subroutine assign_qsc_i (qsc, i)
     type (qs_complex), intent (inout) :: qsc
     integer, intent(in) :: i
-    qsc%cmp(1) = i
-    qsc%cmp(2:8) = 0.e0
+    qsc%cmp = 0.e0
+    qsc%cmp(1:4) = qs_int_limbs(i)
   end subroutine assign_qsc_i
 
   elemental subroutine assign_d_qsc (d, qsc)
@@ -512,8 +560,7 @@ contains
 
   elemental type (qs_real) function to_qs_i(ia)
     integer, intent(in) :: ia
-    to_qs_i%re(1) = ia
-    to_qs_i%re(2:4) = 0.e0
+    to_qs_i%re = qs_int_limbs(ia)
   end function to_qs_i
 
   elemental type (qs_real) function to_qs_d(d)
@@ -536,8 +583,7 @@ contains
 
   elemental type (qs_real) function to_qs_dd (dd)
     type (dd_real), intent(in) :: dd
-    to_qs_dd%re(1:2) = dd%re
-    to_qs_dd%re(3:4) = 0.e0
+    call f_qs_from_dd(dd%re, to_qs_dd%re)
   end function to_qs_dd
 
   elemental type (qs_real) function to_qs_qs (qs)
@@ -547,7 +593,7 @@ contains
 
   elemental type (dd_real) function to_dd_qs (qs)
     type (qs_real), intent(in) :: qs
-    to_dd_qs%re = qs%re(1:2)
+    call f_qs_to_dd(qs%re, to_dd_qs%re)
   end function to_dd_qs
 
   type (qs_real) function to_qs_str(s)
@@ -627,7 +673,7 @@ contains
   elemental type (qs_real) function add_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_qs_add_qs_d(a%re, qs_int_to_float(b), add_qs_i%re)
+    call f_qs_add(a%re, qs_int_limbs(b), add_qs_i%re)
   end function add_qs_i
 
   elemental type (qs_real) function add_i_qs(a, b)
@@ -761,13 +807,13 @@ contains
   elemental type (qs_real) function mul_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_qs_mul_qs_d(a%re, qs_int_to_float(b), mul_qs_i%re)
+    call f_qs_mul(a%re, qs_int_limbs(b), mul_qs_i%re)
   end function mul_qs_i
 
   elemental type (qs_real) function mul_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    call f_qs_mul_qs_d(b%re, qs_int_to_float(a), mul_i_qs%re)
+    call f_qs_mul(b%re, qs_int_limbs(a), mul_i_qs%re)
   end function mul_i_qs
 
   elemental type (qs_complex) function mul_qsc(a, b)
@@ -812,15 +858,15 @@ contains
   elemental type (qs_complex) function mul_qsc_i(a, b)
     type (qs_complex), intent(in) :: a
     integer, intent(in) :: b
-    call f_qs_mul_qs_d (a%cmp(1:4), qs_int_to_float(b), mul_qsc_i%cmp(1:4))
-    call f_qs_mul_qs_d (a%cmp(5:8), qs_int_to_float(b), mul_qsc_i%cmp(5:8))
+    call f_qs_mul(a%cmp(1:4), qs_int_limbs(b), mul_qsc_i%cmp(1:4))
+    call f_qs_mul(a%cmp(5:8), qs_int_limbs(b), mul_qsc_i%cmp(5:8))
   end function mul_qsc_i
 
   elemental type (qs_complex) function mul_i_qsc(a, b)
     integer, intent(in) :: a
     type (qs_complex), intent(in) :: b
-    call f_qs_mul_qs_d (b%cmp(1:4), qs_int_to_float(a), mul_i_qsc%cmp(1:4))
-    call f_qs_mul_qs_d (b%cmp(5:8), qs_int_to_float(a), mul_i_qsc%cmp(5:8))
+    call f_qs_mul(b%cmp(1:4), qs_int_limbs(a), mul_i_qsc%cmp(1:4))
+    call f_qs_mul(b%cmp(5:8), qs_int_limbs(a), mul_i_qsc%cmp(5:8))
   end function mul_i_qsc
 
 ! Divisions
@@ -844,13 +890,13 @@ contains
   elemental type (qs_real) function div_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    call f_qs_div_qs_d(a%re, qs_int_to_float(b), div_qs_i%re)
+    call f_qs_div(a%re, qs_int_limbs(b), div_qs_i%re)
   end function div_qs_i
 
   elemental type (qs_real) function div_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    call f_qs_div_d_qs(qs_int_to_float(a), b%re, div_i_qs%re)
+    call f_qs_div(qs_int_limbs(a), b%re, div_i_qs%re)
   end function div_i_qs
 
   elemental type (qs_complex) function div_qsc(a, b)
@@ -1189,13 +1235,13 @@ contains
   elemental logical function eq_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    eq_qs_i = eq_qs_d(a, qs_int_to_float(b))
+    eq_qs_i = eq_qs(a, qs_real(qs_int_limbs(b)))
   end function eq_qs_i
 
   elemental logical function eq_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    eq_i_qs = eq_d_qs(qs_int_to_float(a), b)
+    eq_i_qs = eq_qs(qs_real(qs_int_limbs(a)), b)
   end function eq_i_qs
 
   elemental logical function eq_qsc (a, b)
@@ -1274,13 +1320,13 @@ contains
   elemental logical function ne_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    ne_qs_i = ne_qs_d(a, qs_int_to_float(b))
+    ne_qs_i = ne_qs(a, qs_real(qs_int_limbs(b)))
   end function ne_qs_i
 
   elemental logical function ne_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    ne_i_qs = ne_d_qs(qs_int_to_float(a), b)
+    ne_i_qs = ne_qs(qs_real(qs_int_limbs(a)), b)
   end function ne_i_qs
 
   elemental logical function ne_qsc (a, b)
@@ -1359,13 +1405,13 @@ contains
   elemental logical function gt_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    gt_qs_i = gt_qs_d(a, qs_int_to_float(b))
+    gt_qs_i = gt_qs(a, qs_real(qs_int_limbs(b)))
   end function gt_qs_i
 
   elemental logical function gt_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    gt_i_qs = gt_d_qs(qs_int_to_float(a), b)
+    gt_i_qs = gt_qs(qs_real(qs_int_limbs(a)), b)
   end function gt_i_qs
 
 ! Less-Than
@@ -1407,13 +1453,13 @@ contains
   elemental logical function lt_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    lt_qs_i = lt_qs_d(a, qs_int_to_float(b))
+    lt_qs_i = lt_qs(a, qs_real(qs_int_limbs(b)))
   end function lt_qs_i
 
   elemental logical function lt_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    lt_i_qs = lt_d_qs(qs_int_to_float(a), b)
+    lt_i_qs = lt_qs(qs_real(qs_int_limbs(a)), b)
   end function lt_i_qs
 
 ! Greater-Than-Or-Equal-To
@@ -1455,13 +1501,13 @@ contains
   elemental logical function ge_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    ge_qs_i = ge_qs_d(a, qs_int_to_float(b))
+    ge_qs_i = ge_qs(a, qs_real(qs_int_limbs(b)))
   end function ge_qs_i
 
   elemental logical function ge_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    ge_i_qs = ge_d_qs(qs_int_to_float(a), b)
+    ge_i_qs = ge_qs(qs_real(qs_int_limbs(a)), b)
   end function ge_i_qs
 
 ! Less-Than-Or-Equal-To
@@ -1503,13 +1549,13 @@ contains
   elemental logical function le_qs_i(a, b)
     type (qs_real), intent(in) :: a
     integer, intent(in) :: b
-    le_qs_i = le_qs_d(a, qs_int_to_float(b))
+    le_qs_i = le_qs(a, qs_real(qs_int_limbs(b)))
   end function le_qs_i
 
   elemental logical function le_i_qs(a, b)
     integer, intent(in) :: a
     type (qs_real), intent(in) :: b
-    le_i_qs = le_d_qs(qs_int_to_float(a), b)
+    le_i_qs = le_qs(qs_real(qs_int_limbs(a)), b)
   end function le_i_qs
 
 
@@ -1822,138 +1868,28 @@ end subroutine
 
 subroutine qsinpc (a, b)
 
-!   Converts the CHARACTER*80 array A into the DD number B.
+!   Converts the CHARACTER*80 array A into the QS number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
 implicit none
-integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-parameter (ln = 80)
-real*4 bi
 character*80 a
-character*1 ai
-character*10 dig
-character*16 ca
-parameter (dig = '0123456789')
-real*4 b(4), f(4), s0(4), s1(4), s2(4)
+real*4 b(4)
+character*80 t
+integer i, n, ierr
 
-id = 0
-ip = -1
-is = 0
-inz = 0
-s1(1) = 0.e0
-s1(2) = 0.e0
-s1(3) = 0.e0
-s1(4) = 0.e0
-
-beg = 0
-do i = 1, 80
-  if (a(i:i) /= ' ') then
-    beg = i
-    goto 80
-  end if
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
 end do
-
-goto 210
-80 continue
-
-do i = beg, 80
-  if (a(i:i) == ' ') then
-    lnn = i-1
-    goto 90
-  end if
-enddo
-
-lnn = 80
-90 continue
-
-!   Scan for digits, looking for the period also.
-
-do i = beg, lnn
-  ai = a(i:i)
-  if (ai .eq. '.') then
-    if (ip >= 0) goto 210
-    ip = id
-    inz = 1
-  elseif (ai .eq. '+') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-    goto 100
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-!    read (ai, '(f1.0)') bi
-    bi = index (dig, ai) - 1
-    if (inz > 0 .or. bi > 0.e0) then
-      inz = 1
-      id = id + 1
-! call qsmuld (s1, 10.e0, s0)
-      call f_qs_mul_qs_d (s1, 10.e0, s0)
-      f(1) = bi
-      f(2) = 0.e0
-      f(3) = 0.e0
-      f(4) = 0.e0
-!    call qsdqc (bi, f)
-!    call qsadd (s0, f, s1)
-      call f_qs_add (s0, f, s1)
-    endif
-  endif
-enddo
-
-100   continue
-if (is .eq. -1) then
-  s1(1) = - s1(1)
-  s1(2) = - s1(2)
-  s1(3) = - s1(3)
-  s1(4) = - s1(4)
-endif
-k = i
-if (ip == -1) ip = id
-ie = 0
-is = 0
-ca = ' '
-
-do i = k + 1, lnn
-  ai = a(i:i)
-  if (ai .eq. ' ') then
-  elseif (ai .eq. '+') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-    ie = ie + 1
-    if (ie .gt. 3) goto 210
-    ca(ie:ie) = ai
-  endif
-enddo
-
-! read (ca, '(i4)') ie
-ie = dddigin (ca, 4)
-if (is .eq. -1) ie = - ie
-ie = ie + ip - id
-s0(1) = 10.e0
-s0(2) = 0.e0
-s0(3) = 0.e0
-s0(4) = 0.e0
-! call qsnpwr (s0, ie, s2)
-call f_qs_npwr (s0, ie, s2)
-! call qsmul (s1, s2, b)
-call f_qs_mul (s1, s2, b)
-goto 220
-
-210  write (6, 1) a
+ierr = -1
+if (n > 0) call f_qs_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** qsinpc: Syntax error in literal string: ', a)
-! call qsabrt
-stop
-
-220  return
-
+  stop
+end if
 end subroutine
 
 subroutine qsout (iu, a)
@@ -2043,11 +1979,325 @@ elemental type (qs_real) function qs_aimag(a)
   qs_aimag%re = a%cmp(5:8)
 end function
 
-elemental real*4 function qs_int_to_float(i)
+! Exact conversion of a default integer to 4 binary32 limbs: the leading
+! limb is the rounded value and the remainder (at most 2**7) is exact.
+pure function qs_int_limbs(i) result(r)
   implicit none
   integer, intent(in) :: i
-  intrinsic :: real
-  qs_int_to_float = real(i, kind=4)
-end function qs_int_to_float
+  real*4 :: r(4)
+  r = 0.0e0
+  r(1) = real(i, kind=4)
+  r(2) = real(int(i, kind=8) - int(r(1), kind=8), kind=4)
+end function qs_int_limbs
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (qs_real) function sub_qs_i(a, b)
+    type (qs_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_qs_i = sub_qs(a, to_qs_i(b))
+  end function sub_qs_i
+
+  elemental type (qs_real) function sub_i_qs(a, b)
+    integer, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    sub_i_qs = sub_qs(to_qs_i(a), b)
+  end function sub_i_qs
+
+  elemental type (qs_complex) function add_qsc_i(a, b)
+    type (qs_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_qsc_i = add_qsc_qs(a, to_qs_i(b))
+  end function add_qsc_i
+
+  elemental type (qs_complex) function add_i_qsc(a, b)
+    integer, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    add_i_qsc = add_qs_qsc(to_qs_i(a), b)
+  end function add_i_qsc
+
+  elemental type (qs_complex) function sub_qsc_i(a, b)
+    type (qs_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_qsc_i = sub_qsc_qs(a, to_qs_i(b))
+  end function sub_qsc_i
+
+  elemental type (qs_complex) function sub_i_qsc(a, b)
+    integer, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    sub_i_qsc = sub_qs_qsc(to_qs_i(a), b)
+  end function sub_i_qsc
+
+  elemental type (qs_complex) function div_qsc_i(a, b)
+    type (qs_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_qsc_i = div_qsc_qs(a, to_qs_i(b))
+  end function div_qsc_i
+
+  elemental type (qs_complex) function div_i_qsc(a, b)
+    integer, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    div_i_qsc = div_qs_qsc(to_qs_i(a), b)
+  end function div_i_qsc
+
+  elemental type (qs_complex) function div_d_qsc(a, b)
+    real*4, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    div_d_qsc = div_qs_qsc(to_qs_d(a), b)
+  end function div_d_qsc
+
+  elemental logical function eq_qsc_d(a, b)
+    type (qs_complex), intent(in) :: a
+    real*4, intent(in) :: b
+    eq_qsc_d = eq_qsc_qs(a, to_qs_d(b))
+  end function eq_qsc_d
+
+  elemental logical function eq_d_qsc(a, b)
+    real*4, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    eq_d_qsc = eq_qs_qsc(to_qs_d(a), b)
+  end function eq_d_qsc
+
+  elemental logical function ne_qsc_d(a, b)
+    type (qs_complex), intent(in) :: a
+    real*4, intent(in) :: b
+    ne_qsc_d = ne_qsc_qs(a, to_qs_d(b))
+  end function ne_qsc_d
+
+  elemental logical function ne_d_qsc(a, b)
+    real*4, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    ne_d_qsc = ne_qs_qsc(to_qs_d(a), b)
+  end function ne_d_qsc
+
+! binary64 interoperability for the binary32-based type.
+  elemental type (qs_real) function to_qs_dp(a)
+    real*8, intent(in) :: a
+    call f_qs_from_double(a, to_qs_dp%re)
+  end function to_qs_dp
+
+  elemental real*8 function to_dp_qs(a)
+    type (qs_real), intent(in) :: a
+    call f_qs_to_double(a%re, to_dp_qs)
+  end function to_dp_qs
+
+  elemental real*8 function to_dp_qsc(a)
+    type (qs_complex), intent(in) :: a
+    to_dp_qsc = to_dp_qs(to_qs_qsc(a))
+  end function to_dp_qsc
+
+  elemental type (qs_complex) function to_qsc_zc(a)
+    complex*16, intent(in) :: a
+    to_qsc_zc = to_qsc_qs2(to_qs_dp(dble(a)), to_qs_dp(aimag(a)))
+  end function to_qsc_zc
+
+  elemental subroutine assign_qs_dp(a, b)
+    type (qs_real), intent(inout) :: a
+    real*8, intent(in) :: b
+    a = to_qs_dp(b)
+  end subroutine assign_qs_dp
+
+  elemental subroutine assign_dp_qs(a, b)
+    real*8, intent(inout) :: a
+    type (qs_real), intent(in) :: b
+    a = to_dp_qs(b)
+  end subroutine assign_dp_qs
+
+  elemental subroutine assign_qsc_zc(a, b)
+    type (qs_complex), intent(inout) :: a
+    complex*16, intent(in) :: b
+    a = to_qsc_zc(b)
+  end subroutine assign_qsc_zc
+
+  elemental type (qs_real) function add_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    add_qs_dp = add_qs(a, to_qs_dp(b))
+  end function add_qs_dp
+
+  elemental type (qs_real) function add_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    add_dp_qs = add_qs(to_qs_dp(a), b)
+  end function add_dp_qs
+
+  elemental type (qs_complex) function add_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    add_qsc_dp = add_qsc_qs(a, to_qs_dp(b))
+  end function add_qsc_dp
+
+  elemental type (qs_complex) function add_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    add_dp_qsc = add_qs_qsc(to_qs_dp(a), b)
+  end function add_dp_qsc
+
+  elemental type (qs_real) function sub_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    sub_qs_dp = sub_qs(a, to_qs_dp(b))
+  end function sub_qs_dp
+
+  elemental type (qs_real) function sub_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    sub_dp_qs = sub_qs(to_qs_dp(a), b)
+  end function sub_dp_qs
+
+  elemental type (qs_complex) function sub_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    sub_qsc_dp = sub_qsc_qs(a, to_qs_dp(b))
+  end function sub_qsc_dp
+
+  elemental type (qs_complex) function sub_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    sub_dp_qsc = sub_qs_qsc(to_qs_dp(a), b)
+  end function sub_dp_qsc
+
+  elemental type (qs_real) function mul_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    mul_qs_dp = mul_qs(a, to_qs_dp(b))
+  end function mul_qs_dp
+
+  elemental type (qs_real) function mul_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    mul_dp_qs = mul_qs(to_qs_dp(a), b)
+  end function mul_dp_qs
+
+  elemental type (qs_complex) function mul_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    mul_qsc_dp = mul_qsc_qs(a, to_qs_dp(b))
+  end function mul_qsc_dp
+
+  elemental type (qs_complex) function mul_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    mul_dp_qsc = mul_qs_qsc(to_qs_dp(a), b)
+  end function mul_dp_qsc
+
+  elemental type (qs_real) function div_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    div_qs_dp = div_qs(a, to_qs_dp(b))
+  end function div_qs_dp
+
+  elemental type (qs_real) function div_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    div_dp_qs = div_qs(to_qs_dp(a), b)
+  end function div_dp_qs
+
+  elemental type (qs_complex) function div_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    div_qsc_dp = div_qsc_qs(a, to_qs_dp(b))
+  end function div_qsc_dp
+
+  elemental type (qs_complex) function div_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    div_dp_qsc = div_qs_qsc(to_qs_dp(a), b)
+  end function div_dp_qsc
+
+  elemental logical function eq_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_qs_dp = eq_qs(a, to_qs_dp(b))
+  end function eq_qs_dp
+
+  elemental logical function eq_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    eq_dp_qs = eq_qs(to_qs_dp(a), b)
+  end function eq_dp_qs
+
+  elemental logical function ne_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_qs_dp = ne_qs(a, to_qs_dp(b))
+  end function ne_qs_dp
+
+  elemental logical function ne_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    ne_dp_qs = ne_qs(to_qs_dp(a), b)
+  end function ne_dp_qs
+
+  elemental logical function gt_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    gt_qs_dp = gt_qs(a, to_qs_dp(b))
+  end function gt_qs_dp
+
+  elemental logical function gt_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    gt_dp_qs = gt_qs(to_qs_dp(a), b)
+  end function gt_dp_qs
+
+  elemental logical function lt_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    lt_qs_dp = lt_qs(a, to_qs_dp(b))
+  end function lt_qs_dp
+
+  elemental logical function lt_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    lt_dp_qs = lt_qs(to_qs_dp(a), b)
+  end function lt_dp_qs
+
+  elemental logical function ge_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    ge_qs_dp = ge_qs(a, to_qs_dp(b))
+  end function ge_qs_dp
+
+  elemental logical function ge_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    ge_dp_qs = ge_qs(to_qs_dp(a), b)
+  end function ge_dp_qs
+
+  elemental logical function le_qs_dp(a, b)
+    type (qs_real), intent(in) :: a
+    real*8, intent(in) :: b
+    le_qs_dp = le_qs(a, to_qs_dp(b))
+  end function le_qs_dp
+
+  elemental logical function le_dp_qs(a, b)
+    real*8, intent(in) :: a
+    type (qs_real), intent(in) :: b
+    le_dp_qs = le_qs(to_qs_dp(a), b)
+  end function le_dp_qs
+
+  elemental logical function eq_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_qsc_dp = eq_qsc_qs(a, to_qs_dp(b))
+  end function eq_qsc_dp
+
+  elemental logical function eq_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    eq_dp_qsc = eq_qs_qsc(to_qs_dp(a), b)
+  end function eq_dp_qsc
+
+  elemental logical function ne_qsc_dp(a, b)
+    type (qs_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_qsc_dp = ne_qsc_qs(a, to_qs_dp(b))
+  end function ne_qsc_dp
+
+  elemental logical function ne_dp_qsc(a, b)
+    real*8, intent(in) :: a
+    type (qs_complex), intent(in) :: b
+    ne_dp_qsc = ne_qs_qsc(to_qs_dp(a), b)
+  end function ne_dp_qsc
 
 end module qsmodule

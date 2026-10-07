@@ -1381,8 +1381,12 @@ int dd_real::read(const char *s, dd_real &a) {
     e -= (nd - point);
   }
 
-  if (e != 0) {
+  /* Divide by the exact power 10^-e rather than multiplying by the inexact
+     10^e, so decimals that are representable parse exactly. */
+  if (e > 0) {
     r *= (dd_real(10.0) ^ e);
+  } else if (e < 0) {
+    r /= (dd_real(10.0) ^ (-e));
   }
 
   a = (sign == -1) ? -r : r;

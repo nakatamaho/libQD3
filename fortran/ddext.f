@@ -224,5 +224,12 @@ module ddext
       real*8, intent(out) :: a(2)
     end subroutine
 
+    subroutine f_dd_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*8, intent(out) :: a(2)
+      integer, intent(out) :: ierr
+    end subroutine
+
   end interface
 end

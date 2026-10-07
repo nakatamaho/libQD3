@@ -91,6 +91,8 @@ module tdmodule
     module procedure add_td_tdc
     module procedure add_tdc_d
     module procedure add_d_tdc
+    module procedure add_tdc_i
+    module procedure add_i_tdc
   end interface
 
   interface operator (-)
@@ -104,6 +106,10 @@ module tdmodule
     module procedure sub_tdc_d
     module procedure sub_d_tdc
     module procedure neg_tdc
+    module procedure sub_td_i
+    module procedure sub_i_td
+    module procedure sub_tdc_i
+    module procedure sub_i_tdc
   end interface
 
   interface operator (*)
@@ -131,6 +137,9 @@ module tdmodule
     module procedure div_tdc_td
     module procedure div_td_tdc
     module procedure div_tdc_d
+    module procedure div_tdc_i
+    module procedure div_i_tdc
+    module procedure div_d_tdc
   end interface
 
   interface operator (**)
@@ -314,6 +323,8 @@ module tdmodule
     module procedure eq_tdc
     module procedure eq_tdc_td
     module procedure eq_td_tdc
+    module procedure eq_tdc_d
+    module procedure eq_d_tdc
   end interface
 
   interface operator (/=)
@@ -325,6 +336,8 @@ module tdmodule
     module procedure ne_tdc
     module procedure ne_tdc_td
     module procedure ne_td_tdc
+    module procedure ne_tdc_d
+    module procedure ne_d_tdc
   end interface
 
   interface operator (>)
@@ -486,7 +499,7 @@ contains
   elemental subroutine assign_i_td(i, a)
     integer, intent(inout) :: i
     type (td_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_td(a)
   end subroutine assign_i_td
 
   elemental subroutine assign_td_dd(td, dd)
@@ -1783,122 +1796,30 @@ subroutine tdinp(iu, a)
 110 return
 end subroutine
 
-subroutine tdinpc(a, b)
-  implicit none
-  integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-  parameter (ln = 80)
-  real*8 bi
-  character*80 a
-  character*1 ai
-  character*10 dig
-  character*16 ca
-  parameter (dig = '0123456789')
-  real*8 b(3), f(3), s0(3), s1(3), s2(3)
+subroutine tdinpc (a, b)
 
-  id = 0
-  ip = -1
-  is = 0
-  inz = 0
-  s1(1) = 0.d0
-  s1(2) = 0.d0
-  s1(3) = 0.d0
+!   Converts the CHARACTER*80 array A into the TD number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
-  beg = 0
-  do i = 1, 80
-    if (a(i:i) /= ' ') then
-      beg = i
-      goto 80
-    end if
-  end do
+implicit none
+character*80 a
+real*8 b(3)
+character*80 t
+integer i, n, ierr
 
-  goto 210
-80 continue
-
-  do i = beg, 80
-    if (a(i:i) == ' ') then
-      lnn = i - 1
-      goto 90
-    end if
-  enddo
-
-  lnn = 80
-90 continue
-
-  do i = beg, lnn
-    ai = a(i:i)
-    if (ai .eq. '.') then
-      if (ip >= 0) goto 210
-      ip = id
-      inz = 1
-    elseif (ai .eq. '+') then
-      if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-      is = 1
-    elseif (ai .eq. '-') then
-      if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-      is = -1
-    elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-      goto 100
-    elseif (index(dig, ai) .eq. 0) then
-      goto 210
-    else
-      bi = index(dig, ai) - 1
-      if (inz > 0 .or. bi > 0.d0) then
-        inz = 1
-        id = id + 1
-        call f_td_mul_td_d(s1, 10.d0, s0)
-        f(1) = bi
-        f(2) = 0.d0
-        f(3) = 0.d0
-        call f_td_add(s0, f, s1)
-      endif
-    endif
-  enddo
-
-100 continue
-  if (is .eq. -1) then
-    s1(1) = -s1(1)
-    s1(2) = -s1(2)
-    s1(3) = -s1(3)
-  endif
-  k = i
-  if (ip == -1) ip = id
-  ie = 0
-  is = 0
-  ca = ' '
-
-  do i = k + 1, lnn
-    ai = a(i:i)
-    if (ai .eq. ' ') then
-    elseif (ai .eq. '+') then
-      if (ie .ne. 0 .or. is .ne. 0) goto 210
-      is = 1
-    elseif (ai .eq. '-') then
-      if (ie .ne. 0 .or. is .ne. 0) goto 210
-      is = -1
-    elseif (index(dig, ai) .eq. 0) then
-      goto 210
-    else
-      ie = ie + 1
-      if (ie .gt. 3) goto 210
-      ca(ie:ie) = ai
-    endif
-  enddo
-
-  ie = dddigin(ca, 4)
-  if (is .eq. -1) ie = -ie
-  ie = ie + ip - id
-  s0(1) = 10.d0
-  s0(2) = 0.d0
-  s0(3) = 0.d0
-  call f_td_npwr(s0, ie, s2)
-  call f_td_mul(s1, s2, b)
-  goto 220
-
-210 write (6, 1) a
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
+end do
+ierr = -1
+if (n > 0) call f_td_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** tdinpc: Syntax error in literal string: ', a)
   stop
-
-220 return
+end if
 end subroutine
 
 subroutine tdout(iu, a)
@@ -1940,5 +1861,84 @@ end subroutine
     enddo
     dddigin = d1
   end function dddigin
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (td_real) function sub_td_i(a, b)
+    type (td_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_td_i = sub_td(a, to_td_i(b))
+  end function sub_td_i
+
+  elemental type (td_real) function sub_i_td(a, b)
+    integer, intent(in) :: a
+    type (td_real), intent(in) :: b
+    sub_i_td = sub_td(to_td_i(a), b)
+  end function sub_i_td
+
+  elemental type (td_complex) function add_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_tdc_i = add_tdc_td(a, to_td_i(b))
+  end function add_tdc_i
+
+  elemental type (td_complex) function add_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    add_i_tdc = add_td_tdc(to_td_i(a), b)
+  end function add_i_tdc
+
+  elemental type (td_complex) function sub_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_tdc_i = sub_tdc_td(a, to_td_i(b))
+  end function sub_tdc_i
+
+  elemental type (td_complex) function sub_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    sub_i_tdc = sub_td_tdc(to_td_i(a), b)
+  end function sub_i_tdc
+
+  elemental type (td_complex) function div_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_tdc_i = div_tdc_td(a, to_td_i(b))
+  end function div_tdc_i
+
+  elemental type (td_complex) function div_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    div_i_tdc = div_td_tdc(to_td_i(a), b)
+  end function div_i_tdc
+
+  elemental type (td_complex) function div_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    div_d_tdc = div_td_tdc(to_td_d(a), b)
+  end function div_d_tdc
+
+  elemental logical function eq_tdc_d(a, b)
+    type (td_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_tdc_d = eq_tdc_td(a, to_td_d(b))
+  end function eq_tdc_d
+
+  elemental logical function eq_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    eq_d_tdc = eq_td_tdc(to_td_d(a), b)
+  end function eq_d_tdc
+
+  elemental logical function ne_tdc_d(a, b)
+    type (td_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_tdc_d = ne_tdc_td(a, to_td_d(b))
+  end function ne_tdc_d
+
+  elemental logical function ne_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    ne_d_tdc = ne_td_tdc(to_td_d(a), b)
+  end function ne_d_tdc
 
 end module tdmodule

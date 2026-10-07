@@ -13,6 +13,7 @@
 #include "config.h"
 #ifdef HAVE_FORTRAN
 #include <cstring>
+#include <string>
 
 #include "config.h"
 #include <qd/dd_real.h>
@@ -79,6 +80,7 @@
 
 #define f_dd_pi           FC_FUNC_(f_dd_pi, F_DD_PI)
 #define f_dd_nan          FC_FUNC_(f_dd_nan, F_DD_NAN)
+#define f_dd_read         FC_FUNC_(f_dd_read, F_DD_READ)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1];
 
@@ -371,6 +373,17 @@ void f_dd_pi(double *a) {
 
 void f_dd_nan(double *a) {
   TO_DOUBLE_PTR(dd_real::_nan, a);
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_dd_read(const char *s, int *n, double *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  dd_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_DOUBLE_PTR(r, a);
+  }
 }
 
 }
