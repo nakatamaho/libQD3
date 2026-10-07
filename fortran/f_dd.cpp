@@ -97,6 +97,9 @@
 #define f_dd_catanh      FC_FUNC_(f_dd_catanh, F_DD_CATANH)
 #define f_dd_cpow        FC_FUNC_(f_dd_cpow, F_DD_CPOW)
 #define f_dd_cpow_r      FC_FUNC_(f_dd_cpow_r, F_DD_CPOW_R)
+#define f_dd_cdiv        FC_FUNC_(f_dd_cdiv, F_DD_CDIV)
+#define f_dd_cabs        FC_FUNC_(f_dd_cabs, F_DD_CABS)
+#define f_dd_clog        FC_FUNC_(f_dd_clog, F_DD_CLOG)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1];
 
@@ -370,32 +373,41 @@ void f_dd_rand(double *a) {
 
 void f_dd_comp(const double *a, const double *b, int *result) {
   dd_real aa(a), bb(b);
-  if (aa < bb)
+if (aa < bb) {
     *result = -1;
-  else if (aa > bb)
+  } else if (aa > bb) {
     *result = 1;
-  else 
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_dd_comp_dd_d(const double *a, const double *b, int *result) {
   dd_real aa(a);
-  if (aa < *b)
+if (aa < *b) {
     *result = -1;
-  else if (aa > *b)
+  } else if (aa > *b) {
     *result = 1;
-  else 
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_dd_comp_d_dd(const double *a, const double *b, int *result) {
   dd_real bb(b);
-  if (*a < bb)
+if (*a < bb) {
     *result = -1;
-  else if (*a > bb)
+  } else if (*a > bb) {
     *result = 1;
-  else 
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_dd_pi(double *a) {
@@ -476,6 +488,22 @@ void f_dd_cpow(const double *z, const double *w, double *r) {
 
 void f_dd_cpow_r(const double *z, const double *x, double *r) {
   store_ddc(pow(load_ddc(z), dd_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_dd_cdiv(const double *z, const double *w, double *r) {
+  store_ddc(load_ddc(z) / load_ddc(w), r);
+}
+
+void f_dd_cabs(const double *z, double *r) {
+  const dd_real a = abs(load_ddc(z));
+  for (int i = 0; i < 2; ++i) r[i] = a.x[i];
+}
+
+void f_dd_clog(const double *z, double *r) {
+  store_ddc(log(load_ddc(z)), r);
 }
 
 }

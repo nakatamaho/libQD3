@@ -883,18 +883,7 @@ contains
 
   elemental type (dd_complex) function div_ddc(a, b)
     type (dd_complex), intent(in) :: a, b
-    type (dd_real) t1, t2, t3, t4, t5
-    call f_dd_mul (a%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_dd_mul (a%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_mul (a%cmp(1:2), b%cmp(3:4), t1%re)
-    call f_dd_mul (a%cmp(3:4), b%cmp(1:2), t2%re)
-    call f_dd_sub (t2%re, t1%re, t4%re)
-    call f_dd_mul (b%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_dd_mul (b%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t5%re)
-    call f_dd_div (t3%re, t5%re, div_ddc%cmp(1:2))
-    call f_dd_div (t4%re, t5%re, div_ddc%cmp(3:4))
+    call f_dd_cdiv(a%cmp, b%cmp, div_ddc%cmp)
   end function div_ddc
 
   elemental type (dd_complex) function div_ddc_d(a,b)
@@ -914,15 +903,10 @@ contains
   elemental type (dd_complex) function div_dd_ddc(a, b)
     type (dd_real), intent(in) :: a
     type (dd_complex), intent(in) :: b
-    type (dd_real) t1, t2, t3, t4, t5
-    call f_dd_mul (a%re, b%cmp(1:2), t1%re)
-    call f_dd_mul (a%re, b%cmp(3:4), t2%re)
-    t2%re = - t2%re
-    call f_dd_mul (b%cmp(1:2), b%cmp(1:2), t3%re)
-    call f_dd_mul (b%cmp(3:4), b%cmp(3:4), t4%re)
-    call f_dd_add (t3%re, t4%re, t5%re)
-    call f_dd_div (t1%re, t5%re, div_dd_ddc%cmp(1:2))
-    call f_dd_div (t2%re, t5%re, div_dd_ddc%cmp(3:4))
+    type (dd_complex) :: ac
+    ac%cmp(1:2) = a%re
+    ac%cmp(3:4) = 0
+    call f_dd_cdiv(ac%cmp, b%cmp, div_dd_ddc%cmp)
   end function div_dd_ddc
 
 ! Power
@@ -1082,13 +1066,7 @@ contains
 
   elemental type (dd_complex) function ddclog (a)
     type (dd_complex), intent(in) :: a
-    type (dd_real) t1, t2, t3
-    call f_dd_mul (a%cmp(1:2), a%cmp(1:2), t1%re)
-    call f_dd_mul (a%cmp(3:4), a%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_log (t3%re, t1%re)
-    ddclog%cmp(1:2) = 0.5d0 * t1%re
-    call f_dd_atan2 (a%cmp(3:4), a%cmp(1:2), ddclog%cmp(3:4))
+    call f_dd_clog(a%cmp, ddclog%cmp)
   end function ddclog
 
 
@@ -1450,7 +1428,7 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_dd = .true.
     else
       ge_dd = .false.
@@ -1462,7 +1440,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(a%re, b, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_dd_d = .true.
     else
       ge_dd_d = .false.
@@ -1474,7 +1452,7 @@ contains
     type (dd_real), intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(b%re, a, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       ge_d_dd = .true.
     else
       ge_d_dd = .false.
@@ -1498,7 +1476,7 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_dd = .true.
     else
       le_dd = .false.
@@ -1510,7 +1488,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(a%re, b, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_dd_d = .true.
     else
       le_dd_d = .false.
@@ -1522,7 +1500,7 @@ contains
     type (dd_real), intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(b%re, a, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       le_d_dd = .true.
     else
       le_d_dd = .false.
@@ -1549,11 +1527,7 @@ contains
 
   elemental type (dd_real) function ddcabs (ddc)
     type (dd_complex), intent(in) :: ddc
-    type (dd_real) t1, t2, t3
-    call f_dd_mul (ddc%cmp(1:2), ddc%cmp(1:2), t1%re)
-    call f_dd_mul (ddc%cmp(3:4), ddc%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_sqrt (t3%re, ddcabs%re)
+    call f_dd_cabs(ddc%cmp, ddcabs%re)
   end function ddcabs
 
 ! Sign transfer
@@ -1767,6 +1741,8 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == 1) then
       ddmin2 = b
     else
@@ -1790,6 +1766,8 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == -1) then
       ddmax2 = b
     else

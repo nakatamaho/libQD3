@@ -1023,17 +1023,7 @@ contains
   elemental type (td_complex) function div_tdc(a, b)
     type (td_complex), intent(in) :: a, b
     type (td_real) :: t1, t2, t3, t4, t5
-    call f_td_mul(a%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_td_mul(a%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_mul(a%cmp(1:3), b%cmp(4:6), t1%re)
-    call f_td_mul(a%cmp(4:6), b%cmp(1:3), t2%re)
-    call f_td_sub(t2%re, t1%re, t4%re)
-    call f_td_mul(b%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_td_mul(b%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t5%re)
-    call f_td_div(t3%re, t5%re, div_tdc%cmp(1:3))
-    call f_td_div(t4%re, t5%re, div_tdc%cmp(4:6))
+    call f_td_cdiv(a%cmp, b%cmp, div_tdc%cmp)
   end function div_tdc
 
   elemental type (td_complex) function div_tdc_td(a, b)
@@ -1047,14 +1037,10 @@ contains
     type (td_real), intent(in) :: a
     type (td_complex), intent(in) :: b
     type (td_real) :: t1, t2, t3, t4, t5
-    call f_td_mul(a%re, b%cmp(1:3), t1%re)
-    call f_td_mul(a%re, b%cmp(4:6), t2%re)
-    t2%re = -t2%re
-    call f_td_mul(b%cmp(1:3), b%cmp(1:3), t3%re)
-    call f_td_mul(b%cmp(4:6), b%cmp(4:6), t4%re)
-    call f_td_add(t3%re, t4%re, t5%re)
-    call f_td_div(t1%re, t5%re, div_td_tdc%cmp(1:3))
-    call f_td_div(t2%re, t5%re, div_td_tdc%cmp(4:6))
+    type (td_complex) :: ac
+    ac%cmp(1:3) = a%re
+    ac%cmp(4:6) = 0
+    call f_td_cdiv(ac%cmp, b%cmp, div_td_tdc%cmp)
   end function div_td_tdc
 
   elemental type (td_complex) function div_tdc_d(a, b)
@@ -1202,12 +1188,7 @@ contains
   elemental type (td_complex) function tdclog(a)
     type (td_complex), intent(in) :: a
     type (td_real) :: t1, t2, t3
-    call f_td_mul(a%cmp(1:3), a%cmp(1:3), t1%re)
-    call f_td_mul(a%cmp(4:6), a%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_log(t3%re, t1%re)
-    tdclog%cmp(1:3) = 0.5d0 * t1%re
-    call f_td_atan2(a%cmp(4:6), a%cmp(1:3), tdclog%cmp(4:6))
+    call f_td_clog(a%cmp, tdclog%cmp)
   end function tdclog
 
   elemental type (td_real) function tdlog10(a)
@@ -1300,10 +1281,7 @@ contains
   elemental type (td_real) function tdcabs(tdc)
     type (td_complex), intent(in) :: tdc
     type (td_real) :: t1, t2, t3
-    call f_td_mul(tdc%cmp(1:3), tdc%cmp(1:3), t1%re)
-    call f_td_mul(tdc%cmp(4:6), tdc%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_sqrt(t3%re, tdcabs%re)
+    call f_td_cabs(tdc%cmp, tdcabs%re)
   end function tdcabs
 
   elemental type (td_real) function tdsign(a, b) result (c)
@@ -1509,7 +1487,7 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
-    ge_td = (r >= 0)
+    ge_td = (r == 0 .or. r == 1)
   end function ge_td
 
   elemental logical function ge_td_d(a, b)
@@ -1517,7 +1495,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_td_comp_td_d(a%re, b, r)
-    ge_td_d = (r >= 0)
+    ge_td_d = (r == 0 .or. r == 1)
   end function ge_td_d
 
   elemental logical function ge_d_td(a, b)
@@ -1525,7 +1503,7 @@ contains
     type (td_real), intent(in) :: b
     integer :: r
     call f_td_comp_d_td(a, b%re, r)
-    ge_d_td = (r >= 0)
+    ge_d_td = (r == 0 .or. r == 1)
   end function ge_d_td
 
   elemental logical function ge_td_i(a, b)
@@ -1544,7 +1522,7 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
-    le_td = (r <= 0)
+    le_td = (r == 0 .or. r == -1)
   end function le_td
 
   elemental logical function le_td_d(a, b)
@@ -1552,7 +1530,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_td_comp_td_d(a%re, b, r)
-    le_td_d = (r <= 0)
+    le_td_d = (r == 0 .or. r == -1)
   end function le_td_d
 
   elemental logical function le_d_td(a, b)
@@ -1560,7 +1538,7 @@ contains
     type (td_real), intent(in) :: b
     integer :: r
     call f_td_comp_d_td(a, b%re, r)
-    le_d_td = (r <= 0)
+    le_d_td = (r == 0 .or. r == -1)
   end function le_d_td
 
   elemental logical function le_td_i(a, b)
@@ -1759,6 +1737,8 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r <= 0) then
       tdmin2 = a
     else
@@ -1782,6 +1762,8 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r >= 0) then
       tdmax2 = a
     else

@@ -358,5 +358,20 @@ module tsext
       real*4, intent(out) :: r(6)
     end subroutine
 
+    pure subroutine f_ts_cdiv(z, w, r)
+      real*4, intent(in) :: z(6), w(6)
+      real*4, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_ts_cabs(z, r)
+      real*4, intent(in) :: z(6)
+      real*4, intent(out) :: r(3)
+    end subroutine
+
+    pure subroutine f_ts_clog(z, r)
+      real*4, intent(in) :: z(6)
+      real*4, intent(out) :: r(6)
+    end subroutine
+
   end interface
 end

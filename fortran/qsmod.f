@@ -957,18 +957,7 @@ contains
 
   elemental type (qs_complex) function div_qsc(a, b)
     type (qs_complex), intent(in) :: a, b
-    type (qs_real) t1, t2, t3, t4, t5
-    call f_qs_mul (a%cmp(1:4), b%cmp(1:4), t1%re)
-    call f_qs_mul (a%cmp(5:8), b%cmp(5:8), t2%re)
-    call f_qs_add (t1%re, t2%re, t3%re)
-    call f_qs_mul (a%cmp(1:4), b%cmp(5:8), t1%re)
-    call f_qs_mul (a%cmp(5:8), b%cmp(1:4), t2%re)
-    call f_qs_sub (t2%re, t1%re, t4%re)
-    call f_qs_mul (b%cmp(1:4), b%cmp(1:4), t1%re)
-    call f_qs_mul (b%cmp(5:8), b%cmp(5:8), t2%re)
-    call f_qs_add (t1%re, t2%re, t5%re)
-    call f_qs_div (t3%re, t5%re, div_qsc%cmp(1:4))
-    call f_qs_div (t4%re, t5%re, div_qsc%cmp(5:8))
+    call f_qs_cdiv(a%cmp, b%cmp, div_qsc%cmp)
   end function div_qsc
 
   elemental type (qs_complex) function div_qsc_qs(a, b)
@@ -981,15 +970,10 @@ contains
   elemental type (qs_complex) function div_qs_qsc(a, b)
     type (qs_real), intent(in) :: a
     type (qs_complex), intent(in) :: b
-    type (qs_real) t1, t2, t3, t4, t5
-    call f_qs_mul (a%re, b%cmp(1:4), t1%re)
-    call f_qs_mul (a%re, b%cmp(5:8), t2%re)
-    t2%re = - t2%re
-    call f_qs_mul (b%cmp(1:4), b%cmp(1:4), t3%re)
-    call f_qs_mul (b%cmp(5:8), b%cmp(5:8), t4%re)
-    call f_qs_add (t3%re, t4%re, t5%re)
-    call f_qs_div (t1%re, t5%re, div_qs_qsc%cmp(1:4))
-    call f_qs_div (t2%re, t5%re, div_qs_qsc%cmp(5:8))
+    type (qs_complex) :: ac
+    ac%cmp(1:4) = a%re
+    ac%cmp(5:8) = 0
+    call f_qs_cdiv(ac%cmp, b%cmp, div_qs_qsc%cmp)
   end function div_qs_qsc
 
   elemental type (qs_complex) function div_qsc_d(a,b)
@@ -1155,13 +1139,7 @@ contains
 
   elemental type (qs_complex) function qsclog (a)
     type (qs_complex), intent(in) :: a
-    type (qs_real) t1, t2, t3
-    call f_qs_mul (a%cmp(1:4), a%cmp(1:4), t1%re)
-    call f_qs_mul (a%cmp(5:8), a%cmp(5:8), t2%re)
-    call f_qs_add (t1%re, t2%re, t3%re)
-    call f_qs_log (t3%re, t1%re)
-    qsclog%cmp(1:4) = 0.5e0 * t1%re
-    call f_qs_atan2 (a%cmp(5:8), a%cmp(1:4), qsclog%cmp(5:8))
+    call f_qs_clog(a%cmp, qsclog%cmp)
   end function qsclog
 
   elemental type (qs_real) function qslog10(a)
@@ -1523,7 +1501,7 @@ contains
     type (qs_real), intent(in) :: a, b
     integer :: r
     call f_qs_comp(a%re, b%re, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_qs = .true.
     else
       ge_qs = .false.
@@ -1535,7 +1513,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_qs_comp_qs_d(a%re, b, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_qs_d = .true.
     else
       ge_qs_d = .false.
@@ -1547,7 +1525,7 @@ contains
     type (qs_real), intent(in) :: b
     integer :: r
     call f_qs_comp_qs_d(b%re, a, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       ge_d_qs = .true.
     else
       ge_d_qs = .false.
@@ -1571,7 +1549,7 @@ contains
     type (qs_real), intent(in) :: a, b
     integer :: r
     call f_qs_comp(a%re, b%re, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_qs = .true.
     else
       le_qs = .false.
@@ -1583,7 +1561,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_qs_comp_qs_d(a%re, b, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_qs_d = .true.
     else
       le_qs_d = .false.
@@ -1595,7 +1573,7 @@ contains
     type (qs_real), intent(in) :: b
     integer :: r
     call f_qs_comp_qs_d(b%re, a, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       le_d_qs = .true.
     else
       le_d_qs = .false.
@@ -1623,11 +1601,7 @@ contains
 
   elemental type (qs_real) function qscabs (qsc)
     type (qs_complex), intent(in) :: qsc
-    type (qs_real) t1, t2, t3
-    call f_qs_mul (qsc%cmp(1:4), qsc%cmp(1:4), t1%re)
-    call f_qs_mul (qsc%cmp(5:8), qsc%cmp(5:8), t2%re)
-    call f_qs_add (t1%re, t2%re, t3%re)
-    call f_qs_sqrt (t3%re, qscabs%re)
+    call f_qs_cabs(qsc%cmp, qscabs%re)
   end function qscabs
 
 ! Sign transfer
@@ -1838,6 +1812,8 @@ contains
     type (qs_real), intent(in) :: a, b
     integer :: r
     call f_qs_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == 1) then
       qsmin2 = b
     else
@@ -1861,6 +1837,8 @@ contains
     type (qs_real), intent(in) :: a, b
     integer :: r
     call f_qs_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == -1) then
       qsmax2 = b
     else

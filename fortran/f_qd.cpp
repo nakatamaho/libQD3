@@ -104,6 +104,9 @@
 #define f_qd_catanh      FC_FUNC_(f_qd_catanh, F_QD_CATANH)
 #define f_qd_cpow        FC_FUNC_(f_qd_cpow, F_QD_CPOW)
 #define f_qd_cpow_r      FC_FUNC_(f_qd_cpow_r, F_QD_CPOW_R)
+#define f_qd_cdiv        FC_FUNC_(f_qd_cdiv, F_QD_CDIV)
+#define f_qd_cabs        FC_FUNC_(f_qd_cabs, F_QD_CABS)
+#define f_qd_clog        FC_FUNC_(f_qd_clog, F_QD_CLOG)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1]; \
                               ptr[2] = a.x[2]; ptr[3] = a.x[3];
@@ -493,32 +496,41 @@ void f_qd_rand(double *a) {
 
 void f_qd_comp(const double *a, const double *b, int *result) {
   qd_real aa(a), bb(b);
-  if (aa < bb)
+if (aa < bb) {
     *result = -1;
-  else if (aa > bb)
+  } else if (aa > bb) {
     *result = 1;
-  else 
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_comp_qd_d(const double *a, const double *b, int *result) {
   qd_real aa(a);
-  if (aa < *b)
+if (aa < *b) {
     *result = -1;
-  else if (aa > *b)
+  } else if (aa > *b) {
     *result = 1;
-  else 
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_comp_d_qd(const double *a, const double *b, int *result) {
   qd_real bb(b);
-  if (*a < bb)
+if (*a < bb) {
     *result = -1;
-  else if (*a > bb)
+  } else if (*a > bb) {
     *result = 1;
-  else 
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_pi(double *a) {
@@ -599,6 +611,22 @@ void f_qd_cpow(const double *z, const double *w, double *r) {
 
 void f_qd_cpow_r(const double *z, const double *x, double *r) {
   store_qdc(pow(load_qdc(z), qd_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_qd_cdiv(const double *z, const double *w, double *r) {
+  store_qdc(load_qdc(z) / load_qdc(w), r);
+}
+
+void f_qd_cabs(const double *z, double *r) {
+  const qd_real a = abs(load_qdc(z));
+  for (int i = 0; i < 4; ++i) r[i] = a[i];
+}
+
+void f_qd_clog(const double *z, double *r) {
+  store_qdc(log(load_qdc(z)), r);
 }
 
 }

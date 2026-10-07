@@ -1038,17 +1038,7 @@ contains
   elemental type (ts_complex) function div_tsc(a, b)
     type (ts_complex), intent(in) :: a, b
     type (ts_real) :: t1, t2, t3, t4, t5
-    call f_ts_mul(a%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_ts_mul(a%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_ts_add(t1%re, t2%re, t3%re)
-    call f_ts_mul(a%cmp(1:3), b%cmp(4:6), t1%re)
-    call f_ts_mul(a%cmp(4:6), b%cmp(1:3), t2%re)
-    call f_ts_sub(t2%re, t1%re, t4%re)
-    call f_ts_mul(b%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_ts_mul(b%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_ts_add(t1%re, t2%re, t5%re)
-    call f_ts_div(t3%re, t5%re, div_tsc%cmp(1:3))
-    call f_ts_div(t4%re, t5%re, div_tsc%cmp(4:6))
+    call f_ts_cdiv(a%cmp, b%cmp, div_tsc%cmp)
   end function div_tsc
 
   elemental type (ts_complex) function div_tsc_ts(a, b)
@@ -1062,14 +1052,10 @@ contains
     type (ts_real), intent(in) :: a
     type (ts_complex), intent(in) :: b
     type (ts_real) :: t1, t2, t3, t4, t5
-    call f_ts_mul(a%re, b%cmp(1:3), t1%re)
-    call f_ts_mul(a%re, b%cmp(4:6), t2%re)
-    t2%re = -t2%re
-    call f_ts_mul(b%cmp(1:3), b%cmp(1:3), t3%re)
-    call f_ts_mul(b%cmp(4:6), b%cmp(4:6), t4%re)
-    call f_ts_add(t3%re, t4%re, t5%re)
-    call f_ts_div(t1%re, t5%re, div_ts_tsc%cmp(1:3))
-    call f_ts_div(t2%re, t5%re, div_ts_tsc%cmp(4:6))
+    type (ts_complex) :: ac
+    ac%cmp(1:3) = a%re
+    ac%cmp(4:6) = 0
+    call f_ts_cdiv(ac%cmp, b%cmp, div_ts_tsc%cmp)
   end function div_ts_tsc
 
   elemental type (ts_complex) function div_tsc_d(a, b)
@@ -1217,12 +1203,7 @@ contains
   elemental type (ts_complex) function tsclog(a)
     type (ts_complex), intent(in) :: a
     type (ts_real) :: t1, t2, t3
-    call f_ts_mul(a%cmp(1:3), a%cmp(1:3), t1%re)
-    call f_ts_mul(a%cmp(4:6), a%cmp(4:6), t2%re)
-    call f_ts_add(t1%re, t2%re, t3%re)
-    call f_ts_log(t3%re, t1%re)
-    tsclog%cmp(1:3) = 0.5e0 * t1%re
-    call f_ts_atan2(a%cmp(4:6), a%cmp(1:3), tsclog%cmp(4:6))
+    call f_ts_clog(a%cmp, tsclog%cmp)
   end function tsclog
 
   elemental type (ts_real) function tslog10(a)
@@ -1315,10 +1296,7 @@ contains
   elemental type (ts_real) function tscabs(tsc)
     type (ts_complex), intent(in) :: tsc
     type (ts_real) :: t1, t2, t3
-    call f_ts_mul(tsc%cmp(1:3), tsc%cmp(1:3), t1%re)
-    call f_ts_mul(tsc%cmp(4:6), tsc%cmp(4:6), t2%re)
-    call f_ts_add(t1%re, t2%re, t3%re)
-    call f_ts_sqrt(t3%re, tscabs%re)
+    call f_ts_cabs(tsc%cmp, tscabs%re)
   end function tscabs
 
   elemental type (ts_real) function tssign(a, b) result (c)
@@ -1524,7 +1502,7 @@ contains
     type (ts_real), intent(in) :: a, b
     integer :: r
     call f_ts_comp(a%re, b%re, r)
-    ge_ts = (r >= 0)
+    ge_ts = (r == 0 .or. r == 1)
   end function ge_ts
 
   elemental logical function ge_ts_d(a, b)
@@ -1532,7 +1510,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_ts_comp_ts_d(a%re, b, r)
-    ge_ts_d = (r >= 0)
+    ge_ts_d = (r == 0 .or. r == 1)
   end function ge_ts_d
 
   elemental logical function ge_d_ts(a, b)
@@ -1540,7 +1518,7 @@ contains
     type (ts_real), intent(in) :: b
     integer :: r
     call f_ts_comp_d_ts(a, b%re, r)
-    ge_d_ts = (r >= 0)
+    ge_d_ts = (r == 0 .or. r == 1)
   end function ge_d_ts
 
   elemental logical function ge_ts_i(a, b)
@@ -1559,7 +1537,7 @@ contains
     type (ts_real), intent(in) :: a, b
     integer :: r
     call f_ts_comp(a%re, b%re, r)
-    le_ts = (r <= 0)
+    le_ts = (r == 0 .or. r == -1)
   end function le_ts
 
   elemental logical function le_ts_d(a, b)
@@ -1567,7 +1545,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_ts_comp_ts_d(a%re, b, r)
-    le_ts_d = (r <= 0)
+    le_ts_d = (r == 0 .or. r == -1)
   end function le_ts_d
 
   elemental logical function le_d_ts(a, b)
@@ -1575,7 +1553,7 @@ contains
     type (ts_real), intent(in) :: b
     integer :: r
     call f_ts_comp_d_ts(a, b%re, r)
-    le_d_ts = (r <= 0)
+    le_d_ts = (r == 0 .or. r == -1)
   end function le_d_ts
 
   elemental logical function le_ts_i(a, b)
@@ -1772,6 +1750,8 @@ contains
     type (ts_real), intent(in) :: a, b
     integer :: r
     call f_ts_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r <= 0) then
       tsmin2 = a
     else
@@ -1795,6 +1775,8 @@ contains
     type (ts_real), intent(in) :: a, b
     integer :: r
     call f_ts_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r >= 0) then
       tsmax2 = a
     else

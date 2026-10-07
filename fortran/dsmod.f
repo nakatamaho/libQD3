@@ -942,18 +942,7 @@ contains
 
   elemental type (ds_complex) function div_dsc(a, b)
     type (ds_complex), intent(in) :: a, b
-    type (ds_real) t1, t2, t3, t4, t5
-    call f_ds_mul (a%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_ds_mul (a%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_ds_add (t1%re, t2%re, t3%re)
-    call f_ds_mul (a%cmp(1:2), b%cmp(3:4), t1%re)
-    call f_ds_mul (a%cmp(3:4), b%cmp(1:2), t2%re)
-    call f_ds_sub (t2%re, t1%re, t4%re)
-    call f_ds_mul (b%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_ds_mul (b%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_ds_add (t1%re, t2%re, t5%re)
-    call f_ds_div (t3%re, t5%re, div_dsc%cmp(1:2))
-    call f_ds_div (t4%re, t5%re, div_dsc%cmp(3:4))
+    call f_ds_cdiv(a%cmp, b%cmp, div_dsc%cmp)
   end function div_dsc
 
   elemental type (ds_complex) function div_dsc_d(a,b)
@@ -973,15 +962,10 @@ contains
   elemental type (ds_complex) function div_ds_dsc(a, b)
     type (ds_real), intent(in) :: a
     type (ds_complex), intent(in) :: b
-    type (ds_real) t1, t2, t3, t4, t5
-    call f_ds_mul (a%re, b%cmp(1:2), t1%re)
-    call f_ds_mul (a%re, b%cmp(3:4), t2%re)
-    t2%re = - t2%re
-    call f_ds_mul (b%cmp(1:2), b%cmp(1:2), t3%re)
-    call f_ds_mul (b%cmp(3:4), b%cmp(3:4), t4%re)
-    call f_ds_add (t3%re, t4%re, t5%re)
-    call f_ds_div (t1%re, t5%re, div_ds_dsc%cmp(1:2))
-    call f_ds_div (t2%re, t5%re, div_ds_dsc%cmp(3:4))
+    type (ds_complex) :: ac
+    ac%cmp(1:2) = a%re
+    ac%cmp(3:4) = 0
+    call f_ds_cdiv(ac%cmp, b%cmp, div_ds_dsc%cmp)
   end function div_ds_dsc
 
 ! Power
@@ -1141,13 +1125,7 @@ contains
 
   elemental type (ds_complex) function dsclog (a)
     type (ds_complex), intent(in) :: a
-    type (ds_real) t1, t2, t3
-    call f_ds_mul (a%cmp(1:2), a%cmp(1:2), t1%re)
-    call f_ds_mul (a%cmp(3:4), a%cmp(3:4), t2%re)
-    call f_ds_add (t1%re, t2%re, t3%re)
-    call f_ds_log (t3%re, t1%re)
-    dsclog%cmp(1:2) = 0.5e0 * t1%re
-    call f_ds_atan2 (a%cmp(3:4), a%cmp(1:2), dsclog%cmp(3:4))
+    call f_ds_clog(a%cmp, dsclog%cmp)
   end function dsclog
 
 
@@ -1509,7 +1487,7 @@ contains
     type (ds_real), intent(in) :: a, b
     integer :: r
     call f_ds_comp(a%re, b%re, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_ds = .true.
     else
       ge_ds = .false.
@@ -1521,7 +1499,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_ds_comp_ds_d(a%re, b, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_ds_d = .true.
     else
       ge_ds_d = .false.
@@ -1533,7 +1511,7 @@ contains
     type (ds_real), intent(in) :: b
     integer :: r
     call f_ds_comp_ds_d(b%re, a, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       ge_d_ds = .true.
     else
       ge_d_ds = .false.
@@ -1557,7 +1535,7 @@ contains
     type (ds_real), intent(in) :: a, b
     integer :: r
     call f_ds_comp(a%re, b%re, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_ds = .true.
     else
       le_ds = .false.
@@ -1569,7 +1547,7 @@ contains
     real*4, intent(in) :: b
     integer :: r
     call f_ds_comp_ds_d(a%re, b, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_ds_d = .true.
     else
       le_ds_d = .false.
@@ -1581,7 +1559,7 @@ contains
     type (ds_real), intent(in) :: b
     integer :: r
     call f_ds_comp_ds_d(b%re, a, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       le_d_ds = .true.
     else
       le_d_ds = .false.
@@ -1608,11 +1586,7 @@ contains
 
   elemental type (ds_real) function dscabs (dsc)
     type (ds_complex), intent(in) :: dsc
-    type (ds_real) t1, t2, t3
-    call f_ds_mul (dsc%cmp(1:2), dsc%cmp(1:2), t1%re)
-    call f_ds_mul (dsc%cmp(3:4), dsc%cmp(3:4), t2%re)
-    call f_ds_add (t1%re, t2%re, t3%re)
-    call f_ds_sqrt (t3%re, dscabs%re)
+    call f_ds_cabs(dsc%cmp, dscabs%re)
   end function dscabs
 
 ! Sign transfer
@@ -1826,6 +1800,8 @@ contains
     type (ds_real), intent(in) :: a, b
     integer :: r
     call f_ds_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == 1) then
       dsmin2 = b
     else
@@ -1849,6 +1825,8 @@ contains
     type (ds_real), intent(in) :: a, b
     integer :: r
     call f_ds_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == -1) then
       dsmax2 = b
     else

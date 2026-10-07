@@ -358,5 +358,20 @@ module qsext
       real*4, intent(out) :: r(8)
     end subroutine
 
+    pure subroutine f_qs_cdiv(z, w, r)
+      real*4, intent(in) :: z(8), w(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_cabs(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_qs_clog(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
   end interface
 end

@@ -121,6 +121,9 @@
 #define f_qs_catanh      FC_FUNC_(f_qs_catanh, F_QS_CATANH)
 #define f_qs_cpow        FC_FUNC_(f_qs_cpow, F_QS_CPOW)
 #define f_qs_cpow_r      FC_FUNC_(f_qs_cpow_r, F_QS_CPOW_R)
+#define f_qs_cdiv        FC_FUNC_(f_qs_cdiv, F_QS_CDIV)
+#define f_qs_cabs        FC_FUNC_(f_qs_cabs, F_QS_CABS)
+#define f_qs_clog        FC_FUNC_(f_qs_clog, F_QS_CLOG)
 
 #define TO_FLOAT_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
@@ -350,34 +353,40 @@ void f_qs_rand(float *a) {
 
 void f_qs_comp(const float *a, const float *b, int *result) {
   qs_real aa(a), bb(b);
-  if (aa < bb) {
+if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
     *result = 1;
-  } else {
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_qs_comp_qs_d(const float *a, const float *b, int *result) {
   qs_real aa(a);
-  if (aa < *b) {
+if (aa < *b) {
     *result = -1;
   } else if (aa > *b) {
     *result = 1;
-  } else {
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_qs_comp_d_qs(const float *a, const float *b, int *result) {
   qs_real bb(b);
-  if (*a < bb) {
+if (*a < bb) {
     *result = -1;
   } else if (*a > bb) {
     *result = 1;
-  } else {
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
@@ -497,6 +506,22 @@ void f_qs_cpow(const float *z, const float *w, float *r) {
 
 void f_qs_cpow_r(const float *z, const float *x, float *r) {
   store_qsc(pow(load_qsc(z), qs_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_qs_cdiv(const float *z, const float *w, float *r) {
+  store_qsc(load_qsc(z) / load_qsc(w), r);
+}
+
+void f_qs_cabs(const float *z, float *r) {
+  const qs_real a = abs(load_qsc(z));
+  for (int i = 0; i < 4; ++i) r[i] = a[i];
+}
+
+void f_qs_clog(const float *z, float *r) {
+  store_qsc(log(load_qsc(z)), r);
 }
 
 }

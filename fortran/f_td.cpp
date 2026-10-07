@@ -113,6 +113,9 @@
 #define f_td_catanh      FC_FUNC_(f_td_catanh, F_TD_CATANH)
 #define f_td_cpow        FC_FUNC_(f_td_cpow, F_TD_CPOW)
 #define f_td_cpow_r      FC_FUNC_(f_td_cpow_r, F_TD_CPOW_R)
+#define f_td_cdiv        FC_FUNC_(f_td_cdiv, F_TD_CDIV)
+#define f_td_cabs        FC_FUNC_(f_td_cabs, F_TD_CABS)
+#define f_td_clog        FC_FUNC_(f_td_clog, F_TD_CLOG)
 
 #define TO_DOUBLE_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
@@ -360,34 +363,40 @@ void f_td_rand(double *a) {
 
 void f_td_comp(const double *a, const double *b, int *result) {
   td_real aa(a), bb(b);
-  if (aa < bb) {
+if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
     *result = 1;
-  } else {
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_td_comp_td_d(const double *a, const double *b, int *result) {
   td_real aa(a);
-  if (aa < *b) {
+if (aa < *b) {
     *result = -1;
   } else if (aa > *b) {
     *result = 1;
-  } else {
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_td_comp_d_td(const double *a, const double *b, int *result) {
   td_real bb(b);
-  if (*a < bb) {
+if (*a < bb) {
     *result = -1;
   } else if (*a > bb) {
     *result = 1;
-  } else {
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
@@ -469,6 +478,22 @@ void f_td_cpow(const double *z, const double *w, double *r) {
 
 void f_td_cpow_r(const double *z, const double *x, double *r) {
   store_tdc(pow(load_tdc(z), td_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_td_cdiv(const double *z, const double *w, double *r) {
+  store_tdc(load_tdc(z) / load_tdc(w), r);
+}
+
+void f_td_cabs(const double *z, double *r) {
+  const td_real a = abs(load_tdc(z));
+  for (int i = 0; i < 3; ++i) r[i] = a[i];
+}
+
+void f_td_clog(const double *z, double *r) {
+  store_tdc(log(load_tdc(z)), r);
 }
 
 }

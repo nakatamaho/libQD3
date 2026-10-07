@@ -358,5 +358,20 @@ module dsext
       real*4, intent(out) :: r(4)
     end subroutine
 
+    pure subroutine f_ds_cdiv(z, w, r)
+      real*4, intent(in) :: z(4), w(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cabs(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(2)
+    end subroutine
+
+    pure subroutine f_ds_clog(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
   end interface
 end

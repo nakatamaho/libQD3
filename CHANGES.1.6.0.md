@@ -88,6 +88,14 @@ Fortran:
 - Literal parsing now uses the C++ readers (the old Fortran parsers were
   inexact even for `0.5`); `d`/`D` exponents are accepted.
 - The qs `epsilon()` parameter was 1.25 * 2^-94.
+- Fortran complex division, `abs` and `log` formed `re**2 + im**2`, which
+  overflows above sqrt(huge) (about 1.8e19 for ds/ts/qs, 1e154 for dd/td/qd)
+  and underflows near sqrt(tiny): `(1e20+1e20i)/(1e20+1e20i)` was NaN for
+  `ds_complex`.  They now call the C++ implementation (Smith's division,
+  scaled modulus).
+- Fortran comparisons treated NaN operands as equal (`==`, `<=` and `>=`
+  were true).  Comparisons with NaN are now false except `/=`; `min`/`max`
+  keep their previous NaN behaviour.
 - Added integer `-`, complex mixed-mode `+ - / == /=`, complex elementary
   functions (`sqrt`, trigonometric, hyperbolic and their inverses,
   `complex**complex`, `complex**real`), `floor`/`ceiling` for all modules,

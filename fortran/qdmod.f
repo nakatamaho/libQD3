@@ -910,18 +910,7 @@ contains
 
   elemental type (qd_complex) function div_qdc(a, b)
     type (qd_complex), intent(in) :: a, b
-    type (qd_real) t1, t2, t3, t4, t5
-    call f_qd_mul (a%cmp(1:4), b%cmp(1:4), t1%re)
-    call f_qd_mul (a%cmp(5:8), b%cmp(5:8), t2%re)
-    call f_qd_add (t1%re, t2%re, t3%re)
-    call f_qd_mul (a%cmp(1:4), b%cmp(5:8), t1%re)
-    call f_qd_mul (a%cmp(5:8), b%cmp(1:4), t2%re)
-    call f_qd_sub (t2%re, t1%re, t4%re)
-    call f_qd_mul (b%cmp(1:4), b%cmp(1:4), t1%re)
-    call f_qd_mul (b%cmp(5:8), b%cmp(5:8), t2%re)
-    call f_qd_add (t1%re, t2%re, t5%re)
-    call f_qd_div (t3%re, t5%re, div_qdc%cmp(1:4))
-    call f_qd_div (t4%re, t5%re, div_qdc%cmp(5:8))
+    call f_qd_cdiv(a%cmp, b%cmp, div_qdc%cmp)
   end function div_qdc
 
   elemental type (qd_complex) function div_qdc_qd(a, b)
@@ -934,15 +923,10 @@ contains
   elemental type (qd_complex) function div_qd_qdc(a, b)
     type (qd_real), intent(in) :: a
     type (qd_complex), intent(in) :: b
-    type (qd_real) t1, t2, t3, t4, t5
-    call f_qd_mul (a%re, b%cmp(1:4), t1%re)
-    call f_qd_mul (a%re, b%cmp(5:8), t2%re)
-    t2%re = - t2%re
-    call f_qd_mul (b%cmp(1:4), b%cmp(1:4), t3%re)
-    call f_qd_mul (b%cmp(5:8), b%cmp(5:8), t4%re)
-    call f_qd_add (t3%re, t4%re, t5%re)
-    call f_qd_div (t1%re, t5%re, div_qd_qdc%cmp(1:4))
-    call f_qd_div (t2%re, t5%re, div_qd_qdc%cmp(5:8))
+    type (qd_complex) :: ac
+    ac%cmp(1:4) = a%re
+    ac%cmp(5:8) = 0
+    call f_qd_cdiv(ac%cmp, b%cmp, div_qd_qdc%cmp)
   end function div_qd_qdc
 
   elemental type (qd_complex) function div_qdc_d(a,b)
@@ -1108,13 +1092,7 @@ contains
 
   elemental type (qd_complex) function qdclog (a)
     type (qd_complex), intent(in) :: a
-    type (qd_real) t1, t2, t3
-    call f_qd_mul (a%cmp(1:4), a%cmp(1:4), t1%re)
-    call f_qd_mul (a%cmp(5:8), a%cmp(5:8), t2%re)
-    call f_qd_add (t1%re, t2%re, t3%re)
-    call f_qd_log (t3%re, t1%re)
-    qdclog%cmp(1:4) = 0.5d0 * t1%re
-    call f_qd_atan2 (a%cmp(5:8), a%cmp(1:4), qdclog%cmp(5:8))
+    call f_qd_clog(a%cmp, qdclog%cmp)
   end function qdclog
 
   elemental type (qd_real) function qdlog10(a)
@@ -1476,7 +1454,7 @@ contains
     type (qd_real), intent(in) :: a, b
     integer :: r
     call f_qd_comp(a%re, b%re, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_qd = .true.
     else
       ge_qd = .false.
@@ -1488,7 +1466,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_qd_comp_qd_d(a%re, b, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_qd_d = .true.
     else
       ge_qd_d = .false.
@@ -1500,7 +1478,7 @@ contains
     type (qd_real), intent(in) :: b
     integer :: r
     call f_qd_comp_qd_d(b%re, a, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       ge_d_qd = .true.
     else
       ge_d_qd = .false.
@@ -1524,7 +1502,7 @@ contains
     type (qd_real), intent(in) :: a, b
     integer :: r
     call f_qd_comp(a%re, b%re, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_qd = .true.
     else
       le_qd = .false.
@@ -1536,7 +1514,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_qd_comp_qd_d(a%re, b, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_qd_d = .true.
     else
       le_qd_d = .false.
@@ -1548,7 +1526,7 @@ contains
     type (qd_real), intent(in) :: b
     integer :: r
     call f_qd_comp_qd_d(b%re, a, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       le_d_qd = .true.
     else
       le_d_qd = .false.
@@ -1576,11 +1554,7 @@ contains
 
   elemental type (qd_real) function qdcabs (qdc)
     type (qd_complex), intent(in) :: qdc
-    type (qd_real) t1, t2, t3
-    call f_qd_mul (qdc%cmp(1:4), qdc%cmp(1:4), t1%re)
-    call f_qd_mul (qdc%cmp(5:8), qdc%cmp(5:8), t2%re)
-    call f_qd_add (t1%re, t2%re, t3%re)
-    call f_qd_sqrt (t3%re, qdcabs%re)
+    call f_qd_cabs(qdc%cmp, qdcabs%re)
   end function qdcabs
 
 ! Sign transfer
@@ -1791,6 +1765,8 @@ contains
     type (qd_real), intent(in) :: a, b
     integer :: r
     call f_qd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == 1) then
       qdmin2 = b
     else
@@ -1814,6 +1790,8 @@ contains
     type (qd_real), intent(in) :: a, b
     integer :: r
     call f_qd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == -1) then
       qdmax2 = b
     else

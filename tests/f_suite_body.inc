@@ -10,6 +10,7 @@
   type(rt) :: x, y, z, s, c, one
   type(ct) :: cx, cy, cz
   integer :: i
+  logical :: ok
 
   one = mkr(1)
 
@@ -107,6 +108,32 @@
   i = mkr(3) - epsilon(x)
   call report(i == 2, tname, 'assign integer = real')
 
+  ! Truth table of every comparison operator, for real/real and both
+  ! integer orders, over a < b, a == b and a > b.
+  ok = .true.
+  do i = 1, 3
+    x = mkr(2)
+    y = mkr(i + 0)
+    ok = ok .and. ((x == y) .eqv. (2 == i)) .and. ((x /= y) .eqv. (2 /= i)) &
+         .and. ((x < y) .eqv. (2 < i)) .and. ((x <= y) .eqv. (2 <= i)) &
+         .and. ((x > y) .eqv. (2 > i)) .and. ((x >= y) .eqv. (2 >= i))
+    ok = ok .and. ((x == i) .eqv. (2 == i)) .and. ((x /= i) .eqv. (2 /= i)) &
+         .and. ((x < i) .eqv. (2 < i)) .and. ((x <= i) .eqv. (2 <= i)) &
+         .and. ((x > i) .eqv. (2 > i)) .and. ((x >= i) .eqv. (2 >= i))
+    ok = ok .and. ((i == x) .eqv. (i == 2)) .and. ((i /= x) .eqv. (i /= 2)) &
+         .and. ((i < x) .eqv. (i < 2)) .and. ((i <= x) .eqv. (i <= 2)) &
+         .and. ((i > x) .eqv. (i > 2)) .and. ((i >= x) .eqv. (i >= 2))
+  end do
+  call report(ok, tname, 'comparison truth table')
+
+  ! Comparisons with NaN are unordered: only /= is true.  They used to
+  ! report "equal", so ==, <= and >= were true and hid NaN results.
+  y = nan(x)
+  call report(.not. (y == y) .and. (y /= y) .and. .not. (y < one) .and. &
+              .not. (y <= one) .and. .not. (y > one) .and. &
+              .not. (y >= one) .and. .not. (y >= 1) .and. .not. (1 <= y), &
+              tname, 'NaN comparisons unordered')
+
   ! Comparisons, including mixed integer forms.
   x = one + epsilon(one)
   call report(x > one .and. one < x .and. x /= one, tname, 'compare eps')
@@ -186,6 +213,30 @@
               tname, 'complex pwr_i')
 
   call extra_checks()
+
+  ! Complex division, abs and log must not form re**2 + im**2, which
+  ! overflows above sqrt(huge) and underflows below sqrt(tiny).
+  x = sqrt(huge(x)) * 4
+  y = sqrt(tiny(x)) / 4
+  cx = mkc(x, x)
+  cz = cx / cx
+  call report(near(real(cz), one, 8) .and. abs(aimag(cz)) <= 8 * epsilon(x), &
+              tname, 'complex div large')
+  call report(near(abs(cx), x * mkr(c_sqrt2), 8), tname, 'complex abs large')
+  ! The real log of ~1e154 itself is only good to ~13 eps (dd), so this
+  ! uses the transcendental tolerance; the old code returned NaN/Inf here.
+  cz = log(cx)
+  call report(near(real(cz), log(x) + log(mkr(2)) / 2, 64) .and. &
+              near(aimag(cz), pi_r() / 4, 8), tname, 'complex log large')
+  cz = x / cx
+  call report(near(real(cz), mkr('0.5'), 8) .and. near(aimag(cz), mkr('-0.5'), 8), &
+              tname, 'real / complex large')
+  cy = mkc(y, y)
+  cz = cy / cy
+  call report(near(real(cz), one, 8) .and. abs(aimag(cz)) <= 8 * epsilon(x), &
+              tname, 'complex div small')
+  call report(abs(abs(cy) - y * mkr(c_sqrt2)) <= 8 * epsilon(x) * y, tname, &
+              'complex abs small')
 
   ! Complex elementary functions against MPC references for z = 1+2i.
   cx = mkc(one, mkr(2))

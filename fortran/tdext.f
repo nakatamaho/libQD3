@@ -329,5 +329,20 @@ module tdext
       real*8, intent(out) :: r(6)
     end subroutine
 
+    pure subroutine f_td_cdiv(z, w, r)
+      real*8, intent(in) :: z(6), w(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cabs(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(3)
+    end subroutine
+
+    pure subroutine f_td_clog(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
   end interface
 end

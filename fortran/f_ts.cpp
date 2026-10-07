@@ -121,6 +121,9 @@
 #define f_ts_catanh      FC_FUNC_(f_ts_catanh, F_TS_CATANH)
 #define f_ts_cpow        FC_FUNC_(f_ts_cpow, F_TS_CPOW)
 #define f_ts_cpow_r      FC_FUNC_(f_ts_cpow_r, F_TS_CPOW_R)
+#define f_ts_cdiv        FC_FUNC_(f_ts_cdiv, F_TS_CDIV)
+#define f_ts_cabs        FC_FUNC_(f_ts_cabs, F_TS_CABS)
+#define f_ts_clog        FC_FUNC_(f_ts_clog, F_TS_CLOG)
 
 #define TO_FLOAT_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
@@ -348,34 +351,40 @@ void f_ts_rand(float *a) {
 
 void f_ts_comp(const float *a, const float *b, int *result) {
   ts_real aa(a), bb(b);
-  if (aa < bb) {
+if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
     *result = 1;
-  } else {
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_ts_comp_ts_d(const float *a, const float *b, int *result) {
   ts_real aa(a);
-  if (aa < *b) {
+if (aa < *b) {
     *result = -1;
   } else if (aa > *b) {
     *result = 1;
-  } else {
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_ts_comp_d_ts(const float *a, const float *b, int *result) {
   ts_real bb(b);
-  if (*a < bb) {
+if (*a < bb) {
     *result = -1;
   } else if (*a > bb) {
     *result = 1;
-  } else {
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
@@ -495,6 +504,22 @@ void f_ts_cpow(const float *z, const float *w, float *r) {
 
 void f_ts_cpow_r(const float *z, const float *x, float *r) {
   store_tsc(pow(load_tsc(z), ts_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_ts_cdiv(const float *z, const float *w, float *r) {
+  store_tsc(load_tsc(z) / load_tsc(w), r);
+}
+
+void f_ts_cabs(const float *z, float *r) {
+  const ts_real a = abs(load_tsc(z));
+  for (int i = 0; i < 3; ++i) r[i] = a[i];
+}
+
+void f_ts_clog(const float *z, float *r) {
+  store_tsc(log(load_tsc(z)), r);
 }
 
 }

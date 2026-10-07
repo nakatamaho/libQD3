@@ -306,5 +306,20 @@ module ddext
       real*8, intent(out) :: r(4)
     end subroutine
 
+    pure subroutine f_dd_cdiv(z, w, r)
+      real*8, intent(in) :: z(4), w(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cabs(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(2)
+    end subroutine
+
+    pure subroutine f_dd_clog(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
   end interface
 end
