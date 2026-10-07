@@ -33,6 +33,28 @@ Random numbers:
   every platform.  Added `tdrand()` and `eddrand()`.  Sequences differ from
   1.5.0.
 
+MinGW / Windows:
+
+- `fpu_fix_end` restored the raw x87 control word through `_control87` on
+  MinGW, which reinterprets the bits and switched rounding to toward-zero
+  (and the SSE rounding mode on x86-64); every `edd_real` operation after
+  the first `fpu_fix_start`/`fpu_fix_end` pair was wrong.  It now uses
+  `fldcw` like `fpu_fix_start`.
+- The pi/16 constant used by `edd_real` argument reduction was computed in
+  a DLL static initializer before the x87 precision is set to 64 bits; it is
+  now an exact literal.  With both fixes the documented MinGW `edd_real`
+  failures are gone.
+- `ds/ts/qs` did not compile on MinGW (`<math.h>` defines a `_nan()` macro),
+  and their exact products used `fmaf`, which the MinGW runtime does not
+  round correctly (errors of ~3000 eps); products are now formed exactly in
+  binary64 without FMA.
+- `qd_f_main` cannot be a DLL (it calls the user's `f_main`); on Windows it
+  is a static archive (`qd_f_main_shared` when linking the shared
+  libraries).
+- MPC is found without pkg-config when `mpc.pc` is missing (Debian, Ubuntu).
+- New GitHub Actions CI: Linux (GCC, gfortran) and Windows (MSYS2 UCRT64
+  MinGW-w64, gfortran), both with the MPFR/MPC oracles.
+
 C API:
 
 - New `c_ds.h`, `c_ts.h`, `c_qs.h` with the same function set as the

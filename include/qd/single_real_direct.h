@@ -141,7 +141,11 @@ inline float two_prod(float a, float b, float &error) {
     error = 0.0f;
     return product;
   }
-  error = std::fmaf(a, b, -product);
+  // The binary64 product of two binary32 values is exact (48 <= 53 bits), and
+  // so is its difference from the rounded binary32 product.  This avoids
+  // std::fmaf, which some C runtimes (e.g. MinGW) do not round correctly.
+  error = static_cast<float>(static_cast<double>(a) * static_cast<double>(b) -
+                             static_cast<double>(product));
   return product;
 }
 

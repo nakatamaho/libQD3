@@ -143,7 +143,15 @@ void fpu_fix_start_80bit(unsigned int *old_cw) {
 
 void fpu_fix_end(unsigned int *old_cw) {
 #ifdef X86
-#ifdef _WIN32
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+  /* GCC, including MinGW: fpu_fix_start saved the raw x87 control word with
+     fnstcw, so restore it with fldcw.  Passing it to _control87 would
+     reinterpret the raw bits (0x0300 is _RC_CHOP there). */
+  if (old_cw) {
+    volatile unsigned short cw = static_cast<unsigned short>(*old_cw);
+    _FPU_SETCW(cw);
+  }
+#elif defined(_WIN32)
 
 #ifdef __BORLANDC__
   /* Win 32 Borland C */
@@ -158,13 +166,6 @@ void fpu_fix_end(unsigned int *old_cw) {
   }
 #endif
 
-#else
-  /* Linux */
-  if (old_cw) {
-    int cw;
-    cw = *old_cw;
-    _FPU_SETCW(cw);
-  }
 #endif
 #endif
 }

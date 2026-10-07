@@ -40,8 +40,9 @@ longer applies to the CMake-only build, and the mixed C API coverage now in
   recorded: 69.7% line / 75.2% function, before 1.6.0).
 * optional JUnit output (`--junit=FILE` / `QD3_TEST_JUNIT`), or keep public
   docs strictly TAP-only.
-* continuous integration: there is no CI; the release gate is run by hand.
-* platforms not verified for 1.6.0: i386/x87, MinGW, macOS, and Fortran
+* CI runs the default and oracle suites only; the 16-configuration and BF
+  matrices of the release gate are still run by hand.
+* platforms not verified for 1.6.0: i386/x87, macOS, MSVC, and Fortran
   compilers other than gfortran.
 
 ## Documentation
