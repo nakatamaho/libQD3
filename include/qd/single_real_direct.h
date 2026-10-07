@@ -428,6 +428,9 @@ inline single_real<N> from_long_double(long double value) {
                               ? -std::numeric_limits<float>::infinity()
                               : std::numeric_limits<float>::infinity());
   }
+  if (value == 0.0L) {
+    return single_real<N>(std::copysign(0.0f, static_cast<float>(value)));
+  }
   float terms[N];
   long double remainder = value;
   for (int i = 0; i < N; ++i) {

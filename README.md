@@ -14,8 +14,8 @@ Fortran:
 - `qd_real`: quad-double precision, about 212 mantissa bits
 
 libQD3 also provides matching C++ complex aliases through `<qd/complex.h>`:
-`dd_complex`, `td_complex`, `qd_complex`, and `edd_complex` when `edd_real` is
-available. These overload arithmetic, standard complex elementary functions,
+`dd_complex`, `td_complex`, `qd_complex`, `ds_complex`, `ts_complex`,
+`qs_complex`, and `edd_complex` when `edd_real` is available. These overload arithmetic, standard complex elementary functions,
 `proj`, `ldexp`, and component-wise `ceil` through normal unqualified lookup
 plus ADL; no overloads are added to namespace `std`.
 
@@ -147,7 +147,8 @@ $ ctest --test-dir build --output-on-failure
 ```
 
 The default suite also builds `complex_test`, which covers the public
-`dd_complex`, `td_complex`, `qd_complex`, and optional `edd_complex` headers.
+`dd_complex`, `td_complex`, `qd_complex`, `ds_complex`, `ts_complex`,
+`qs_complex`, and optional `edd_complex` headers.
 
 ### Known issue: MinGW/Wine `edd_real` trigonometry
 

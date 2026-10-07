@@ -244,6 +244,9 @@ void test_special(TestContext &test, const char *name) {
   test.check(prefix + "infinity cancellation", (inf - inf).isnan());
   test.check(prefix + "zero division", (T(1) / T(0)).isinf());
   test.check(prefix + "zero sign", std::signbit(to_double(T(-0.0f))));
+  test.check(prefix + "double zero sign", std::signbit(to_double(T(-0.0))));
+  test.check(prefix + "long double zero sign",
+             std::signbit(to_double(T(-0.0L))));
   test.check(prefix + "negative sqrt", sqrt(T(-1)).isnan());
   test.check(prefix + "log zero", log(T(0)).isinf());
   test.check(prefix + "sqrt four", sqrt(T(4)) == T(2));

@@ -2,6 +2,9 @@
 #include <qd/dd_complex.h>
 #include <qd/td_complex.h>
 #include <qd/qd_complex.h>
+#include <qd/ds_complex.h>
+#include <qd/ts_complex.h>
+#include <qd/qs_complex.h>
 #include <qd/edd_complex.h>
 #include <qd/fpu.h>
 
@@ -43,6 +46,11 @@ inline bool real_signbit(const td_real &x) {
 }
 
 inline bool real_signbit(const qd_real &x) {
+  return std::signbit(x[0]);
+}
+
+template <int N>
+inline bool real_signbit(const single_real<N> &x) {
   return std::signbit(x[0]);
 }
 
@@ -307,6 +315,9 @@ int main() {
     pass &= run_type<dd_complex>("dd_complex");
     pass &= run_type<td_complex>("td_complex");
     pass &= run_type<qd_complex>("qd_complex");
+    pass &= run_type<ds_complex>("ds_complex");
+    pass &= run_type<ts_complex>("ts_complex");
+    pass &= run_type<qs_complex>("qs_complex");
     fpu_fix_end(&old_cw);
   }
 #ifdef QD_HAVE_EDD_REAL

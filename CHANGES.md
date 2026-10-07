@@ -1,5 +1,17 @@
 # CHANGES.md
 
+## Unreleased
+
+- Added public C++ complex headers `<qd/ds_complex.h>`, `<qd/ts_complex.h>`,
+  and `<qd/qs_complex.h>`, providing `ds_complex`, `ts_complex`, and
+  `qs_complex` as `qd3_complex<ds_real/ts_real/qs_real>` with `polar`
+  overloads; `<qd/complex.h>` now includes them and CMake installs them.
+- Fixed `ds_real`/`ts_real`/`qs_real` construction from `double` and
+  `long double` signed zero: `-0.0` previously became `+0.0`, which also broke
+  the sign of the imaginary part returned by `proj` for infinite inputs.
+- Extended `complex_test` to DS/TS/QS complex types and added signed-zero
+  construction checks to `single_test`.
+
 ## 1.4.0
 
 libQD3 1.4.0 hardens IEEE-style special values and overflow handling for all
