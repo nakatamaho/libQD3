@@ -5,7 +5,7 @@
  * edit the .cpp directly; edit the template or the generator and rerun it.
  *
  * Dependency-free conformance test for the C API: every function declared in
- * include/qd/c_{dd,td,qd,edd}.h (329 functions) is called on seeded random
+ * include/qd/c_{dd,td,qd,ds,ts,qs,edd}.h (599 functions) is called on seeded random
  * operands and compared with a quad-double reference.  Tolerances are small
  * multiples of the epsilon of the result type, so a wrapper that calls the
  * wrong operation, swaps operands, or rounds an operand to a narrower type
@@ -21,6 +21,12 @@
 #include <qd/c_dd.h>
 #include <qd/c_qd.h>
 #include <qd/c_td.h>
+#include <qd/c_ds.h>
+#include <qd/c_ts.h>
+#include <qd/c_qs.h>
+#include <qd/ds_real.h>
+#include <qd/ts_real.h>
+#include <qd/qs_real.h>
 #include <qd/dd_real.h>
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
@@ -73,6 +79,9 @@ double random_double(Rng &rng, Domain domain) {
 struct dd_tag {};
 struct td_tag {};
 struct qd_tag {};
+struct ds_tag {};
+struct ts_tag {};
+struct qs_tag {};
 struct edd_tag {};
 
 template <class Tag> struct Operand;
@@ -111,6 +120,37 @@ template <> struct Operand<qd_tag> {
   qd_real value() const { return qd_real(limbs); }
   static double eps() { return qd_real::_eps; }
   static int digits() { return qd_real::_ndigits; }
+};
+
+// binary32 expansions: built by rounding the quad-double limb by limb; the
+// value of the limbs is then read back exactly.
+template <int N> struct SingleOperand {
+  float limbs[N];
+  SingleOperand() : limbs() {}
+  explicit SingleOperand(const qd_real &q) {
+    single_real<N> v(q[0]);
+    for (int i = 1; i < 4; ++i) v += single_real<N>(q[i]);
+    for (int i = 0; i < N; ++i) limbs[i] = v.x[i];
+  }
+  qd_real value() const {
+    qd_real r(0.0);
+    for (int i = 0; i < N; ++i) r += static_cast<double>(limbs[i]);
+    return r;
+  }
+  static double eps() { return static_cast<double>(single_real<N>::_eps); }
+  static int digits() { return single_real<N>::_ndigits; }
+};
+template <> struct Operand<ds_tag> : SingleOperand<2> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<2>(q) {}
+};
+template <> struct Operand<ts_tag> : SingleOperand<3> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<3>(q) {}
+};
+template <> struct Operand<qs_tag> : SingleOperand<4> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<4>(q) {}
 };
 
 #ifdef QD_HAVE_EDD_REAL
@@ -2613,6 +2653,2433 @@ void test_c_qd_epsilon(Rng &rng, Report &report) {
   }
 }
 
+void test_c_ds_add(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_add", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_add_ds_ts", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_add_ts_ds", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_add_ds_qs", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_add_qs_ds", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_d_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_add_d_ds(a, b.limbs, c.limbs);
+    report.close("c_ds_add_d_ds", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_add_ds_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ds_tag> c;
+    c_ds_add_ds_d(a.limbs, b, c.limbs);
+    report.close("c_ds_add_ds_d", c.value(), ref_of(a) + ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_sub", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_sub_ds_ts", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_sub_ts_ds", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_sub_ds_qs", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_sub_qs_ds", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_d_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_sub_d_ds(a, b.limbs, c.limbs);
+    report.close("c_ds_sub_d_ds", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sub_ds_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ds_tag> c;
+    c_ds_sub_ds_d(a.limbs, b, c.limbs);
+    report.close("c_ds_sub_ds_d", c.value(), ref_of(a) - ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_mul", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_mul_ds_ts", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_mul_ts_ds", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_mul_ds_qs", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_mul_qs_ds", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_d_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ds_tag> c;
+    c_ds_mul_d_ds(a, b.limbs, c.limbs);
+    report.close("c_ds_mul_d_ds", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_mul_ds_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ds_tag> c;
+    c_ds_mul_ds_d(a.limbs, b, c.limbs);
+    report.close("c_ds_mul_ds_d", c.value(), ref_of(a) * ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_div", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_div_ds_ts", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_div_ts_ds", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_div_ds_qs", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_div_qs_ds", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_d_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_div_d_ds(a, b.limbs, c.limbs);
+    report.close("c_ds_div_d_ds", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_div_ds_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::nonzero);
+    Operand<ds_tag> c;
+    c_ds_div_ds_d(a.limbs, b, c.limbs);
+    report.close("c_ds_div_ds_d", c.value(), ref_of(a) / ref_of(b), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_copy(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_copy(a.limbs, b.limbs);
+    report.close("c_ds_copy", b.value(), ref_of(a), Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_copy_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_copy_ts(a.limbs, b.limbs);
+    report.close("c_ds_copy_ts", b.value(), ref_of(a), Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_copy_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_copy_qs(a.limbs, b.limbs);
+    report.close("c_ds_copy_qs", b.value(), ref_of(a), Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_copy_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b;
+    c_ds_copy_d(a, b.limbs);
+    report.close("c_ds_copy_d", b.value(), ref_of(a), Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_selfadd(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ds_selfadd(a.limbs, b.limbs);
+    report.close("c_ds_selfadd", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfadd_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ds_selfadd_ts(a.limbs, b.limbs);
+    report.close("c_ds_selfadd_ts", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfadd_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ds_selfadd_qs(a.limbs, b.limbs);
+    report.close("c_ds_selfadd_qs", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfadd_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ds_selfadd_d(a, b.limbs);
+    report.close("c_ds_selfadd_d", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfsub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ds_selfsub(a.limbs, b.limbs);
+    report.close("c_ds_selfsub", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfsub_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ds_selfsub_ts(a.limbs, b.limbs);
+    report.close("c_ds_selfsub_ts", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfsub_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ds_selfsub_qs(a.limbs, b.limbs);
+    report.close("c_ds_selfsub_qs", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfsub_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ds_selfsub_d(a, b.limbs);
+    report.close("c_ds_selfsub_d", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfmul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ds_selfmul(a.limbs, b.limbs);
+    report.close("c_ds_selfmul", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfmul_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ds_selfmul_ts(a.limbs, b.limbs);
+    report.close("c_ds_selfmul_ts", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfmul_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ds_selfmul_qs(a.limbs, b.limbs);
+    report.close("c_ds_selfmul_qs", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfmul_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ds_selfmul_d(a, b.limbs);
+    report.close("c_ds_selfmul_d", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfdiv(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ds_selfdiv(a.limbs, b.limbs);
+    report.close("c_ds_selfdiv", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfdiv_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ds_selfdiv_ts(a.limbs, b.limbs);
+    report.close("c_ds_selfdiv_ts", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfdiv_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ds_selfdiv_qs(a.limbs, b.limbs);
+    report.close("c_ds_selfdiv_qs", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_selfdiv_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::nonzero);
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ds_selfdiv_d(a, b.limbs);
+    report.close("c_ds_selfdiv_d", b.value(), expected, Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sqrt(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::positive));
+    Operand<ds_tag> b;
+    c_ds_sqrt(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sqrt", b.value(), sqrt(x), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_sqr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_sqr(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sqr", b.value(), sqr(x), Operand<ds_tag>::eps(), 4);
+  }
+}
+void test_c_ds_abs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_abs(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_abs", b.value(), abs(x), Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_nint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::wide));
+    Operand<ds_tag> b;
+    c_ds_nint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_nint", b.value(), nint(x), Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_aint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::wide));
+    Operand<ds_tag> b;
+    c_ds_aint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_aint", b.value(), aint(x), Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_floor(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::wide));
+    Operand<ds_tag> b;
+    c_ds_floor(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_floor", b.value(), floor(x), Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_ceil(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::wide));
+    Operand<ds_tag> b;
+    c_ds_ceil(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_ceil", b.value(), ceil(x), Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_exp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_exp(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_exp", b.value(), exp(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_log(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::positive));
+    Operand<ds_tag> b;
+    c_ds_log(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_log", b.value(), log(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_log10(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::positive));
+    Operand<ds_tag> b;
+    c_ds_log10(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_log10", b.value(), log10(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_sin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_sin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sin", b.value(), sin(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_cos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_cos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_cos", b.value(), cos(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_tan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_tan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_tan", b.value(), tan(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_asin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::unit));
+    Operand<ds_tag> b;
+    c_ds_asin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_asin", b.value(), asin(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_acos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::unit));
+    Operand<ds_tag> b;
+    c_ds_acos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_acos", b.value(), acos(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_atan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_atan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_atan", b.value(), atan(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_sinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_sinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sinh", b.value(), sinh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_cosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_cosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_cosh", b.value(), cosh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_tanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_tanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_tanh", b.value(), tanh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_asinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_asinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_asinh", b.value(), asinh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_acosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::above1));
+    Operand<ds_tag> b;
+    c_ds_acosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_acosh", b.value(), acosh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_atanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::unit));
+    Operand<ds_tag> b;
+    c_ds_atanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_atanh", b.value(), atanh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_npwr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> b;
+    const int n = iter % 7 - 3;
+    c_ds_npwr(a.limbs, n, b.limbs);
+    report.close("c_ds_npwr", b.value(), npwr(a.value(), n), Operand<ds_tag>::eps(), 16);
+  }
+}
+void test_c_ds_nroot(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::positive));
+    Operand<ds_tag> b;
+    const int n = 2 + iter % 4;
+    c_ds_nroot(a.limbs, n, b.limbs);
+    report.close("c_ds_nroot", b.value(), nroot(a.value(), n), Operand<ds_tag>::eps(), 16);
+  }
+}
+void test_c_ds_atan2(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ds_tag> c;
+    c_ds_atan2(a.limbs, b.limbs, c.limbs);
+    report.close("c_ds_atan2", c.value(), atan2(a.value(), b.value()), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_sincos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> s, c;
+    c_ds_sincos(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sincos sin", s.value(), sin(x), Operand<ds_tag>::eps(), 64);
+    report.close("c_ds_sincos cos", c.value(), cos(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_sincosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> s, c;
+    c_ds_sincosh(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_sincosh sin", s.value(), sinh(x), Operand<ds_tag>::eps(), 64);
+    report.close("c_ds_sincosh cos", c.value(), cosh(x), Operand<ds_tag>::eps(), 64);
+  }
+}
+void test_c_ds_read(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a;
+    c_ds_read("1.5e-3", a.limbs);
+    report.close("c_ds_read", a.value(), qd_real(3) / qd_real(2000), Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_swrite(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    char text[128];
+    c_ds_swrite(a.limbs, Operand<ds_tag>::digits(), text, sizeof(text));
+    report.close("c_ds_swrite", qd_real(text), a.value(), Operand<ds_tag>::eps(), 8);
+  }
+}
+void test_c_ds_write(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    if (iter == 0) {
+      Operand<ds_tag> a(qd_real(0.5));
+      c_ds_write(a.limbs);
+    }
+  }
+}
+void test_c_ds_neg(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b;
+    c_ds_neg(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ds_neg", b.value(), -x, Operand<ds_tag>::eps(), 0);
+  }
+}
+void test_c_ds_rand(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a;
+    c_ds_rand(a.limbs);
+    report.check("c_ds_rand", a.value() >= 0.0 && a.value() < 1.0);
+  }
+}
+void test_c_ds_comp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp", result == expected);
+  }
+}
+void test_c_ds_comp_ds_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    double b = near_double(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_ds_d(a.limbs, b, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_ds_d", result == expected);
+  }
+}
+void test_c_ds_comp_d_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_d_ds(a, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_d_ds", result == expected);
+  }
+}
+void test_c_ds_comp_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_ds_ts(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_ds_ts", result == expected);
+  }
+}
+void test_c_ds_comp_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_ts_ds(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_ts_ds", result == expected);
+  }
+}
+void test_c_ds_comp_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_ds_qs(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_ds_qs", result == expected);
+  }
+}
+void test_c_ds_comp_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ds_comp_qs_ds(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ds_comp_qs_ds", result == expected);
+  }
+}
+void test_c_ds_pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a;
+    c_ds_pi(a.limbs);
+    report.close("c_ds_pi", a.value(), qd_real::_pi, Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_2pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a;
+    c_ds_2pi(a.limbs);
+    report.close("c_ds_2pi", a.value(), qd_real::_2pi, Operand<ds_tag>::eps(), 1);
+  }
+}
+void test_c_ds_epsilon(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    report.check("c_ds_epsilon", qd_real(static_cast<double>(c_ds_epsilon())) == qd_real(static_cast<double>(Operand<ds_tag>::eps())));
+  }
+}
+
+void test_c_ts_add(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_add", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_add_ts_ds", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_add_ds_ts", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_add_ts_qs", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_add_qs_ts", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_d_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_add_d_ts(a, b.limbs, c.limbs);
+    report.close("c_ts_add_d_ts", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_add_ts_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ts_tag> c;
+    c_ts_add_ts_d(a.limbs, b, c.limbs);
+    report.close("c_ts_add_ts_d", c.value(), ref_of(a) + ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_sub", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_sub_ts_ds", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_sub_ds_ts", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_sub_ts_qs", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_sub_qs_ts", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_d_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_sub_d_ts(a, b.limbs, c.limbs);
+    report.close("c_ts_sub_d_ts", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sub_ts_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ts_tag> c;
+    c_ts_sub_ts_d(a.limbs, b, c.limbs);
+    report.close("c_ts_sub_ts_d", c.value(), ref_of(a) - ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_mul", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_mul_ts_ds", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_mul_ds_ts", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_mul_ts_qs", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_mul_qs_ts", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_d_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<ts_tag> c;
+    c_ts_mul_d_ts(a, b.limbs, c.limbs);
+    report.close("c_ts_mul_d_ts", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_mul_ts_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<ts_tag> c;
+    c_ts_mul_ts_d(a.limbs, b, c.limbs);
+    report.close("c_ts_mul_ts_d", c.value(), ref_of(a) * ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_div", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div_ts_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_div_ts_ds", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div_ds_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_div_ds_ts", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_div_ts_qs", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_div_qs_ts", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_d_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_div_d_ts(a, b.limbs, c.limbs);
+    report.close("c_ts_div_d_ts", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_div_ts_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::nonzero);
+    Operand<ts_tag> c;
+    c_ts_div_ts_d(a.limbs, b, c.limbs);
+    report.close("c_ts_div_ts_d", c.value(), ref_of(a) / ref_of(b), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_copy(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_copy(a.limbs, b.limbs);
+    report.close("c_ts_copy", b.value(), ref_of(a), Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_copy_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_copy_ds(a.limbs, b.limbs);
+    report.close("c_ts_copy_ds", b.value(), ref_of(a), Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_copy_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_copy_qs(a.limbs, b.limbs);
+    report.close("c_ts_copy_qs", b.value(), ref_of(a), Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_copy_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b;
+    c_ts_copy_d(a, b.limbs);
+    report.close("c_ts_copy_d", b.value(), ref_of(a), Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_selfadd(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ts_selfadd(a.limbs, b.limbs);
+    report.close("c_ts_selfadd", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfadd_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ts_selfadd_ds(a.limbs, b.limbs);
+    report.close("c_ts_selfadd_ds", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfadd_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ts_selfadd_qs(a.limbs, b.limbs);
+    report.close("c_ts_selfadd_qs", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfadd_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_ts_selfadd_d(a, b.limbs);
+    report.close("c_ts_selfadd_d", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfsub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ts_selfsub(a.limbs, b.limbs);
+    report.close("c_ts_selfsub", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfsub_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ts_selfsub_ds(a.limbs, b.limbs);
+    report.close("c_ts_selfsub_ds", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfsub_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ts_selfsub_qs(a.limbs, b.limbs);
+    report.close("c_ts_selfsub_qs", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfsub_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_ts_selfsub_d(a, b.limbs);
+    report.close("c_ts_selfsub_d", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfmul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ts_selfmul(a.limbs, b.limbs);
+    report.close("c_ts_selfmul", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfmul_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ts_selfmul_ds(a.limbs, b.limbs);
+    report.close("c_ts_selfmul_ds", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfmul_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ts_selfmul_qs(a.limbs, b.limbs);
+    report.close("c_ts_selfmul_qs", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfmul_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_ts_selfmul_d(a, b.limbs);
+    report.close("c_ts_selfmul_d", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfdiv(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ts_selfdiv(a.limbs, b.limbs);
+    report.close("c_ts_selfdiv", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfdiv_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ts_selfdiv_ds(a.limbs, b.limbs);
+    report.close("c_ts_selfdiv_ds", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfdiv_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ts_selfdiv_qs(a.limbs, b.limbs);
+    report.close("c_ts_selfdiv_qs", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_selfdiv_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::nonzero);
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_ts_selfdiv_d(a, b.limbs);
+    report.close("c_ts_selfdiv_d", b.value(), expected, Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sqrt(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::positive));
+    Operand<ts_tag> b;
+    c_ts_sqrt(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sqrt", b.value(), sqrt(x), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_sqr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_sqr(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sqr", b.value(), sqr(x), Operand<ts_tag>::eps(), 4);
+  }
+}
+void test_c_ts_abs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_abs(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_abs", b.value(), abs(x), Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_nint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::wide));
+    Operand<ts_tag> b;
+    c_ts_nint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_nint", b.value(), nint(x), Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_aint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::wide));
+    Operand<ts_tag> b;
+    c_ts_aint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_aint", b.value(), aint(x), Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_floor(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::wide));
+    Operand<ts_tag> b;
+    c_ts_floor(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_floor", b.value(), floor(x), Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_ceil(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::wide));
+    Operand<ts_tag> b;
+    c_ts_ceil(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_ceil", b.value(), ceil(x), Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_exp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_exp(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_exp", b.value(), exp(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_log(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::positive));
+    Operand<ts_tag> b;
+    c_ts_log(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_log", b.value(), log(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_log10(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::positive));
+    Operand<ts_tag> b;
+    c_ts_log10(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_log10", b.value(), log10(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_sin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_sin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sin", b.value(), sin(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_cos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_cos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_cos", b.value(), cos(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_tan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_tan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_tan", b.value(), tan(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_asin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::unit));
+    Operand<ts_tag> b;
+    c_ts_asin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_asin", b.value(), asin(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_acos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::unit));
+    Operand<ts_tag> b;
+    c_ts_acos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_acos", b.value(), acos(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_atan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_atan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_atan", b.value(), atan(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_sinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_sinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sinh", b.value(), sinh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_cosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_cosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_cosh", b.value(), cosh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_tanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_tanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_tanh", b.value(), tanh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_asinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_asinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_asinh", b.value(), asinh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_acosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::above1));
+    Operand<ts_tag> b;
+    c_ts_acosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_acosh", b.value(), acosh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_atanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::unit));
+    Operand<ts_tag> b;
+    c_ts_atanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_atanh", b.value(), atanh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_npwr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> b;
+    const int n = iter % 7 - 3;
+    c_ts_npwr(a.limbs, n, b.limbs);
+    report.close("c_ts_npwr", b.value(), npwr(a.value(), n), Operand<ts_tag>::eps(), 16);
+  }
+}
+void test_c_ts_nroot(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::positive));
+    Operand<ts_tag> b;
+    const int n = 2 + iter % 4;
+    c_ts_nroot(a.limbs, n, b.limbs);
+    report.close("c_ts_nroot", b.value(), nroot(a.value(), n), Operand<ts_tag>::eps(), 16);
+  }
+}
+void test_c_ts_atan2(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<ts_tag> c;
+    c_ts_atan2(a.limbs, b.limbs, c.limbs);
+    report.close("c_ts_atan2", c.value(), atan2(a.value(), b.value()), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_sincos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> s, c;
+    c_ts_sincos(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sincos sin", s.value(), sin(x), Operand<ts_tag>::eps(), 64);
+    report.close("c_ts_sincos cos", c.value(), cos(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_sincosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> s, c;
+    c_ts_sincosh(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_sincosh sin", s.value(), sinh(x), Operand<ts_tag>::eps(), 64);
+    report.close("c_ts_sincosh cos", c.value(), cosh(x), Operand<ts_tag>::eps(), 64);
+  }
+}
+void test_c_ts_read(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a;
+    c_ts_read("1.5e-3", a.limbs);
+    report.close("c_ts_read", a.value(), qd_real(3) / qd_real(2000), Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_swrite(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    char text[128];
+    c_ts_swrite(a.limbs, Operand<ts_tag>::digits(), text, sizeof(text));
+    report.close("c_ts_swrite", qd_real(text), a.value(), Operand<ts_tag>::eps(), 8);
+  }
+}
+void test_c_ts_write(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    if (iter == 0) {
+      Operand<ts_tag> a(qd_real(0.5));
+      c_ts_write(a.limbs);
+    }
+  }
+}
+void test_c_ts_neg(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b;
+    c_ts_neg(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_ts_neg", b.value(), -x, Operand<ts_tag>::eps(), 0);
+  }
+}
+void test_c_ts_rand(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a;
+    c_ts_rand(a.limbs);
+    report.check("c_ts_rand", a.value() >= 0.0 && a.value() < 1.0);
+  }
+}
+void test_c_ts_comp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp", result == expected);
+  }
+}
+void test_c_ts_comp_ts_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    double b = near_double(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_ts_d(a.limbs, b, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_ts_d", result == expected);
+  }
+}
+void test_c_ts_comp_d_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_d_ts(a, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_d_ts", result == expected);
+  }
+}
+void test_c_ts_comp_ts_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_ts_ds(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_ts_ds", result == expected);
+  }
+}
+void test_c_ts_comp_ds_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_ds_ts(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_ds_ts", result == expected);
+  }
+}
+void test_c_ts_comp_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_ts_qs(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_ts_qs", result == expected);
+  }
+}
+void test_c_ts_comp_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_ts_comp_qs_ts(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_ts_comp_qs_ts", result == expected);
+  }
+}
+void test_c_ts_pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a;
+    c_ts_pi(a.limbs);
+    report.close("c_ts_pi", a.value(), qd_real::_pi, Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_2pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a;
+    c_ts_2pi(a.limbs);
+    report.close("c_ts_2pi", a.value(), qd_real::_2pi, Operand<ts_tag>::eps(), 1);
+  }
+}
+void test_c_ts_epsilon(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    report.check("c_ts_epsilon", qd_real(static_cast<double>(c_ts_epsilon())) == qd_real(static_cast<double>(Operand<ts_tag>::eps())));
+  }
+}
+
+void test_c_qs_add(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_add", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_add_qs_ds", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_add_ds_qs", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_add_qs_ts", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_add_ts_qs", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_d_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_add_d_qs(a, b.limbs, c.limbs);
+    report.close("c_qs_add_d_qs", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_add_qs_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<qs_tag> c;
+    c_qs_add_qs_d(a.limbs, b, c.limbs);
+    report.close("c_qs_add_qs_d", c.value(), ref_of(a) + ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_sub", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_sub_qs_ds", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_sub_ds_qs", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_sub_qs_ts", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_sub_ts_qs", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_d_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_sub_d_qs(a, b.limbs, c.limbs);
+    report.close("c_qs_sub_d_qs", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sub_qs_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<qs_tag> c;
+    c_qs_sub_qs_d(a.limbs, b, c.limbs);
+    report.close("c_qs_sub_qs_d", c.value(), ref_of(a) - ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_mul", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_mul_qs_ds", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_mul_ds_qs", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_mul_qs_ts", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_mul_ts_qs", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_d_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    Operand<qs_tag> c;
+    c_qs_mul_d_qs(a, b.limbs, c.limbs);
+    report.close("c_qs_mul_d_qs", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_mul_qs_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::any);
+    Operand<qs_tag> c;
+    c_qs_mul_qs_d(a.limbs, b, c.limbs);
+    report.close("c_qs_mul_qs_d", c.value(), ref_of(a) * ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_div", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div_qs_ds(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_div_qs_ds", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div_ds_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_div_ds_qs", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div_qs_ts(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_div_qs_ts", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div_ts_qs(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_div_ts_qs", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_d_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_div_d_qs(a, b.limbs, c.limbs);
+    report.close("c_qs_div_d_qs", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_div_qs_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    double b = random_double(rng, Domain::nonzero);
+    Operand<qs_tag> c;
+    c_qs_div_qs_d(a.limbs, b, c.limbs);
+    report.close("c_qs_div_qs_d", c.value(), ref_of(a) / ref_of(b), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_copy(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_copy(a.limbs, b.limbs);
+    report.close("c_qs_copy", b.value(), ref_of(a), Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_copy_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_copy_ds(a.limbs, b.limbs);
+    report.close("c_qs_copy_ds", b.value(), ref_of(a), Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_copy_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_copy_ts(a.limbs, b.limbs);
+    report.close("c_qs_copy_ts", b.value(), ref_of(a), Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_copy_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b;
+    c_qs_copy_d(a, b.limbs);
+    report.close("c_qs_copy_d", b.value(), ref_of(a), Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_selfadd(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_qs_selfadd(a.limbs, b.limbs);
+    report.close("c_qs_selfadd", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfadd_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_qs_selfadd_ds(a.limbs, b.limbs);
+    report.close("c_qs_selfadd_ds", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfadd_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_qs_selfadd_ts(a.limbs, b.limbs);
+    report.close("c_qs_selfadd_ts", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfadd_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() + ref_of(a);
+    c_qs_selfadd_d(a, b.limbs);
+    report.close("c_qs_selfadd_d", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfsub(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_qs_selfsub(a.limbs, b.limbs);
+    report.close("c_qs_selfsub", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfsub_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_qs_selfsub_ds(a.limbs, b.limbs);
+    report.close("c_qs_selfsub_ds", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfsub_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_qs_selfsub_ts(a.limbs, b.limbs);
+    report.close("c_qs_selfsub_ts", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfsub_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() - ref_of(a);
+    c_qs_selfsub_d(a, b.limbs);
+    report.close("c_qs_selfsub_d", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfmul(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_qs_selfmul(a.limbs, b.limbs);
+    report.close("c_qs_selfmul", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfmul_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_qs_selfmul_ds(a.limbs, b.limbs);
+    report.close("c_qs_selfmul_ds", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfmul_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_qs_selfmul_ts(a.limbs, b.limbs);
+    report.close("c_qs_selfmul_ts", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfmul_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() * ref_of(a);
+    c_qs_selfmul_d(a, b.limbs);
+    report.close("c_qs_selfmul_d", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfdiv(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_qs_selfdiv(a.limbs, b.limbs);
+    report.close("c_qs_selfdiv", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfdiv_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_qs_selfdiv_ds(a.limbs, b.limbs);
+    report.close("c_qs_selfdiv_ds", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfdiv_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_qs_selfdiv_ts(a.limbs, b.limbs);
+    report.close("c_qs_selfdiv_ts", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_selfdiv_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::nonzero);
+    Operand<qs_tag> b(random_qd(rng, Domain::any));
+    const qd_real expected = b.value() / ref_of(a);
+    c_qs_selfdiv_d(a, b.limbs);
+    report.close("c_qs_selfdiv_d", b.value(), expected, Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sqrt(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::positive));
+    Operand<qs_tag> b;
+    c_qs_sqrt(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sqrt", b.value(), sqrt(x), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_sqr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_sqr(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sqr", b.value(), sqr(x), Operand<qs_tag>::eps(), 4);
+  }
+}
+void test_c_qs_abs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_abs(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_abs", b.value(), abs(x), Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_nint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::wide));
+    Operand<qs_tag> b;
+    c_qs_nint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_nint", b.value(), nint(x), Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_aint(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::wide));
+    Operand<qs_tag> b;
+    c_qs_aint(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_aint", b.value(), aint(x), Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_floor(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::wide));
+    Operand<qs_tag> b;
+    c_qs_floor(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_floor", b.value(), floor(x), Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_ceil(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::wide));
+    Operand<qs_tag> b;
+    c_qs_ceil(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_ceil", b.value(), ceil(x), Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_exp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_exp(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_exp", b.value(), exp(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_log(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::positive));
+    Operand<qs_tag> b;
+    c_qs_log(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_log", b.value(), log(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_log10(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::positive));
+    Operand<qs_tag> b;
+    c_qs_log10(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_log10", b.value(), log10(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_sin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_sin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sin", b.value(), sin(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_cos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_cos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_cos", b.value(), cos(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_tan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_tan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_tan", b.value(), tan(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_asin(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::unit));
+    Operand<qs_tag> b;
+    c_qs_asin(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_asin", b.value(), asin(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_acos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::unit));
+    Operand<qs_tag> b;
+    c_qs_acos(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_acos", b.value(), acos(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_atan(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_atan(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_atan", b.value(), atan(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_sinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_sinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sinh", b.value(), sinh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_cosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_cosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_cosh", b.value(), cosh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_tanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_tanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_tanh", b.value(), tanh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_asinh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_asinh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_asinh", b.value(), asinh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_acosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::above1));
+    Operand<qs_tag> b;
+    c_qs_acosh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_acosh", b.value(), acosh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_atanh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::unit));
+    Operand<qs_tag> b;
+    c_qs_atanh(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_atanh", b.value(), atanh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_npwr(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> b;
+    const int n = iter % 7 - 3;
+    c_qs_npwr(a.limbs, n, b.limbs);
+    report.close("c_qs_npwr", b.value(), npwr(a.value(), n), Operand<qs_tag>::eps(), 16);
+  }
+}
+void test_c_qs_nroot(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::positive));
+    Operand<qs_tag> b;
+    const int n = 2 + iter % 4;
+    c_qs_nroot(a.limbs, n, b.limbs);
+    report.close("c_qs_nroot", b.value(), nroot(a.value(), n), Operand<qs_tag>::eps(), 16);
+  }
+}
+void test_c_qs_atan2(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b(random_qd(rng, Domain::nonzero));
+    Operand<qs_tag> c;
+    c_qs_atan2(a.limbs, b.limbs, c.limbs);
+    report.close("c_qs_atan2", c.value(), atan2(a.value(), b.value()), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_sincos(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> s, c;
+    c_qs_sincos(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sincos sin", s.value(), sin(x), Operand<qs_tag>::eps(), 64);
+    report.close("c_qs_sincos cos", c.value(), cos(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_sincosh(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> s, c;
+    c_qs_sincosh(a.limbs, s.limbs, c.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_sincosh sin", s.value(), sinh(x), Operand<qs_tag>::eps(), 64);
+    report.close("c_qs_sincosh cos", c.value(), cosh(x), Operand<qs_tag>::eps(), 64);
+  }
+}
+void test_c_qs_read(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a;
+    c_qs_read("1.5e-3", a.limbs);
+    report.close("c_qs_read", a.value(), qd_real(3) / qd_real(2000), Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_swrite(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    char text[128];
+    c_qs_swrite(a.limbs, Operand<qs_tag>::digits(), text, sizeof(text));
+    report.close("c_qs_swrite", qd_real(text), a.value(), Operand<qs_tag>::eps(), 8);
+  }
+}
+void test_c_qs_write(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    if (iter == 0) {
+      Operand<qs_tag> a(qd_real(0.5));
+      c_qs_write(a.limbs);
+    }
+  }
+}
+void test_c_qs_neg(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b;
+    c_qs_neg(a.limbs, b.limbs);
+    const qd_real x = a.value();
+    report.close("c_qs_neg", b.value(), -x, Operand<qs_tag>::eps(), 0);
+  }
+}
+void test_c_qs_rand(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a;
+    c_qs_rand(a.limbs);
+    report.check("c_qs_rand", a.value() >= 0.0 && a.value() < 1.0);
+  }
+}
+void test_c_qs_comp(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp", result == expected);
+  }
+}
+void test_c_qs_comp_qs_d(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    double b = near_double(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_qs_d(a.limbs, b, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_qs_d", result == expected);
+  }
+}
+void test_c_qs_comp_d_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    double a = random_double(rng, Domain::any);
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_d_qs(a, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_d_qs", result == expected);
+  }
+}
+void test_c_qs_comp_qs_ds(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ds_tag> b = near_operand<ds_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_qs_ds(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_qs_ds", result == expected);
+  }
+}
+void test_c_qs_comp_ds_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ds_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_ds_qs(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_ds_qs", result == expected);
+  }
+}
+void test_c_qs_comp_qs_ts(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a(random_qd(rng, Domain::any));
+    Operand<ts_tag> b = near_operand<ts_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_qs_ts(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_qs_ts", result == expected);
+  }
+}
+void test_c_qs_comp_ts_qs(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<ts_tag> a(random_qd(rng, Domain::any));
+    Operand<qs_tag> b = near_operand<qs_tag>(ref_of(a), iter);
+    int result = 2;
+    c_qs_comp_ts_qs(a.limbs, b.limbs, &result);
+    const qd_real diff = ref_of(a) - ref_of(b);
+    const int expected = diff < 0.0 ? -1 : (diff > 0.0 ? 1 : 0);
+    report.check("c_qs_comp_ts_qs", result == expected);
+  }
+}
+void test_c_qs_pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a;
+    c_qs_pi(a.limbs);
+    report.close("c_qs_pi", a.value(), qd_real::_pi, Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_2pi(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    Operand<qs_tag> a;
+    c_qs_2pi(a.limbs);
+    report.close("c_qs_2pi", a.value(), qd_real::_2pi, Operand<qs_tag>::eps(), 1);
+  }
+}
+void test_c_qs_epsilon(Rng &rng, Report &report) {
+  for (int iter = 0; iter < kIterations; ++iter) {
+    report.check("c_qs_epsilon", qd_real(static_cast<double>(c_qs_epsilon())) == qd_real(static_cast<double>(Operand<qs_tag>::eps())));
+  }
+}
+
 #ifdef QD_HAVE_EDD_REAL
 void test_c_edd_copy(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
@@ -3419,6 +5886,276 @@ int main() {
   test_c_qd_pi(rng, report);
   test_c_qd_2pi(rng, report);
   test_c_qd_epsilon(rng, report);
+  test_c_ds_add(rng, report);
+  test_c_ds_add_ds_ts(rng, report);
+  test_c_ds_add_ts_ds(rng, report);
+  test_c_ds_add_ds_qs(rng, report);
+  test_c_ds_add_qs_ds(rng, report);
+  test_c_ds_add_d_ds(rng, report);
+  test_c_ds_add_ds_d(rng, report);
+  test_c_ds_sub(rng, report);
+  test_c_ds_sub_ds_ts(rng, report);
+  test_c_ds_sub_ts_ds(rng, report);
+  test_c_ds_sub_ds_qs(rng, report);
+  test_c_ds_sub_qs_ds(rng, report);
+  test_c_ds_sub_d_ds(rng, report);
+  test_c_ds_sub_ds_d(rng, report);
+  test_c_ds_mul(rng, report);
+  test_c_ds_mul_ds_ts(rng, report);
+  test_c_ds_mul_ts_ds(rng, report);
+  test_c_ds_mul_ds_qs(rng, report);
+  test_c_ds_mul_qs_ds(rng, report);
+  test_c_ds_mul_d_ds(rng, report);
+  test_c_ds_mul_ds_d(rng, report);
+  test_c_ds_div(rng, report);
+  test_c_ds_div_ds_ts(rng, report);
+  test_c_ds_div_ts_ds(rng, report);
+  test_c_ds_div_ds_qs(rng, report);
+  test_c_ds_div_qs_ds(rng, report);
+  test_c_ds_div_d_ds(rng, report);
+  test_c_ds_div_ds_d(rng, report);
+  test_c_ds_copy(rng, report);
+  test_c_ds_copy_ts(rng, report);
+  test_c_ds_copy_qs(rng, report);
+  test_c_ds_copy_d(rng, report);
+  test_c_ds_selfadd(rng, report);
+  test_c_ds_selfadd_ts(rng, report);
+  test_c_ds_selfadd_qs(rng, report);
+  test_c_ds_selfadd_d(rng, report);
+  test_c_ds_selfsub(rng, report);
+  test_c_ds_selfsub_ts(rng, report);
+  test_c_ds_selfsub_qs(rng, report);
+  test_c_ds_selfsub_d(rng, report);
+  test_c_ds_selfmul(rng, report);
+  test_c_ds_selfmul_ts(rng, report);
+  test_c_ds_selfmul_qs(rng, report);
+  test_c_ds_selfmul_d(rng, report);
+  test_c_ds_selfdiv(rng, report);
+  test_c_ds_selfdiv_ts(rng, report);
+  test_c_ds_selfdiv_qs(rng, report);
+  test_c_ds_selfdiv_d(rng, report);
+  test_c_ds_sqrt(rng, report);
+  test_c_ds_sqr(rng, report);
+  test_c_ds_abs(rng, report);
+  test_c_ds_nint(rng, report);
+  test_c_ds_aint(rng, report);
+  test_c_ds_floor(rng, report);
+  test_c_ds_ceil(rng, report);
+  test_c_ds_exp(rng, report);
+  test_c_ds_log(rng, report);
+  test_c_ds_log10(rng, report);
+  test_c_ds_sin(rng, report);
+  test_c_ds_cos(rng, report);
+  test_c_ds_tan(rng, report);
+  test_c_ds_asin(rng, report);
+  test_c_ds_acos(rng, report);
+  test_c_ds_atan(rng, report);
+  test_c_ds_sinh(rng, report);
+  test_c_ds_cosh(rng, report);
+  test_c_ds_tanh(rng, report);
+  test_c_ds_asinh(rng, report);
+  test_c_ds_acosh(rng, report);
+  test_c_ds_atanh(rng, report);
+  test_c_ds_npwr(rng, report);
+  test_c_ds_nroot(rng, report);
+  test_c_ds_atan2(rng, report);
+  test_c_ds_sincos(rng, report);
+  test_c_ds_sincosh(rng, report);
+  test_c_ds_read(rng, report);
+  test_c_ds_swrite(rng, report);
+  test_c_ds_write(rng, report);
+  test_c_ds_neg(rng, report);
+  test_c_ds_rand(rng, report);
+  test_c_ds_comp(rng, report);
+  test_c_ds_comp_ds_d(rng, report);
+  test_c_ds_comp_d_ds(rng, report);
+  test_c_ds_comp_ds_ts(rng, report);
+  test_c_ds_comp_ts_ds(rng, report);
+  test_c_ds_comp_ds_qs(rng, report);
+  test_c_ds_comp_qs_ds(rng, report);
+  test_c_ds_pi(rng, report);
+  test_c_ds_2pi(rng, report);
+  test_c_ds_epsilon(rng, report);
+  test_c_ts_add(rng, report);
+  test_c_ts_add_ts_ds(rng, report);
+  test_c_ts_add_ds_ts(rng, report);
+  test_c_ts_add_ts_qs(rng, report);
+  test_c_ts_add_qs_ts(rng, report);
+  test_c_ts_add_d_ts(rng, report);
+  test_c_ts_add_ts_d(rng, report);
+  test_c_ts_sub(rng, report);
+  test_c_ts_sub_ts_ds(rng, report);
+  test_c_ts_sub_ds_ts(rng, report);
+  test_c_ts_sub_ts_qs(rng, report);
+  test_c_ts_sub_qs_ts(rng, report);
+  test_c_ts_sub_d_ts(rng, report);
+  test_c_ts_sub_ts_d(rng, report);
+  test_c_ts_mul(rng, report);
+  test_c_ts_mul_ts_ds(rng, report);
+  test_c_ts_mul_ds_ts(rng, report);
+  test_c_ts_mul_ts_qs(rng, report);
+  test_c_ts_mul_qs_ts(rng, report);
+  test_c_ts_mul_d_ts(rng, report);
+  test_c_ts_mul_ts_d(rng, report);
+  test_c_ts_div(rng, report);
+  test_c_ts_div_ts_ds(rng, report);
+  test_c_ts_div_ds_ts(rng, report);
+  test_c_ts_div_ts_qs(rng, report);
+  test_c_ts_div_qs_ts(rng, report);
+  test_c_ts_div_d_ts(rng, report);
+  test_c_ts_div_ts_d(rng, report);
+  test_c_ts_copy(rng, report);
+  test_c_ts_copy_ds(rng, report);
+  test_c_ts_copy_qs(rng, report);
+  test_c_ts_copy_d(rng, report);
+  test_c_ts_selfadd(rng, report);
+  test_c_ts_selfadd_ds(rng, report);
+  test_c_ts_selfadd_qs(rng, report);
+  test_c_ts_selfadd_d(rng, report);
+  test_c_ts_selfsub(rng, report);
+  test_c_ts_selfsub_ds(rng, report);
+  test_c_ts_selfsub_qs(rng, report);
+  test_c_ts_selfsub_d(rng, report);
+  test_c_ts_selfmul(rng, report);
+  test_c_ts_selfmul_ds(rng, report);
+  test_c_ts_selfmul_qs(rng, report);
+  test_c_ts_selfmul_d(rng, report);
+  test_c_ts_selfdiv(rng, report);
+  test_c_ts_selfdiv_ds(rng, report);
+  test_c_ts_selfdiv_qs(rng, report);
+  test_c_ts_selfdiv_d(rng, report);
+  test_c_ts_sqrt(rng, report);
+  test_c_ts_sqr(rng, report);
+  test_c_ts_abs(rng, report);
+  test_c_ts_nint(rng, report);
+  test_c_ts_aint(rng, report);
+  test_c_ts_floor(rng, report);
+  test_c_ts_ceil(rng, report);
+  test_c_ts_exp(rng, report);
+  test_c_ts_log(rng, report);
+  test_c_ts_log10(rng, report);
+  test_c_ts_sin(rng, report);
+  test_c_ts_cos(rng, report);
+  test_c_ts_tan(rng, report);
+  test_c_ts_asin(rng, report);
+  test_c_ts_acos(rng, report);
+  test_c_ts_atan(rng, report);
+  test_c_ts_sinh(rng, report);
+  test_c_ts_cosh(rng, report);
+  test_c_ts_tanh(rng, report);
+  test_c_ts_asinh(rng, report);
+  test_c_ts_acosh(rng, report);
+  test_c_ts_atanh(rng, report);
+  test_c_ts_npwr(rng, report);
+  test_c_ts_nroot(rng, report);
+  test_c_ts_atan2(rng, report);
+  test_c_ts_sincos(rng, report);
+  test_c_ts_sincosh(rng, report);
+  test_c_ts_read(rng, report);
+  test_c_ts_swrite(rng, report);
+  test_c_ts_write(rng, report);
+  test_c_ts_neg(rng, report);
+  test_c_ts_rand(rng, report);
+  test_c_ts_comp(rng, report);
+  test_c_ts_comp_ts_d(rng, report);
+  test_c_ts_comp_d_ts(rng, report);
+  test_c_ts_comp_ts_ds(rng, report);
+  test_c_ts_comp_ds_ts(rng, report);
+  test_c_ts_comp_ts_qs(rng, report);
+  test_c_ts_comp_qs_ts(rng, report);
+  test_c_ts_pi(rng, report);
+  test_c_ts_2pi(rng, report);
+  test_c_ts_epsilon(rng, report);
+  test_c_qs_add(rng, report);
+  test_c_qs_add_qs_ds(rng, report);
+  test_c_qs_add_ds_qs(rng, report);
+  test_c_qs_add_qs_ts(rng, report);
+  test_c_qs_add_ts_qs(rng, report);
+  test_c_qs_add_d_qs(rng, report);
+  test_c_qs_add_qs_d(rng, report);
+  test_c_qs_sub(rng, report);
+  test_c_qs_sub_qs_ds(rng, report);
+  test_c_qs_sub_ds_qs(rng, report);
+  test_c_qs_sub_qs_ts(rng, report);
+  test_c_qs_sub_ts_qs(rng, report);
+  test_c_qs_sub_d_qs(rng, report);
+  test_c_qs_sub_qs_d(rng, report);
+  test_c_qs_mul(rng, report);
+  test_c_qs_mul_qs_ds(rng, report);
+  test_c_qs_mul_ds_qs(rng, report);
+  test_c_qs_mul_qs_ts(rng, report);
+  test_c_qs_mul_ts_qs(rng, report);
+  test_c_qs_mul_d_qs(rng, report);
+  test_c_qs_mul_qs_d(rng, report);
+  test_c_qs_div(rng, report);
+  test_c_qs_div_qs_ds(rng, report);
+  test_c_qs_div_ds_qs(rng, report);
+  test_c_qs_div_qs_ts(rng, report);
+  test_c_qs_div_ts_qs(rng, report);
+  test_c_qs_div_d_qs(rng, report);
+  test_c_qs_div_qs_d(rng, report);
+  test_c_qs_copy(rng, report);
+  test_c_qs_copy_ds(rng, report);
+  test_c_qs_copy_ts(rng, report);
+  test_c_qs_copy_d(rng, report);
+  test_c_qs_selfadd(rng, report);
+  test_c_qs_selfadd_ds(rng, report);
+  test_c_qs_selfadd_ts(rng, report);
+  test_c_qs_selfadd_d(rng, report);
+  test_c_qs_selfsub(rng, report);
+  test_c_qs_selfsub_ds(rng, report);
+  test_c_qs_selfsub_ts(rng, report);
+  test_c_qs_selfsub_d(rng, report);
+  test_c_qs_selfmul(rng, report);
+  test_c_qs_selfmul_ds(rng, report);
+  test_c_qs_selfmul_ts(rng, report);
+  test_c_qs_selfmul_d(rng, report);
+  test_c_qs_selfdiv(rng, report);
+  test_c_qs_selfdiv_ds(rng, report);
+  test_c_qs_selfdiv_ts(rng, report);
+  test_c_qs_selfdiv_d(rng, report);
+  test_c_qs_sqrt(rng, report);
+  test_c_qs_sqr(rng, report);
+  test_c_qs_abs(rng, report);
+  test_c_qs_nint(rng, report);
+  test_c_qs_aint(rng, report);
+  test_c_qs_floor(rng, report);
+  test_c_qs_ceil(rng, report);
+  test_c_qs_exp(rng, report);
+  test_c_qs_log(rng, report);
+  test_c_qs_log10(rng, report);
+  test_c_qs_sin(rng, report);
+  test_c_qs_cos(rng, report);
+  test_c_qs_tan(rng, report);
+  test_c_qs_asin(rng, report);
+  test_c_qs_acos(rng, report);
+  test_c_qs_atan(rng, report);
+  test_c_qs_sinh(rng, report);
+  test_c_qs_cosh(rng, report);
+  test_c_qs_tanh(rng, report);
+  test_c_qs_asinh(rng, report);
+  test_c_qs_acosh(rng, report);
+  test_c_qs_atanh(rng, report);
+  test_c_qs_npwr(rng, report);
+  test_c_qs_nroot(rng, report);
+  test_c_qs_atan2(rng, report);
+  test_c_qs_sincos(rng, report);
+  test_c_qs_sincosh(rng, report);
+  test_c_qs_read(rng, report);
+  test_c_qs_swrite(rng, report);
+  test_c_qs_write(rng, report);
+  test_c_qs_neg(rng, report);
+  test_c_qs_rand(rng, report);
+  test_c_qs_comp(rng, report);
+  test_c_qs_comp_qs_d(rng, report);
+  test_c_qs_comp_d_qs(rng, report);
+  test_c_qs_comp_qs_ds(rng, report);
+  test_c_qs_comp_ds_qs(rng, report);
+  test_c_qs_comp_qs_ts(rng, report);
+  test_c_qs_comp_ts_qs(rng, report);
+  test_c_qs_pi(rng, report);
+  test_c_qs_2pi(rng, report);
+  test_c_qs_epsilon(rng, report);
     fpu_fix_end(&old_cw);
   }
 #ifdef QD_HAVE_EDD_REAL

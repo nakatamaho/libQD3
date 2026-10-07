@@ -105,6 +105,17 @@
   ! Metadata.
   call report(epsilon(x) > mkr(0) .and. one + epsilon(x) > one, tname, &
               'epsilon')
+  ! epsilon() must match the C++ type: 2**-104/-157/-209 for dd/td/qd and
+  ! 2**-46/-70/-94 for ds/ts/qs.
+  select case (tname)
+  case ('dd'); i = 104
+  case ('td'); i = 157
+  case ('qd'); i = 209
+  case ('ds'); i = 46
+  case ('ts'); i = 70
+  case default; i = 94
+  end select
+  call report(epsilon(x) == mkr(2) ** (-i), tname, 'epsilon value')
   call report(huge(x) > one .and. tiny(x) > mkr(0) .and. tiny(x) < one, &
               tname, 'huge/tiny')
   call report(radix(x) == 2 .and. digits(x) > 0, tname, 'radix/digits')

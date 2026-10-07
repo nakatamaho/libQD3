@@ -30,7 +30,7 @@ const dd_real dd_real::_log10 = dd_real(2.302585092994045901e+00,
 const dd_real dd_real::_nan = dd_real(qd::_d_nan, qd::_d_nan);
 const dd_real dd_real::_inf = dd_real(qd::_d_inf, qd::_d_inf);
 
-const double dd_real::_eps = 4.93038065763132e-32;  // 2^-104
+const double dd_real::_eps = 0x1p-104;  // 2^-104 exactly
 const double dd_real::_min_normalized = 2.0041683600089728e-292;  // = 2^(-1022 + 53)
 const dd_real dd_real::_max = 
     dd_real(1.79769313486231570815e+308, 9.97920154767359795037e+291);

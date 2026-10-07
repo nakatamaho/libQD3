@@ -95,6 +95,9 @@ endif()
 set(QD_BASE_SOURCES
   src/c_dd.cpp
   src/c_qd.cpp
+  src/c_ds.cpp
+  src/c_ts.cpp
+  src/c_qs.cpp
   src/c_td.cpp
   src/dd_real.cpp
   src/dd_const.cpp
@@ -128,6 +131,9 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/c_dd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_qd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_td.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_ds.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_ts.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_qs.h"
   "${CMAKE_SOURCE_DIR}/include/qd/complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_real.h"

@@ -27,7 +27,7 @@ module qdmodule
   end type qd_complex
 
   real*8 d_qd_eps
-  parameter (d_qd_eps = 1.21543267145725d-63)
+  parameter (d_qd_eps = 2.0d0**(-209))
 
   type (qd_real) qd_one, qd_zero, qd_eps, qd_huge, qd_tiny
   parameter (qd_one = qd_real((/1.0d0, 0.0d0, 0.0d0, 0.0d0/)))

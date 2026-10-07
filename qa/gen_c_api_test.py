@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate tests/c_api_test.cpp from the public C API headers.
 
-Every function declared in include/qd/c_{dd,td,qd,edd}.h is classified from
+Every function declared in include/qd/c_{dd,td,qd,ds,ts,qs,edd}.h is classified from
 its name (operation, operand types, result type) and exercised against a
 quad-double reference with an epsilon-relative tolerance of the result type.
 The generator fails if a declared function cannot be classified, so a new C
@@ -20,9 +20,9 @@ import sys
 CHECK = '--check' in sys.argv[1:]
 _ARGS = [a for a in sys.argv[1:] if a != '--check']
 SRC = _ARGS[0] if _ARGS else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TYPES = ['dd', 'td', 'qd', 'edd']
-LIMB = {'dd': 'double', 'td': 'double', 'qd': 'double', 'edd': '_Float64x'}
-NLIMB = {'dd': 2, 'td': 3, 'qd': 4, 'edd': 2}
+TYPES = ['dd', 'td', 'qd', 'ds', 'ts', 'qs', 'edd']
+LIMB = {'dd': 'double', 'td': 'double', 'qd': 'double', 'ds': 'float', 'ts': 'float', 'qs': 'float', 'edd': '_Float64x'}
+NLIMB = {'dd': 2, 'td': 3, 'qd': 4, 'ds': 2, 'ts': 3, 'qs': 4, 'edd': 2}
 UNARY = {
     # name: (reference expression on qd_real x, domain, tolerance in eps)
     'sqrt': ('sqrt(x)', 'positive', 4), 'sqr': ('sqr(x)', 'any', 4),
@@ -67,17 +67,17 @@ def make(kind, var, domain='any'):
 
 def classify(t, name):
     rest = name[len(f'c_{t}_'):]
-    m = re.fullmatch(r'(add|sub|mul|div)(?:_(d|dd|td|qd|edd)_(d|dd|td|qd|edd))?', rest)
+    m = re.fullmatch(r'(add|sub|mul|div)(?:_(d|dd|td|qd|ds|ts|qs|edd)_(d|dd|td|qd|ds|ts|qs|edd))?', rest)
     if m:
         a, b = (m.group(2) or t), (m.group(3) or t)
         return ('binary', m.group(1), a, b)
-    m = re.fullmatch(r'self(add|sub|mul|div)(?:_(d|dd|td|qd|edd))?', rest)
+    m = re.fullmatch(r'self(add|sub|mul|div)(?:_(d|dd|td|qd|ds|ts|qs|edd))?', rest)
     if m:
         return ('self', m.group(1), m.group(2) or t)
-    m = re.fullmatch(r'copy(?:_(d|dd|td|qd|edd))?', rest)
+    m = re.fullmatch(r'copy(?:_(d|dd|td|qd|ds|ts|qs|edd))?', rest)
     if m:
         return ('copy', m.group(1) or t)
-    m = re.fullmatch(r'comp(?:_(d|dd|td|qd|edd)_(d|dd|td|qd|edd))?', rest)
+    m = re.fullmatch(r'comp(?:_(d|dd|td|qd|ds|ts|qs|edd)_(d|dd|td|qd|ds|ts|qs|edd))?', rest)
     if m:
         return ('comp', m.group(1) or t, m.group(2) or t)
     if rest in UNARY:
@@ -193,7 +193,7 @@ def main():
         blocks.append(code)
         runs.append(call)
     text = tmpl.replace('@CASES@', '\n'.join(blocks))
-    text = text.replace('@RUNS_DOUBLE@', ''.join(runs[:3])).replace('@RUNS_EDD@', runs[3])
+    text = text.replace('@RUNS_DOUBLE@', ''.join(runs[:6])).replace('@RUNS_EDD@', runs[6])
     text = text.replace('@COUNT@', str(len(decls)))
     target = os.path.join(SRC, 'tests', 'c_api_test.cpp')
     if CHECK:

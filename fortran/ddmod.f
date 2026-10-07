@@ -26,7 +26,7 @@ module ddmodule
   end type dd_complex
 
   real*8 d_dd_eps
-  parameter (d_dd_eps = 4.93038065763132d-32)
+  parameter (d_dd_eps = 2.0d0**(-104))
 
   type (dd_real) dd_one, dd_zero, dd_eps, dd_huge, dd_tiny
   parameter (dd_one = dd_real((/1.0d0, 0.0d0/)), &

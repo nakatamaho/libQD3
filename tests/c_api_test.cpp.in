@@ -5,7 +5,7 @@
  * edit the .cpp directly; edit the template or the generator and rerun it.
  *
  * Dependency-free conformance test for the C API: every function declared in
- * include/qd/c_{dd,td,qd,edd}.h (@COUNT@ functions) is called on seeded random
+ * include/qd/c_{dd,td,qd,ds,ts,qs,edd}.h (@COUNT@ functions) is called on seeded random
  * operands and compared with a quad-double reference.  Tolerances are small
  * multiples of the epsilon of the result type, so a wrapper that calls the
  * wrong operation, swaps operands, or rounds an operand to a narrower type
@@ -21,6 +21,12 @@
 #include <qd/c_dd.h>
 #include <qd/c_qd.h>
 #include <qd/c_td.h>
+#include <qd/c_ds.h>
+#include <qd/c_ts.h>
+#include <qd/c_qs.h>
+#include <qd/ds_real.h>
+#include <qd/ts_real.h>
+#include <qd/qs_real.h>
 #include <qd/dd_real.h>
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
@@ -73,6 +79,9 @@ double random_double(Rng &rng, Domain domain) {
 struct dd_tag {};
 struct td_tag {};
 struct qd_tag {};
+struct ds_tag {};
+struct ts_tag {};
+struct qs_tag {};
 struct edd_tag {};
 
 template <class Tag> struct Operand;
@@ -111,6 +120,37 @@ template <> struct Operand<qd_tag> {
   qd_real value() const { return qd_real(limbs); }
   static double eps() { return qd_real::_eps; }
   static int digits() { return qd_real::_ndigits; }
+};
+
+// binary32 expansions: built by rounding the quad-double limb by limb; the
+// value of the limbs is then read back exactly.
+template <int N> struct SingleOperand {
+  float limbs[N];
+  SingleOperand() : limbs() {}
+  explicit SingleOperand(const qd_real &q) {
+    single_real<N> v(q[0]);
+    for (int i = 1; i < 4; ++i) v += single_real<N>(q[i]);
+    for (int i = 0; i < N; ++i) limbs[i] = v.x[i];
+  }
+  qd_real value() const {
+    qd_real r(0.0);
+    for (int i = 0; i < N; ++i) r += static_cast<double>(limbs[i]);
+    return r;
+  }
+  static double eps() { return static_cast<double>(single_real<N>::_eps); }
+  static int digits() { return single_real<N>::_ndigits; }
+};
+template <> struct Operand<ds_tag> : SingleOperand<2> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<2>(q) {}
+};
+template <> struct Operand<ts_tag> : SingleOperand<3> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<3>(q) {}
+};
+template <> struct Operand<qs_tag> : SingleOperand<4> {
+  Operand() {}
+  explicit Operand(const qd_real &q) : SingleOperand<4>(q) {}
 };
 
 #ifdef QD_HAVE_EDD_REAL

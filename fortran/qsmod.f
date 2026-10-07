@@ -27,7 +27,7 @@ module qsmodule
   end type qs_complex
 
   real*4 d_qs_eps
-  parameter (d_qs_eps = 6.3108872e-29)
+  parameter (d_qs_eps = 5.0487098e-29)
 
   type (qs_real) qs_one, qs_zero, qs_eps, qs_huge, qs_tiny
   parameter (qs_one = qs_real((/1.0e0, 0.0e0, 0.0e0, 0.0e0/)))
