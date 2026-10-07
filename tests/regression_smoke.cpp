@@ -309,6 +309,47 @@ void check_random(TestContext &test, const char *name, Draw draw, int limbs) {
   test.check((prefix + "reproducible by seed").c_str(), draw() == first);
 }
 
+// log(1 + t) for small t must keep relative accuracy; the Newton iteration
+// used for log only kept absolute accuracy (up to 2e11 eps relative error).
+// log1p is accurate, so it serves as the reference.
+template <class T>
+void check_log_near_one(TestContext &test, const char *name) {
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  bool ok = true;
+  for (double t : {1e-3, -1e-3, 1e-6, 1e-9, -1e-9, 1e-12, 0.1, -0.1}) {
+    // y - 1 is exact for y near 1, so log1p(y - 1) is the reference for
+    // log(y) even when 1 + t itself was rounded.
+    const T y = T(1.0) + T(t);
+    const T got = log(y);
+    const T expected = log1p(y - T(1.0));
+    ok = ok && to_double(abs((got - expected) / expected)) <= 4 * eps;
+  }
+  test.check((std::string(name) + " log near 1 keeps relative accuracy").c_str(), ok);
+}
+
+// fmod is exact; it used to round b * n before subtracting and lost all
+// accuracy to cancellation (17754 eps for ds_real).
+template <class T>
+void check_fmod_exact(TestContext &test, const char *name) {
+  const T a("-395.82354716487563450755260419100522994995117187500");
+  const T b("0.021330100454711953261721646413207054138183593750");
+  const T r = fmod(a, b);
+  const T n = aint(a / b);
+  // a, b and n are exact; with qd_real as reference r must be a - n*b.
+  qd_real ra(0.0), rb(0.0), rn(0.0), rr(0.0);
+  for (int i = 0; i < static_cast<int>(sizeof(a.x) / sizeof(a.x[0])); ++i) {
+    ra += static_cast<double>(a.x[i]);
+    rb += static_cast<double>(b.x[i]);
+    rn += static_cast<double>(n.x[i]);
+    rr += static_cast<double>(r.x[i]);
+  }
+  const qd_real expected = ra - rn * rb;
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  test.check((std::string(name) + " fmod exact").c_str(),
+             to_double(abs((rr - expected) / expected)) <= eps &&
+                 abs(rr) < abs(rb) && (rr <= 0.0) == (ra <= 0.0));
+}
+
 } // namespace
 
 int main() {
@@ -331,6 +372,23 @@ int main() {
   check_long_decimal_parse<ds_real>(test, "ds_real");
   check_long_decimal_parse<ts_real>(test, "ts_real");
   check_long_decimal_parse<qs_real>(test, "qs_real");
+  check_log_near_one<dd_real>(test, "dd_real");
+  check_log_near_one<td_real>(test, "td_real");
+  check_log_near_one<qd_real>(test, "qd_real");
+  check_log_near_one<ds_real>(test, "ds_real");
+  check_log_near_one<ts_real>(test, "ts_real");
+  check_log_near_one<qs_real>(test, "qs_real");
+  check_fmod_exact<ds_real>(test, "ds_real");
+  check_fmod_exact<ts_real>(test, "ts_real");
+  check_fmod_exact<qs_real>(test, "qs_real");
+  {
+    // cbrt of a tiny double-double reached 33 eps through nroot.
+    const dd_real x(0x1.56e2b6e40c2a8p-24, 0x1.5edf281038395p-78);
+    const dd_real c = cbrt(x);
+    const qd_real err = qd_real(c) * qd_real(c) * qd_real(c) - qd_real(x);
+    test.check("dd_real cbrt tiny argument",
+               to_double(abs(err / qd_real(x))) <= 6 * dd_real::_eps);
+  }
   check_random<dd_real>(test, "dd_real", [] { return ddrand(); }, 2);
   check_random<td_real>(test, "td_real", [] { return tdrand(); }, 3);
   check_random<qd_real>(test, "qd_real", [] { return qdrand(); }, 4);

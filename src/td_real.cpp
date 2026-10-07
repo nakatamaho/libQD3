@@ -385,6 +385,12 @@ td_real log(const td_real &a) {
     return 0.0;
   }
 
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - 1.0) < 0.125) {
+    return log1p(a - 1.0);
+  }
+
   int e;
   double m = std::frexp(a[0], &e);
   td_real x = td_real(std::log(m)) + td_real::_log2 * static_cast<double>(e);

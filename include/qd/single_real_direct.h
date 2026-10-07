@@ -1116,6 +1116,9 @@ inline single_real<N> log(const single_real<N> &a) {
   }
   if (a.isinf()) return single_real<N>::_inf;
   if (a.is_one()) return single_real<N>(0.0f);
+  // Near 1 the Newton step cancels and keeps only absolute accuracy; a - 1
+  // is exact there, so use the log1p series.
+  if (abs(a - 1.0f) < 0.125f) return log1p(a - 1.0f);
   int exponent = 0;
   const long double mantissa = std::frexp(
       static_cast<long double>(a.x[0]), &exponent);
@@ -1217,7 +1220,38 @@ inline single_real<N> aint(const single_real<N> &a) {
 template <int N>
 inline single_real<N> fmod(const single_real<N> &a,
                            const single_real<N> &b) {
-  return a - b * aint(a / b);
+  if (a.isnan() || b.isnan() || a.isinf() || b.is_zero()) {
+    return single_real<N>::_nan;
+  }
+  if (b.isinf() || a.is_zero()) return a;
+  // r = a - n*b is exactly representable; form the n*b products exactly and
+  // round the exact sum once.  Rounding b*n first, as before, lost all
+  // accuracy to cancellation when r is much smaller than a.
+  single_real<N> n = aint(a / b);
+  single_real<N> r;
+  for (int attempt = 0; attempt < 3; ++attempt) {
+    float terms[N + 2 * N * N];
+    int count = 0;
+    for (int i = 0; i < N; ++i) terms[count++] = a.x[i];
+    for (int i = 0; i < N; ++i) {
+      for (int j = 0; j < N; ++j) {
+        float error;
+        terms[count++] = qd_single_detail::two_prod(-n.x[i], b.x[j], error);
+        terms[count++] = error;
+      }
+    }
+    r = qd_single_detail::from_terms<N>(terms, count);
+    // a / b was rounded, so n can be off by one: the remainder must have
+    // the sign of a (or be zero) and be smaller than |b|.
+    if (!r.is_zero() && r.is_negative() != a.is_negative()) {
+      n -= (n.is_negative() ? -1.0f : 1.0f);
+    } else if (abs(r) >= abs(b)) {
+      n += ((a.is_negative() != b.is_negative()) ? -1.0f : 1.0f);
+    } else {
+      break;
+    }
+  }
+  return r;
 }
 template <int N>
 inline single_real<N> hypot(const single_real<N> &a,

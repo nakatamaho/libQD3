@@ -1112,6 +1112,12 @@ qd_real log(const qd_real &a) {
     return -qd_real::_inf;
   }
 
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - 1.0) < 0.125) {
+    return log1p(a - 1.0);
+  }
+
   qd_real x = std::log(a[0]);   /* Initial approximation */
 
   x = x + a * exp(-x) - 1.0;
@@ -2897,3 +2903,16 @@ qd_real qd_real::debug_rand() {
 }
 
 bool qd_suppress_error_messages = false;
+
+QD_API dd_real cbrt(const dd_real &a) {
+  if (a.isnan()) {
+    return dd_real::_nan;
+  }
+  if (a.is_zero()) {
+    return a;
+  }
+  /* nroot in double-double loses up to ~33 eps for tiny arguments; take the
+     root in quad-double and round once. */
+  return to_dd_real(nroot(qd_real(a), 3));
+}
+

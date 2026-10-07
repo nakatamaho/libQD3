@@ -334,6 +334,11 @@ edd_real log(const edd_real &a) {
   if (a.is_one())
     return edd_real((edd_word) 0.0);
 
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - (edd_word) 1.0) < (edd_word) 0.125)
+    return log1p(a - (edd_word) 1.0);
+
   int e;
   edd_word m = edd::frexpx(a[0], &e);
   edd_real x = edd_real(edd::logx(m)) + edd_real::_log2 * (edd_word) e;

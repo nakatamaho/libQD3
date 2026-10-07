@@ -293,6 +293,12 @@ dd_real log(const dd_real &a) {
     return dd_real::_nan;
   }
 
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - 1.0) < 0.125) {
+    return log1p(a - 1.0);
+  }
+
   dd_real x = std::log(a.x[0]);   /* Initial approximation */
 
   x = x + a * exp(-x) - 1.0;
@@ -392,15 +398,8 @@ dd_real hypot(const dd_real &a, const dd_real &b) {
   return x * sqrt(1.0 + sqr(r));
 }
 
-dd_real cbrt(const dd_real &a) {
-  if (a.isnan()) {
-    return dd_real::_nan;
-  }
-  if (a.is_zero()) {
-    return a;
-  }
-  return nroot(a, 3);
-}
+/* cbrt(const dd_real &) is defined in qd_real.cpp: it is evaluated in
+   quad-double precision. */
 
 dd_real trunc(const dd_real &a) {
   return aint(a);
