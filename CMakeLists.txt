@@ -811,28 +811,52 @@ if(BUILD_TESTING)
       oracle_test_complex_arith_dd
       oracle_test_complex_arith_td
       oracle_test_complex_arith_qd
+      oracle_test_complex_arith_ds
+      oracle_test_complex_arith_ts
+      oracle_test_complex_arith_qs
       oracle_test_complex_unary_dd
       oracle_test_complex_unary_td
       oracle_test_complex_unary_qd
+      oracle_test_complex_unary_ds
+      oracle_test_complex_unary_ts
+      oracle_test_complex_unary_qs
       oracle_test_complex_binary_dd
       oracle_test_complex_binary_td
       oracle_test_complex_binary_qd
+      oracle_test_complex_binary_ds
+      oracle_test_complex_binary_ts
+      oracle_test_complex_binary_qs
       oracle_test_complex_special_dd
       oracle_test_complex_special_td
       oracle_test_complex_special_qd
+      oracle_test_complex_special_ds
+      oracle_test_complex_special_ts
+      oracle_test_complex_special_qs
     )
     add_test(NAME oracle_test_complex_arith_dd COMMAND oracle_test_complex_arith -dd)
     add_test(NAME oracle_test_complex_arith_td COMMAND oracle_test_complex_arith -td)
     add_test(NAME oracle_test_complex_arith_qd COMMAND oracle_test_complex_arith -qd)
+    add_test(NAME oracle_test_complex_arith_ds COMMAND oracle_test_complex_arith -ds)
+    add_test(NAME oracle_test_complex_arith_ts COMMAND oracle_test_complex_arith -ts)
+    add_test(NAME oracle_test_complex_arith_qs COMMAND oracle_test_complex_arith -qs)
     add_test(NAME oracle_test_complex_unary_dd COMMAND oracle_test_complex_unary -dd)
     add_test(NAME oracle_test_complex_unary_td COMMAND oracle_test_complex_unary -td)
     add_test(NAME oracle_test_complex_unary_qd COMMAND oracle_test_complex_unary -qd)
+    add_test(NAME oracle_test_complex_unary_ds COMMAND oracle_test_complex_unary -ds)
+    add_test(NAME oracle_test_complex_unary_ts COMMAND oracle_test_complex_unary -ts)
+    add_test(NAME oracle_test_complex_unary_qs COMMAND oracle_test_complex_unary -qs)
     add_test(NAME oracle_test_complex_binary_dd COMMAND oracle_test_complex_binary -dd)
     add_test(NAME oracle_test_complex_binary_td COMMAND oracle_test_complex_binary -td)
     add_test(NAME oracle_test_complex_binary_qd COMMAND oracle_test_complex_binary -qd)
+    add_test(NAME oracle_test_complex_binary_ds COMMAND oracle_test_complex_binary -ds)
+    add_test(NAME oracle_test_complex_binary_ts COMMAND oracle_test_complex_binary -ts)
+    add_test(NAME oracle_test_complex_binary_qs COMMAND oracle_test_complex_binary -qs)
     add_test(NAME oracle_test_complex_special_dd COMMAND oracle_test_complex_special -dd)
     add_test(NAME oracle_test_complex_special_td COMMAND oracle_test_complex_special -td)
     add_test(NAME oracle_test_complex_special_qd COMMAND oracle_test_complex_special -qd)
+    add_test(NAME oracle_test_complex_special_ds COMMAND oracle_test_complex_special -ds)
+    add_test(NAME oracle_test_complex_special_ts COMMAND oracle_test_complex_special -ts)
+    add_test(NAME oracle_test_complex_special_qs COMMAND oracle_test_complex_special -qs)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_complex_arith_edd COMMAND oracle_test_complex_arith -edd)
       add_test(NAME oracle_test_complex_unary_edd COMMAND oracle_test_complex_unary -edd)
