@@ -51,6 +51,11 @@
 - `qa/check_complex_oracle_matrix_cmake.sh` is the MPC/MPFR-backed complex
   oracle gate. It must pass for a release gate to be considered complete.
 
+- The release-gate scripts build with `QD_BUILD_FORTRAN=ON`; they fail when
+  no Fortran compiler is available. Fortran coverage (`f_test`, `f_suite`)
+  is part of the gate. `QD3_QA_FORTRAN=OFF` skips it explicitly and must not
+  be used for a release gate.
+
 - Sanitizer and coverage runs are additional release QA. They are not a
   substitute for the MPC-inclusive release gate above.
 

@@ -7,6 +7,15 @@ LOG_DIR="$BUILD_ROOT/logs"
 QD_TEST_SEED="${QD_TEST_SEED:-11400714819323198485}"
 JOBS="${JOBS:-}"
 CMAKE_CMD="${CMAKE:-cmake}"
+
+# The release gate requires the Fortran interfaces.  A configuration without
+# a Fortran compiler must opt out explicitly with QD3_QA_FORTRAN=OFF.
+QA_FORTRAN="$(printf '%s' "${QD3_QA_FORTRAN:-ON}" | tr '[:lower:]' '[:upper:]')"
+case "$QA_FORTRAN" in
+  ON) ;;
+  OFF) echo "WARNING: QD3_QA_FORTRAN=OFF: Fortran interfaces are NOT covered by this run" >&2 ;;
+  *) echo "QD3_QA_FORTRAN must be ON or OFF, got '$QA_FORTRAN'" >&2; exit 2 ;;
+esac
 CTEST_CMD="${CTEST:-ctest}"
 KEEP_BUILD="${KEEP_BUILD:-0}"
 
@@ -56,10 +65,11 @@ run_case() {
 
   rc=0
   {
-    echo "$ $CMAKE_CMD -S $SRC_DIR -B $build_dir -DBUILD_TESTING=ON -DQD3_ENABLE_MPFR_TESTS=ON $*"
+    echo "$ $CMAKE_CMD -S $SRC_DIR -B $build_dir -DBUILD_TESTING=ON -DQD3_ENABLE_MPFR_TESTS=ON -DQD_BUILD_FORTRAN=$QA_FORTRAN $*"
     "$CMAKE_CMD" -S "$SRC_DIR" -B "$build_dir" \
       -DBUILD_TESTING=ON \
       -DQD3_ENABLE_MPFR_TESTS=ON \
+      -DQD_BUILD_FORTRAN="$QA_FORTRAN" \
       "$@"
 
     if [ -n "$JOBS" ]; then

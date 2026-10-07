@@ -10,6 +10,8 @@ CTEST_CMD="${CTEST:-ctest}"
 # matrix configuration. qa/check_oracle_matrix_cmake.sh is the convenience
 # wrapper for that mode.
 
+# Fortran is required by default; set QD3_QA_FORTRAN=OFF to opt out
+# explicitly (see qa/cmake_matrix.cmake).
 mkdir -p "$LOG_DIR"
 
 exec "$CTEST_CMD" \
