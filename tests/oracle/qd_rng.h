@@ -29,7 +29,12 @@ void uniform_mpfr(mpfr_t out, int emin, int emax) {
   mpfr_init2(chunk, ref_prec<T>());
   const int bits = std::numeric_limits<T>::digits + 8;
   for (int offset = 0; offset < bits; offset += 52) {
-    mpfr_set_ui(chunk, random_word52(), MPFR_RNDN);
+    // unsigned long is 32 bits on Windows: pass the 52-bit word in two
+    // 26-bit halves so every platform draws the same inputs.
+    const std::uint64_t word = random_word52();
+    mpfr_set_ui(chunk, static_cast<unsigned long>(word >> 26), MPFR_RNDN);
+    mpfr_mul_2ui(chunk, chunk, 26, MPFR_RNDN);
+    mpfr_add_ui(chunk, chunk, static_cast<unsigned long>(word & 0x3FFFFFFu), MPFR_RNDN);
     mpfr_mul_2si(chunk, chunk, -(offset + 52), MPFR_RNDN);
     mpfr_add(out, out, chunk, MPFR_RNDN);
   }

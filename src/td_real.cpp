@@ -828,7 +828,9 @@ int td_real::read(const char *s, td_real &a) {
   int nd = 0;
   int e = 0;
   bool done = false;
-  td_real r = 0.0;
+  /* Accumulate and scale in quad-double, then round to triple-double once:
+     long literals exceed triple-double precision while digits are added. */
+  qd_real r = 0.0;
 
   while (*p == ' ') {
     p++;
@@ -896,12 +898,12 @@ int td_real::read(const char *s, td_real &a) {
   /* Divide by the exact power 10^-e rather than multiplying by the inexact
      10^e, so decimals that are representable parse exactly. */
   if (e > 0) {
-    r *= (td_real(10.0) ^ e);
+    r *= (qd_real(10.0) ^ e);
   } else if (e < 0) {
-    r /= (td_real(10.0) ^ (-e));
+    r /= (qd_real(10.0) ^ (-e));
   }
 
-  a = (sign < 0) ? -r : r;
+  a = to_td_real((sign < 0) ? -r : r);
   return 0;
 }
 
