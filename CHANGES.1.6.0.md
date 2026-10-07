@@ -15,6 +15,16 @@ C++ core:
   target precision (up to 6.7 eps error); it now converts with quad-double
   precision and rounds once (< 0.1 eps).
 - `ds/ts/qs_real` built from `double`/`long double` `-0.0` lost the sign.
+- `log` near 1 kept only absolute accuracy (the Newton step
+  `x + a*exp(-x) - 1` cancels): relative errors reached 2e11 eps for
+  `dd_real`, 1e9 eps for `qd_real` and 5e5 eps for the binary32 types.  For
+  |a - 1| < 1/8 it now evaluates `log1p(a - 1)` (`a - 1` is exact there);
+  all seven types are within 0.5 eps.  `log2`/`log10` inherit the fix.
+- `ds/ts/qs` `fmod` rounded `b * n` before subtracting (up to 17754 eps); it
+  now forms the products exactly and rounds once, and corrects `n` when
+  `a / b` rounded across an integer.
+- `cbrt(dd_real)` reached 33 eps for tiny arguments; it is evaluated in
+  quad-double.
 - `dd_real::_eps` and `qd_real::_eps` are now exactly 2^-104 and 2^-209.
 
 Random numbers:
@@ -92,6 +102,9 @@ QA:
 - The release-gate scripts build with `QD_BUILD_FORTRAN=ON`; set
   `QD3_QA_FORTRAN=OFF` to opt out explicitly.
 - `regression_smoke` checks exact and long-literal parsing for all types.
+- The MPFR oracle drew Windows inputs with the top 20 mantissa bits zero
+  (`mpfr_set_ui` with a 52-bit value); all platforms now draw the same
+  inputs.  Every oracle program passes seeds 1-100.
 - The MPC complex oracle also runs for `ds_complex`, `ts_complex` and
   `qs_complex` (seeded random inputs).
 - Random functions are checked for range coverage, mean, limb fill and
