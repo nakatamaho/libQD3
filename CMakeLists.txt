@@ -940,13 +940,19 @@ if(QD3_ENABLE_COVERAGE)
   )
 endif()
 
-find_program(QD_MAKE_PROGRAM NAMES gmake make REQUIRED)
-add_custom_target(doc
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" qd.pdf
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" edd.pdf
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" td.pdf
-  VERBATIM
-)
+# The LaTeX documentation is built by docs/Makefile; make is only needed for
+# the optional doc target, not to configure or build the library.
+find_program(QD_MAKE_PROGRAM NAMES gmake make)
+if(QD_MAKE_PROGRAM)
+  add_custom_target(doc
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" qd.pdf
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" edd.pdf
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" td.pdf
+    VERBATIM
+  )
+else()
+  message(STATUS "make not found; the doc target is not available")
+endif()
 
 add_custom_target(dist-cmake
   COMMAND sh -c "git -C '${CMAKE_SOURCE_DIR}' archive --format=tar.gz --prefix='libQD3-${PROJECT_VERSION}/' HEAD > '${CMAKE_BINARY_DIR}/libQD3-${PROJECT_VERSION}.tar.gz'"
