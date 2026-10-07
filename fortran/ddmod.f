@@ -509,7 +509,9 @@ contains
 
   elemental integer function to_int_dd(a) 
     type (dd_real), intent(in) :: a
-    to_int_dd = a%re(1)
+    type (dd_real) :: t
+    t = ddaint(a)
+    to_int_dd = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_dd
 
   type (dd_real) function to_dd_str(s)
@@ -1105,7 +1107,7 @@ contains
 
   elemental integer function ddnint(a)
     type (dd_real), intent(in) :: a
-    ddnint = to_int_dd(ddaint(a));
+    ddnint = to_int_dd(ddanint(a))
   end function ddnint
 
 
@@ -1497,37 +1499,21 @@ contains
 ! Sign transfer
   elemental type (dd_real) function ddsign(a, b) result (c)
     type (dd_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function ddsign
 
   elemental type (dd_real) function ddsign_dd_d(a, b) result (c)
     type (dd_real), intent(in) :: a
     real*8, intent(in) ::  b
-    if (b .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function ddsign_dd_d
 
 ! Input

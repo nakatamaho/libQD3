@@ -720,7 +720,9 @@ contains
 
   elemental integer function to_int_ts(a)
     type (ts_real), intent(in) :: a
-    to_int_ts = a%re(1)
+    type (ts_real) :: t
+    t = tsaint(a)
+    to_int_ts = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_ts
 
   elemental type (ts_complex) function tscconjg(tsc)
@@ -1259,37 +1261,21 @@ contains
 
   elemental type (ts_real) function tssign(a, b) result (c)
     type (ts_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tssign
 
   elemental type (ts_real) function tssign_ts_d(a, b) result (c)
     type (ts_real), intent(in) :: a
     real*4, intent(in) :: b
-    if (b .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tssign_ts_d
 
   subroutine tsrand(harvest)

@@ -464,6 +464,19 @@ if(BUILD_TESTING)
     target_link_libraries(f_test PRIVATE qdmod qd_f_main qd)
     add_test(NAME f_test COMMAND f_test)
     list(APPEND QD_DEMO_DEPS f_test)
+
+    add_executable(f_suite tests/f_suite_support.f90 tests/f_suite.f90)
+    target_include_directories(f_suite BEFORE PRIVATE
+      "${QD_FORTRAN_MODULE_DIR}"
+      "${CMAKE_SOURCE_DIR}/tests"
+    )
+    set_target_properties(f_suite PROPERTIES
+      LINKER_LANGUAGE CXX
+      Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/tests/f_suite_modules")
+    qd3_add_qa_options(f_suite)
+    target_link_libraries(f_suite PRIVATE qdmod qd_f_main qd)
+    add_test(NAME f_suite COMMAND f_suite)
+    list(APPEND QD_DEMO_DEPS f_suite)
   endif()
 
   if(QD3_ENABLE_MPFR_TESTS)

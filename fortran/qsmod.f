@@ -529,7 +529,9 @@ contains
 
   elemental integer function to_int_qs(a)
     type (qs_real), intent(in) :: a
-    to_int_qs = a%re(1)
+    type (qs_real) :: t
+    t = qsaint(a)
+    to_int_qs = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_qs
 
   elemental type (qs_real) function to_qs_dd (dd)
@@ -1137,7 +1139,7 @@ contains
 
   elemental integer function qsnint(a)
     type (qs_real), intent(in) :: a
-    qsnint = to_int_qs(qsaint(a));
+    qsnint = to_int_qs(qsanint(a))
   end function qsnint
 
 
@@ -1529,37 +1531,21 @@ contains
 ! Sign transfer
   elemental type (qs_real) function qssign(a, b) result (c)
     type (qs_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function qssign
 
   elemental type (qs_real) function qssign_dd_d(a, b) result (c)
     type (qs_real), intent(in) :: a
     real*4, intent(in) :: b
-    if (b .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function qssign_dd_d
 
 ! Input

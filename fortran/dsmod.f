@@ -508,7 +508,9 @@ contains
 
   elemental integer function to_int_ds(a)
     type (ds_real), intent(in) :: a
-    to_int_ds = a%re(1)
+    type (ds_real) :: t
+    t = dsaint(a)
+    to_int_ds = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_ds
 
   type (ds_real) function to_ds_str(s)
@@ -1104,7 +1106,7 @@ contains
 
   elemental integer function dsnint(a)
     type (ds_real), intent(in) :: a
-    dsnint = to_int_ds(dsaint(a));
+    dsnint = to_int_ds(dsanint(a))
   end function dsnint
 
 
@@ -1496,37 +1498,21 @@ contains
 ! Sign transfer
   elemental type (ds_real) function dssign(a, b) result (c)
     type (ds_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function dssign
 
   elemental type (ds_real) function dssign_ds_d(a, b) result (c)
     type (ds_real), intent(in) :: a
     real*4, intent(in) ::  b
-    if (b .gt. 0.0e0) then
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0e0, a%re(1)) .lt. 0) .eqv. (sign(1.0e0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0e0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function dssign_ds_d
 
 ! Input

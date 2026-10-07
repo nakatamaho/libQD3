@@ -723,7 +723,9 @@ contains
 
   elemental integer function to_int_td(a)
     type (td_real), intent(in) :: a
-    to_int_td = a%re(1)
+    type (td_real) :: t
+    t = tdaint(a)
+    to_int_td = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_td
 
   elemental type (td_complex) function tdcconjg(tdc)
@@ -1262,37 +1264,21 @@ contains
 
   elemental type (td_real) function tdsign(a, b) result (c)
     type (td_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tdsign
 
   elemental type (td_real) function tdsign_td_d(a, b) result (c)
     type (td_real), intent(in) :: a
     real*8, intent(in) :: b
-    if (b .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tdsign_td_d
 
   subroutine tdrand(harvest)
