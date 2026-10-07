@@ -1,26 +1,58 @@
-* update documentation
-* oracle QA follow-up: implement optional JUnit output (`--junit=FILE` /
-  `QD3_TEST_JUNIT`) or keep public docs strictly TAP-only until it exists
-* oracle QA follow-up: wire Automake TAP-driver reporting for oracle subtests
-  if per-subtest Automake summaries are required
-* oracle QA follow-up: raise filtered lcov coverage from 69.7% line /
-  75.2% function coverage toward the documented 90% function-body target
-* oracle QA follow-up: add direct MPFR rows for `abs`/`fabs`, `asinh`,
-  `acosh`, `atanh`, `sincos`, and `sincosh`
-* oracle QA follow-up: extend rounding coverage for `nint`, `floor`, `ceil`,
-  `aint`, and `quick_nint` with MPFR tie and large-value grids
-* oracle QA follow-up: expand special-value coverage for signed zero,
-  arithmetic NaN/Inf propagation, `_min_normalized`, `_max`, `_safe_max`,
-  subnormal-like limb patterns, `log(0)`, `pow(0,0)`, and asin/acos
-  out-of-domain inputs
-* oracle QA follow-up: enumerate mixed dd/td/qd C++ overloads and mixed C API
-  shims instead of relying on representative smoke coverage
-* add integer format support
-* support complex types.
-* partial template specialization for complex divide.
-* support x86 double-extended format (see Hladky's work)
-* perhaps rewrite core code in C preprocessor, with C/C++ wrappers.
-* complete numeric_limits
-* sane handling of overflow / underflow / NaNs.
-* handle more general streams, e.g., wide character streams
-* use automake within the docs/ directory.
+# TODO
+
+Open items after 1.6.0.  Completed items were removed (complex types,
+x86 double-extended support via `edd_real`, Automake integration, which no
+longer applies to the CMake-only build, and the mixed C API coverage now in
+`c_api_test`).
+
+## Interfaces
+
+* complex C API: no `c_*` entry points exist for `dd_complex` ... `qs_complex`.
+* `edd_real` Fortran module (the C and C++ interfaces exist).
+* Fortran model inquiry functions for the expansion types: `exponent`,
+  `fraction`, `scale`, `set_exponent`, `spacing`, `nearest`, `rrspacing`.
+* `std::numeric_limits` is incomplete: members not overridden are inherited
+  from `double`/`float` (for example `max_digits10` is 17 for `dd_real`), and
+  `infinity()`, `quiet_NaN()`, `lowest()` and `denorm_min()` return the limb
+  type rather than the expansion type.
+* integer formatting support in the I/O routines.
+* wide-character and other general stream support.
+
+## Numerics
+
+* `ddrand`, `qdrand`, `c_td_rand`, `c_edd_rand` and the Fortran `random_number`
+  draw 31 bits per `std::rand()` call; where `RAND_MAX` is 32767 (e.g.
+  Windows) most of those bits are zero.  Use a generator with a known width.
+* overflow / underflow / NaN handling beyond division and square root (which
+  were hardened in 1.4.0).
+* partial template specialization for complex division.
+
+## QA
+
+* oracle: add direct MPFR rows for `abs`/`fabs`, `asinh`, `acosh`, `atanh`,
+  `sincos`, and `sincosh`.
+* oracle: MPFR rounding coverage for `nint`, `floor`, `ceil`, `aint`, and
+  `quick_nint` with tie and large-value grids (`test_rounding_corners` does not
+  exercise them).
+* oracle: expand special-value coverage for signed zero, arithmetic NaN/Inf
+  propagation, `_min_normalized`, `_max`, `_safe_max`, subnormal-like limb
+  patterns, `log(0)`, `pow(0,0)`, and asin/acos out-of-domain inputs.
+* oracle: enumerate the mixed dd/td/qd C++ operator overloads (the mixed C API
+  shims are covered by `c_api_test`).
+* raise filtered lcov coverage toward the 90% function-body target (last
+  recorded: 69.7% line / 75.2% function, before 1.6.0).
+* optional JUnit output (`--junit=FILE` / `QD3_TEST_JUNIT`), or keep public
+  docs strictly TAP-only.
+* continuous integration: there is no CI; the release gate is run by hand.
+* platforms not verified for 1.6.0: i386/x87, MinGW, macOS, and Fortran
+  compilers other than gfortran.
+
+## Documentation
+
+* document `ds_real`/`ts_real`/`qs_real`, the C API and the Fortran modules
+  in `docs/` (only `qd.tex`, `td.tex` and `edd.tex` exist).
+* build the LaTeX documentation from CMake (`docs/Makefile` is standalone).
+
+## Ideas
+
+* rewrite the core code with the C preprocessor and thin C/C++ wrappers.

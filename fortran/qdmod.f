@@ -1787,11 +1787,6 @@ contains
 
   end subroutine qdcoutq
 
-  elemental real*8 function qd_to_d(a)
-    type (qd_real), intent(in) :: a
-    qd_to_d = a%re(1)
-  end function qd_to_d
-
   elemental type (qd_real) function qdmin2(a, b)
     type (qd_real), intent(in) :: a, b
     integer :: r

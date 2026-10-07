@@ -681,11 +681,6 @@ contains
     to_dsc_dc%cmp(4) = 0.e0
   end function to_dsc_dc
 
-  elemental real*4 function to_d_dsc(dsc)
-    type (ds_complex), intent(in) :: dsc
-    to_d_dsc = dsc%cmp(1)
-  end function to_d_dsc
-
 !  Complex conjugation
   elemental type (ds_complex) function dscconjg (dsc)
     type (ds_complex), intent(in) :: dsc
@@ -1961,28 +1956,6 @@ subroutine dsoutc (a, b)
   b(2) = ' '
   call f_ds_swrite(a, 31, b(3), 38)
 end subroutine
-
-  real*4 function dsdigin (ca, n)
-    implicit none
-    real*4 d1
-    character*(*), ca
-    character*16 digits
-    integer i, k, n
-    parameter (digits = '0123456789')
-
-    d1 = 0.e0
-
-    do i = 1, n
-      k = index (digits, ca(i:i)) - 1
-      if (k < 0) then
-        write (6, *) 'dsdigin: non-digit in character string'
-      elseif (k <= 9) then
-        d1 = 10.e0 * d1 + k
-      endif
-    enddo
-
-    dsdigin = d1
-  end function
 
   character*16 function dsdigout (a, n)
     implicit none

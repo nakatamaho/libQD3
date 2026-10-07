@@ -780,11 +780,6 @@ contains
     call f_ts_from_qd(qdc%cmp(5:8), to_tsc_qdc%cmp(4:6))
   end function to_tsc_qdc
 
-  elemental real*4 function to_d_tsc(tsc)
-    type (ts_complex), intent(in) :: tsc
-    to_d_tsc = tsc%cmp(1)
-  end function to_d_tsc
-
   elemental integer function to_int_ts(a)
     type (ts_real), intent(in) :: a
     type (ts_real) :: t
@@ -1890,26 +1885,6 @@ subroutine tsoutc(a, b)
   b(2) = ' '
   call f_ts_swrite(a, 47, b(3), 55)
 end subroutine
-
-  real*4 function dddigin(ca, n)
-    implicit none
-    real*4 d1
-    character*(*), ca
-    character*16 digits
-    integer i, k, n
-    parameter (digits = '0123456789')
-
-    d1 = 0.e0
-    do i = 1, n
-      k = index(digits, ca(i:i)) - 1
-      if (k < 0) then
-        write (6, *) 'dddigin: non-digit in character string'
-      elseif (k <= 9) then
-        d1 = 10.e0 * d1 + k
-      endif
-    enddo
-    dddigin = d1
-  end function dddigin
 
 ! Exact conversion of a default integer to 3 binary32 limbs: the leading
 ! limb is the rounded value and the remainder (at most 2**7) is exact.

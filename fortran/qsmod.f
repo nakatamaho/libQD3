@@ -700,11 +700,6 @@ contains
     to_qsc_dc%cmp(6:8) = 0.e0
   end function to_qsc_dc
 
-  elemental real*4 function to_d_qsc(qsc)
-    type (qs_complex), intent(in) :: qsc
-    to_d_qsc = qsc%cmp(1)
-  end function to_d_qsc
-
 !  Complex conjugation
 
   elemental type (qs_complex) function qscconjg (qsc)
@@ -1838,11 +1833,6 @@ contains
     end if
 
   end subroutine qscoutq
-
-  elemental real*4 function qs_to_d(a)
-    type (qs_real), intent(in) :: a
-    qs_to_d = a%re(1)
-  end function qs_to_d
 
   elemental type (qs_real) function qsmin2(a, b)
     type (qs_real), intent(in) :: a, b

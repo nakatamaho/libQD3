@@ -1873,26 +1873,6 @@ subroutine tdoutc(a, b)
   call f_td_swrite(a, 47, b(3), 55)
 end subroutine
 
-  real*8 function dddigin(ca, n)
-    implicit none
-    real*8 d1
-    character*(*), ca
-    character*16 digits
-    integer i, k, n
-    parameter (digits = '0123456789')
-
-    d1 = 0.d0
-    do i = 1, n
-      k = index(digits, ca(i:i)) - 1
-      if (k < 0) then
-        write (6, *) 'dddigin: non-digit in character string'
-      elseif (k <= 9) then
-        d1 = 10.d0 * d1 + k
-      endif
-    enddo
-    dddigin = d1
-  end function dddigin
-
 ! Mixed-mode operators added for interface completeness.
   elemental type (td_real) function sub_td_i(a, b)
     type (td_real), intent(in) :: a
