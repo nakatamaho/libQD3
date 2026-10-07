@@ -3,6 +3,7 @@
  *
  * C wrapper functions for edd_real.
  */
+#include <cstdlib>
 #include <cstring>
 
 #include "config.h"
@@ -155,6 +156,150 @@ void c_edd_2pi(_Float64x *a) {
 
 _Float64x c_edd_epsilon(void) {
   return static_cast<_Float64x>(edd_real::_eps);
+}
+
+
+void c_edd_add_edd_d(const _Float64x *a, double b, _Float64x *c) {
+  edd_to_c(edd_from_c(a) + edd_real((edd_word) b), c);
+}
+
+void c_edd_add_d_edd(double a, const _Float64x *b, _Float64x *c) {
+  edd_to_c(edd_real((edd_word) a) + edd_from_c(b), c);
+}
+
+void c_edd_sub_edd_d(const _Float64x *a, double b, _Float64x *c) {
+  edd_to_c(edd_from_c(a) - edd_real((edd_word) b), c);
+}
+
+void c_edd_sub_d_edd(double a, const _Float64x *b, _Float64x *c) {
+  edd_to_c(edd_real((edd_word) a) - edd_from_c(b), c);
+}
+
+void c_edd_mul_edd_d(const _Float64x *a, double b, _Float64x *c) {
+  edd_to_c(edd_from_c(a) * edd_real((edd_word) b), c);
+}
+
+void c_edd_mul_d_edd(double a, const _Float64x *b, _Float64x *c) {
+  edd_to_c(edd_real((edd_word) a) * edd_from_c(b), c);
+}
+
+void c_edd_div_edd_d(const _Float64x *a, double b, _Float64x *c) {
+  edd_to_c(edd_from_c(a) / edd_real((edd_word) b), c);
+}
+
+void c_edd_div_d_edd(double a, const _Float64x *b, _Float64x *c) {
+  edd_to_c(edd_real((edd_word) a) / edd_from_c(b), c);
+}
+
+void c_edd_selfadd(const _Float64x *a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) + edd_from_c(a), b);
+}
+
+void c_edd_selfadd_d(double a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) + edd_real((edd_word) a), b);
+}
+
+void c_edd_selfsub(const _Float64x *a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) - edd_from_c(a), b);
+}
+
+void c_edd_selfsub_d(double a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) - edd_real((edd_word) a), b);
+}
+
+void c_edd_selfmul(const _Float64x *a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) * edd_from_c(a), b);
+}
+
+void c_edd_selfmul_d(double a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) * edd_real((edd_word) a), b);
+}
+
+void c_edd_selfdiv(const _Float64x *a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) / edd_from_c(a), b);
+}
+
+void c_edd_selfdiv_d(double a, _Float64x *b) {
+  edd_to_c(edd_from_c(b) / edd_real((edd_word) a), b);
+}
+
+void c_edd_npwr(const _Float64x *a, int n, _Float64x *b) {
+  edd_to_c(npwr(edd_from_c(a), n), b);
+}
+
+void c_edd_nroot(const _Float64x *a, int n, _Float64x *b) {
+  edd_to_c(nroot(edd_from_c(a), n), b);
+}
+
+void c_edd_nint(const _Float64x *a, _Float64x *b) {
+  edd_to_c(nint(edd_from_c(a)), b);
+}
+
+void c_edd_aint(const _Float64x *a, _Float64x *b) {
+  edd_to_c(aint(edd_from_c(a)), b);
+}
+
+void c_edd_floor(const _Float64x *a, _Float64x *b) {
+  edd_to_c(floor(edd_from_c(a)), b);
+}
+
+void c_edd_ceil(const _Float64x *a, _Float64x *b) {
+  edd_to_c(ceil(edd_from_c(a)), b);
+}
+
+void c_edd_asin(const _Float64x *a, _Float64x *b) {
+  edd_to_c(asin(edd_from_c(a)), b);
+}
+
+void c_edd_acos(const _Float64x *a, _Float64x *b) {
+  edd_to_c(acos(edd_from_c(a)), b);
+}
+
+void c_edd_atan(const _Float64x *a, _Float64x *b) {
+  edd_to_c(atan(edd_from_c(a)), b);
+}
+
+void c_edd_asinh(const _Float64x *a, _Float64x *b) {
+  edd_to_c(asinh(edd_from_c(a)), b);
+}
+
+void c_edd_acosh(const _Float64x *a, _Float64x *b) {
+  edd_to_c(acosh(edd_from_c(a)), b);
+}
+
+void c_edd_atanh(const _Float64x *a, _Float64x *b) {
+  edd_to_c(atanh(edd_from_c(a)), b);
+}
+
+void c_edd_sincos(const _Float64x *a, _Float64x *s, _Float64x *c) {
+  edd_real ss, cc;
+  sincos(edd_from_c(a), ss, cc);
+  edd_to_c(ss, s);
+  edd_to_c(cc, c);
+}
+
+void c_edd_sincosh(const _Float64x *a, _Float64x *s, _Float64x *c) {
+  edd_real ss, cc;
+  sincosh(edd_from_c(a), ss, cc);
+  edd_to_c(ss, s);
+  edd_to_c(cc, c);
+}
+
+void c_edd_comp_d_edd(double a, const _Float64x *b, int *result) {
+  edd_real aa((edd_word) a);
+  edd_real bb = edd_from_c(b);
+  *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
+}
+
+/* Uniform in [0, 1): 31 random bits per step, as ddrand/qdrand do. */
+void c_edd_rand(_Float64x *a) {
+  static const double m_const = 4.6566128730773926e-10; /* 2^-31 */
+  double m = m_const;
+  edd_real r((edd_word) 0.0);
+  for (int i = 0; i < 5; i++, m *= m_const) {
+    r += edd_real((edd_word) (std::rand() * m));
+  }
+  edd_to_c(r, a);
 }
 
 } // extern "C"

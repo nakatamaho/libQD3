@@ -27,6 +27,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 
@@ -420,8 +421,8 @@ void c_td_comp_d_td(double a, const double *b, int *result) {
 }
 
 void c_td_comp_td_qd(const double *a, const double *b, int *result) {
-  td_real aa(a);
-  td_real bb = to_td_real(qd_real(b));
+  qd_real aa = to_qd_real(td_real(a));
+  qd_real bb(b);
   if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
@@ -432,8 +433,8 @@ void c_td_comp_td_qd(const double *a, const double *b, int *result) {
 }
 
 void c_td_comp_qd_td(const double *a, const double *b, int *result) {
-  td_real aa = to_td_real(qd_real(a));
-  td_real bb(b);
+  qd_real aa(a);
+  qd_real bb = to_qd_real(td_real(b));
   if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
@@ -453,6 +454,53 @@ void c_td_2pi(double *a) {
 
 double c_td_epsilon(void) {
   return std::numeric_limits<td_real>::epsilon();
+}
+
+
+void c_td_nroot(const double *a, int n, double *b) {
+  td_real bb = nroot(td_real(a), n);
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_td_nint(const double *a, double *b) {
+  td_real bb = nint(td_real(a));
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_td_aint(const double *a, double *b) {
+  td_real bb = aint(td_real(a));
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_td_floor(const double *a, double *b) {
+  td_real bb = floor(td_real(a));
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_td_ceil(const double *a, double *b) {
+  td_real bb = ceil(td_real(a));
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_td_comp_td_dd(const double *a, const double *b, int *result) {
+  td_real aa(a), bb = to_td_real(dd_real(b));
+  *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
+}
+
+void c_td_comp_dd_td(const double *a, const double *b, int *result) {
+  td_real aa = to_td_real(dd_real(a)), bb(b);
+  *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
+}
+
+/* Uniform in [0, 1): 31 random bits per step, as ddrand/qdrand do. */
+void c_td_rand(double *a) {
+  static const double m_const = 4.6566128730773926e-10; /* 2^-31 */
+  double m = m_const;
+  td_real r = 0.0;
+  for (int i = 0; i < 6; i++, m *= m_const) {
+    r += std::rand() * m;
+  }
+  TO_DOUBLE_PTR(r, a);
 }
 
 }  // extern "C"

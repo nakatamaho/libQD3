@@ -256,6 +256,30 @@ void c_dd_selfdiv_d(double a, double *b) {
   TO_DOUBLE_PTR(bb, b);
 }
 
+void c_dd_selfadd(const double *a, double *b) {
+  dd_real bb(b);
+  bb += dd_real(a);
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_dd_selfsub(const double *a, double *b) {
+  dd_real bb(b);
+  bb -= dd_real(a);
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_dd_selfmul(const double *a, double *b) {
+  dd_real bb(b);
+  bb *= dd_real(a);
+  TO_DOUBLE_PTR(bb, b);
+}
+
+void c_dd_selfdiv(const double *a, double *b) {
+  dd_real bb(b);
+  bb /= dd_real(a);
+  TO_DOUBLE_PTR(bb, b);
+}
+
 
 void c_dd_sqrt(const double *a, double *b) {
   dd_real bb;
@@ -462,7 +486,7 @@ void c_dd_comp_d_dd(double a, const double *b, int *result) {
 }
 
 void c_dd_comp_dd_td(const double *a, const double *b, int *result) {
-  dd_real aa(a), bb = to_dd_real(td_real(b));
+  td_real aa = to_td_real(dd_real(a)), bb(b);
   if (aa < bb)
     *result = -1;
   else if (aa > bb)
@@ -472,7 +496,7 @@ void c_dd_comp_dd_td(const double *a, const double *b, int *result) {
 }
 
 void c_dd_comp_td_dd(const double *a, const double *b, int *result) {
-  dd_real aa = to_dd_real(td_real(a)), bb(b);
+  td_real aa(a), bb = to_td_real(dd_real(b));
   if (aa < bb)
     *result = -1;
   else if (aa > bb)
@@ -482,7 +506,8 @@ void c_dd_comp_td_dd(const double *a, const double *b, int *result) {
 }
 
 void c_dd_comp_dd_qd(const double *a, const double *b, int *result) {
-  dd_real aa(a), bb = to_dd_real(qd_real(b));
+  qd_real aa = qd_real(dd_real(a));
+  qd_real bb(b);
   if (aa < bb)
     *result = -1;
   else if (aa > bb)
@@ -492,7 +517,8 @@ void c_dd_comp_dd_qd(const double *a, const double *b, int *result) {
 }
 
 void c_dd_comp_qd_dd(const double *a, const double *b, int *result) {
-  dd_real aa = to_dd_real(qd_real(a)), bb(b);
+  qd_real aa(a);
+  qd_real bb = qd_real(dd_real(b));
   if (aa < bb)
     *result = -1;
   else if (aa > bb)
