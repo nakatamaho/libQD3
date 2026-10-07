@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include <qd/qd_real.h>
+#include <qd/qd_random.h>
 #include "util.h"
 
 #include <qd/bits.h>
@@ -2809,20 +2810,14 @@ QD_API qd_real fmod(const qd_real &a, const qd_real &b) {
 }
 
 QD_API qd_real qdrand() {
-  static const double m_const = 4.6566128730773926e-10;  /* = 2^{-31} */
-  double m = m_const;
+  /* Uniform in [0, 1) with all 212 bits random: four 53-bit draws at
+     2^-53 spacing form an exact, non-overlapping quad-double. */
+  const double scale = std::ldexp(1.0, -53);
+  double m = scale;
   qd_real r = 0.0;
-  double d;
-
-  /* Strategy:  Generate 31 bits at a time, using lrand48 
-     random number generator.  Shift the bits, and repeat
-     7 times. */
-
-  for (int i = 0; i < 7; i++, m *= m_const) {
-    d = std::rand() * m;
-    r += d;
+  for (int i = 0; i < 4; i++, m *= scale) {
+    r += static_cast<double>(qd_rand_u64() >> 11) * m;
   }
-
   return r;
 }
 
@@ -2887,16 +2882,16 @@ QD_API qd_real polyroot(const qd_real *c, int n,
 }
 
 qd_real qd_real::debug_rand() {
-  if (std::rand() % 2 == 0)
+  if ((qd_rand_u64() & 1) == 0)
     return qdrand();
 
   int expn = 0;
   qd_real a = 0.0;
   double d;
   for (int i = 0; i < 4; i++) {
-    d = std::ldexp(std::rand() / static_cast<double>(RAND_MAX), -expn);
+    d = std::ldexp(static_cast<double>(qd_rand_u64() >> 11) * std::ldexp(1.0, -53), -expn);
     a += d;
-    expn = expn + 54 + std::rand() % 200;
+    expn = expn + 54 + static_cast<int>(qd_rand_u64() % 200);
   }
   return a;
 }

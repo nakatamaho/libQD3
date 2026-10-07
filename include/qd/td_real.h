@@ -273,6 +273,9 @@ QD_API td_real operator/(const td_real &a, const td_real &b);
 QD_API td_real sqr(const td_real &a);
 QD_API td_real sqrt(const td_real &a);
 QD_API td_real nroot(const td_real &a, int n);
+
+/* Uniform in [0, 1) with all limbs random (see <qd/qd_random.h>). */
+QD_API td_real tdrand(void);
 QD_API td_real npwr(const td_real &a, int n);
 QD_API td_real pow(const td_real &a, int n);
 QD_API td_real pow(const td_real &a, const td_real &b);

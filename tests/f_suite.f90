@@ -5,6 +5,7 @@ subroutine check_dd()
   use ddmodule, rt => dd_real, ct => dd_complex, mkr => ddreal, &
                 mkc => ddcomplex, pi_r => ddpi
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'dd'
   include 'f_suite_body.inc'
@@ -17,6 +18,7 @@ subroutine check_td()
   use tdmodule, rt => td_real, ct => td_complex, mkr => tdreal, &
                 mkc => tdcomplex, pi_r => tdpi
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'td'
   include 'f_suite_body.inc'
@@ -29,6 +31,7 @@ subroutine check_qd()
   use qdmodule, rt => qd_real, ct => qd_complex, mkr => qdreal, &
                 mkc => qdcomplex, pi_r => qdpi
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'qd'
   include 'f_suite_body.inc'
@@ -43,6 +46,7 @@ subroutine check_ds()
   use ddmodule
   use qdmodule
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'ds'
   include 'f_suite_body.inc'
@@ -110,6 +114,7 @@ subroutine check_ts()
   use ddmodule
   use qdmodule
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'ts'
   include 'f_suite_body.inc'
@@ -177,6 +182,7 @@ subroutine check_qs()
   use ddmodule
   use qdmodule
   use f_suite_support
+  use qdrandom
   implicit none
   character(len=*), parameter :: tname = 'qs'
   include 'f_suite_body.inc'

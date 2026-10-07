@@ -291,15 +291,8 @@ void c_edd_comp_d_edd(double a, const _Float64x *b, int *result) {
   *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
 }
 
-/* Uniform in [0, 1): 31 random bits per step, as ddrand/qdrand do. */
 void c_edd_rand(_Float64x *a) {
-  static const double m_const = 4.6566128730773926e-10; /* 2^-31 */
-  double m = m_const;
-  edd_real r((edd_word) 0.0);
-  for (int i = 0; i < 5; i++, m *= m_const) {
-    r += edd_real((edd_word) (std::rand() * m));
-  }
-  edd_to_c(r, a);
+  edd_to_c(eddrand(), a);
 }
 
 } // extern "C"

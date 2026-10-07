@@ -492,14 +492,8 @@ void c_td_comp_dd_td(const double *a, const double *b, int *result) {
   *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
 }
 
-/* Uniform in [0, 1): 31 random bits per step, as ddrand/qdrand do. */
 void c_td_rand(double *a) {
-  static const double m_const = 4.6566128730773926e-10; /* 2^-31 */
-  double m = m_const;
-  td_real r = 0.0;
-  for (int i = 0; i < 6; i++, m *= m_const) {
-    r += std::rand() * m;
-  }
+  td_real r = tdrand();
   TO_DOUBLE_PTR(r, a);
 }
 

@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include <qd/edd_real.h>
+#include <qd/qd_random.h>
 #include "util.h"
 
 #ifndef QD_INLINE
@@ -467,4 +468,12 @@ string edd_real::to_string(int precision, int width, ios_base::fmtflags fmt,
   }
 
   return s;
+}
+
+QD_API edd_real eddrand() {
+  /* Two 64-bit draws fill the two 64-bit-significand limbs exactly. */
+  const edd_word scale = edd::ldexpx((edd_word) 1.0, -64);
+  const edd_word hi = static_cast<edd_word>(qd_rand_u64()) * scale;
+  const edd_word lo = static_cast<edd_word>(qd_rand_u64()) * scale * scale;
+  return edd_real(hi) + edd_real(lo);
 }

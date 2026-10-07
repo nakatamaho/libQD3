@@ -2,8 +2,8 @@ Changes for 1.6.0
     libQD3 1.6.0 adds a C API for ds_real, ts_real and qs_real, completes the
     dd/td/qd/edd C API, adds complex elementary functions, binary64
     interoperability and symmetric dd/qd conversions to the Fortran modules,
-    and fixes decimal parsing, mixed-precision comparisons and several Fortran
-    conversion and rounding defects.  New epsilon-relative Fortran and C API
+    and fixes decimal parsing, mixed-precision comparisons, the random
+    number functions and several Fortran conversion and rounding defects.  New epsilon-relative Fortran and C API
     suites and the MPC oracle for ds/ts/qs complex are part of the release
     gate, which now requires Fortran.  libqdmod's SOVERSION is now 3.  See
     CHANGES.1.6.0.md for the release notes.

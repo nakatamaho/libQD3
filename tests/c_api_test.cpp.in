@@ -12,6 +12,7 @@
  * fails.
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -30,6 +31,7 @@
 #include <qd/dd_real.h>
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
+#include <qd/qd_random.h>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
 #ifdef QD_HAVE_EDD_REAL

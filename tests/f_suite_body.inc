@@ -131,8 +131,25 @@
   call report(huge(x) > one .and. tiny(x) > mkr(0) .and. tiny(x) < one, &
               tname, 'huge/tiny')
   call report(radix(x) == 2 .and. digits(x) > 0, tname, 'radix/digits')
+  ! random_number must cover [0, 1) uniformly and follow qd_random_seed.
+  y = mkr(0)
+  z = one
+  s = mkr(0)
+  do i = 1, 2000
+    call random_number(x)
+    if (x < mkr(0) .or. x >= one) y = mkr(-1)
+    if (x < z) z = x
+    if (x > c .or. i == 1) c = x
+    s = s + x
+  end do
+  call report(y == mkr(0), tname, 'random_number in [0, 1)')
+  call report(z < mkr('0.01') .and. c > mkr('0.99'), tname, 'random_number range')
+  call report(abs(s / 2000 - mkr('0.5')) < mkr('0.05'), tname, 'random_number mean')
+  call qd_random_seed(2024)
   call random_number(x)
-  call report(x >= mkr(0) .and. x < one, tname, 'random_number')
+  call qd_random_seed(2024)
+  call random_number(y)
+  call report(x == y, tname, 'qd_random_seed reproducible')
 
   ! Complex arithmetic and functions.
   cx = mkc(one, mkr(2))

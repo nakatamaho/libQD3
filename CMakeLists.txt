@@ -106,6 +106,7 @@ set(QD_BASE_SOURCES
   src/ts_real.cpp
   src/ts_const.cpp
   src/qs_real.cpp
+  src/qd_random.cpp
   src/qs_const.cpp
   src/td_real.cpp
   src/td_const.cpp
@@ -162,6 +163,7 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/qd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/bits.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qd_random.h"
 )
 
 set(QD_PUBLIC_DETAIL_HEADERS
@@ -306,6 +308,7 @@ if(QD_HAVE_FORTRAN)
     fortran/tsmod.f
     fortran/qsext.f
     fortran/qsmod.f
+    fortran/qdrandom.f
     fortran/f_dd.cpp
     fortran/f_qd.cpp
     fortran/f_td.cpp
@@ -326,6 +329,7 @@ if(QD_HAVE_FORTRAN)
     fortran/tsmod.f
     fortran/qsext.f
     fortran/qsmod.f
+    fortran/qdrandom.f
   )
   set_source_files_properties(${QD_FORTRAN_FREE_FORM_SOURCES} PROPERTIES Fortran_FORMAT FREE)
 

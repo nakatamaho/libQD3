@@ -172,18 +172,6 @@ static td_real td_aint_local(const td_real &a) {
   return (a[0] >= 0.0) ? td_floor_local(a) : td_ceil_local(a);
 }
 
-static td_real tdrand_local() {
-  static const double m_const = 4.6566128730773926e-10;
-  double m = m_const;
-  td_real r = 0.0;
-
-  for (int i = 0; i < 6; i++, m *= m_const) {
-    r += std::rand() * m;
-  }
-
-  return r;
-}
-
 void f_td_add(const double *a, const double *b, double *c) {
   TO_DOUBLE_PTR(td_real(a) + td_real(b), c);
 }
@@ -367,7 +355,7 @@ void f_td_neg(const double *a, double *b) {
 }
 
 void f_td_rand(double *a) {
-  TO_DOUBLE_PTR(tdrand_local(), a);
+  TO_DOUBLE_PTR(tdrand(), a);
 }
 
 void f_td_comp(const double *a, const double *b, int *result) {

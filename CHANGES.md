@@ -20,6 +20,19 @@ C++ core:
 - `ds/ts/qs_real` built from `double`/`long double` `-0.0` lost the sign.
 - `dd_real::_eps` and `qd_real::_eps` are now exactly 2^-104 and 2^-209.
 
+Random numbers:
+
+- All random functions used `std::rand()`.  `ds/ts/qs_real::rand()` (and the
+  C and Fortran wrappers) scaled the first draw by 2^-24 and returned values
+  in [0, 6e-8) on every platform.  `ddrand`/`qdrand` assumed 31-bit
+  `rand()`; where `RAND_MAX` is 32767 (MinGW, MSVC) they returned values in
+  [0, 1.5e-5) with zero gaps between the draws.
+- They now share a xoshiro256** generator (`<qd/qd_random.h>`: `qd_srand`,
+  `qd_rand_u64`; Fortran: `use qdrandom`, `call qd_random_seed(seed)`) and
+  fill every limb exactly, uniformly in [0, 1), with identical sequences on
+  every platform.  Added `tdrand()` and `eddrand()`.  Sequences differ from
+  1.5.0.
+
 C API:
 
 - New `c_ds.h`, `c_ts.h`, `c_qs.h` with the same function set as the
@@ -62,6 +75,8 @@ QA:
 - `regression_smoke` checks exact and long-literal parsing for all types.
 - The MPC complex oracle also runs for `ds_complex`, `ts_complex` and
   `qs_complex` (seeded random inputs).
+- Random functions are checked for range coverage, mean, limb fill and
+  seed reproducibility in `regression_smoke`, `c_api_test` and `f_suite`.
 
 Compatibility:
 

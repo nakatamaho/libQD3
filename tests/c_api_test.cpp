@@ -12,6 +12,7 @@
  * fails.
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -30,6 +31,7 @@
 #include <qd/dd_real.h>
 #include <qd/fpu.h>
 #include <qd/qd_config.h>
+#include <qd/qd_random.h>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
 #ifdef QD_HAVE_EDD_REAL
@@ -933,9 +935,28 @@ void test_c_dd_neg(Rng &rng, Report &report) {
 }
 void test_c_dd_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<dd_tag> a;
-    c_dd_rand(a.limbs);
-    report.check("c_dd_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<dd_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_dd_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_dd_rand in [0, 1)", in_range);
+      report.check("c_dd_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_dd_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<dd_tag> b;
+      qd_srand(77);
+      c_dd_rand(a.limbs);
+      qd_srand(77);
+      c_dd_rand(b.limbs);
+      report.check("c_dd_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_dd_comp(Rng &rng, Report &report) {
@@ -1819,9 +1840,28 @@ void test_c_td_comp_dd_td(Rng &rng, Report &report) {
 }
 void test_c_td_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<td_tag> a;
-    c_td_rand(a.limbs);
-    report.check("c_td_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<td_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_td_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_td_rand in [0, 1)", in_range);
+      report.check("c_td_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_td_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<td_tag> b;
+      qd_srand(77);
+      c_td_rand(a.limbs);
+      qd_srand(77);
+      c_td_rand(b.limbs);
+      report.check("c_td_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_td_pi(Rng &rng, Report &report) {
@@ -2551,9 +2591,28 @@ void test_c_qd_neg(Rng &rng, Report &report) {
 }
 void test_c_qd_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<qd_tag> a;
-    c_qd_rand(a.limbs);
-    report.check("c_qd_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<qd_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_qd_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_qd_rand in [0, 1)", in_range);
+      report.check("c_qd_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_qd_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<qd_tag> b;
+      qd_srand(77);
+      c_qd_rand(a.limbs);
+      qd_srand(77);
+      c_qd_rand(b.limbs);
+      report.check("c_qd_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_qd_comp(Rng &rng, Report &report) {
@@ -3360,9 +3419,28 @@ void test_c_ds_neg(Rng &rng, Report &report) {
 }
 void test_c_ds_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<ds_tag> a;
-    c_ds_rand(a.limbs);
-    report.check("c_ds_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<ds_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_ds_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_ds_rand in [0, 1)", in_range);
+      report.check("c_ds_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_ds_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<ds_tag> b;
+      qd_srand(77);
+      c_ds_rand(a.limbs);
+      qd_srand(77);
+      c_ds_rand(b.limbs);
+      report.check("c_ds_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_ds_comp(Rng &rng, Report &report) {
@@ -4169,9 +4247,28 @@ void test_c_ts_neg(Rng &rng, Report &report) {
 }
 void test_c_ts_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<ts_tag> a;
-    c_ts_rand(a.limbs);
-    report.check("c_ts_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<ts_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_ts_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_ts_rand in [0, 1)", in_range);
+      report.check("c_ts_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_ts_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<ts_tag> b;
+      qd_srand(77);
+      c_ts_rand(a.limbs);
+      qd_srand(77);
+      c_ts_rand(b.limbs);
+      report.check("c_ts_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_ts_comp(Rng &rng, Report &report) {
@@ -4978,9 +5075,28 @@ void test_c_qs_neg(Rng &rng, Report &report) {
 }
 void test_c_qs_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<qs_tag> a;
-    c_qs_rand(a.limbs);
-    report.check("c_qs_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<qs_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_qs_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_qs_rand in [0, 1)", in_range);
+      report.check("c_qs_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_qs_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<qs_tag> b;
+      qd_srand(77);
+      c_qs_rand(a.limbs);
+      qd_srand(77);
+      c_qs_rand(b.limbs);
+      report.check("c_qs_rand reproducible", a.value() == b.value());
+    }
   }
 }
 void test_c_qs_comp(Rng &rng, Report &report) {
@@ -5600,9 +5716,28 @@ void test_c_edd_comp_d_edd(Rng &rng, Report &report) {
 }
 void test_c_edd_rand(Rng &rng, Report &report) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    Operand<edd_tag> a;
-    c_edd_rand(a.limbs);
-    report.check("c_edd_rand", a.value() >= 0.0 && a.value() < 1.0);
+    if (iter == 0) {
+      Operand<edd_tag> a;
+      double lo = 1.0, hi = 0.0, sum = 0.0;
+      bool in_range = true;
+      for (int i = 0; i < 4000; ++i) {
+        c_edd_rand(a.limbs);
+        const qd_real v = a.value();
+        in_range = in_range && v >= 0.0 && v < 1.0;
+        lo = std::min(lo, to_double(v));
+        hi = std::max(hi, to_double(v));
+        sum += to_double(v);
+      }
+      report.check("c_edd_rand in [0, 1)", in_range);
+      report.check("c_edd_rand range", lo < 0.01 && hi > 0.99);
+      report.check("c_edd_rand mean", std::fabs(sum / 4000 - 0.5) < 0.02);
+      Operand<edd_tag> b;
+      qd_srand(77);
+      c_edd_rand(a.limbs);
+      qd_srand(77);
+      c_edd_rand(b.limbs);
+      report.check("c_edd_rand reproducible", a.value() == b.value());
+    }
   }
 }
 #endif

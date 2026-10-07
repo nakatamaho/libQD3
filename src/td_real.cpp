@@ -37,6 +37,7 @@
 
 #include "config.h"
 #include <qd/td_real.h>
+#include <qd/qd_random.h>
 #include "util.h"
 #include "td_trig_reduce.h"
 
@@ -1118,3 +1119,14 @@ string td_real::to_string(int precision, int width, ios_base::fmtflags fmt,
 }
 
 bool td_suppress_error_messages = false;
+
+QD_API td_real tdrand() {
+  /* Three 53-bit draws at 2^-53 spacing form an exact triple-double. */
+  const double scale = std::ldexp(1.0, -53);
+  double m = scale;
+  td_real r = 0.0;
+  for (int i = 0; i < 3; i++, m *= scale) {
+    r += static_cast<double>(qd_rand_u64() >> 11) * m;
+  }
+  return r;
+}

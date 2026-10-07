@@ -22,6 +22,7 @@
 #include <qd/ds_real.h>
 #include <qd/ts_real.h>
 #include <qd/qs_real.h>
+#include <qd/qd_random.h>
 #include <limits>
 
 namespace {
@@ -280,6 +281,34 @@ void check_long_decimal_parse(TestContext &test, const char *name) {
   }
 }
 
+// Random functions must cover [0, 1) uniformly with every limb populated,
+// independently of the platform's RAND_MAX, and be reproducible by seed.
+template <class T, class Draw>
+void check_random(TestContext &test, const char *name, Draw draw, int limbs) {
+  const int samples = 20000;
+  double lo = 1.0, hi = 0.0, sum = 0.0;
+  int last_limb_set = 0;
+  bool in_range = true;
+  for (int i = 0; i < samples; ++i) {
+    const T v = draw();
+    const double d = to_double(v);
+    in_range = in_range && d >= 0.0 && v < T(1.0);
+    lo = std::min(lo, d);
+    hi = std::max(hi, d);
+    sum += d;
+    if (static_cast<double>(v.x[limbs - 1]) != 0.0) ++last_limb_set;
+  }
+  const std::string prefix = std::string(name) + " random ";
+  test.check((prefix + "in [0, 1)").c_str(), in_range);
+  test.check((prefix + "covers the interval").c_str(), lo < 1e-3 && hi > 0.999);
+  test.check((prefix + "mean").c_str(), std::fabs(sum / samples - 0.5) < 0.01);
+  test.check((prefix + "fills the last limb").c_str(), last_limb_set > samples * 99 / 100);
+  qd_srand(12345);
+  const T first = draw();
+  qd_srand(12345);
+  test.check((prefix + "reproducible by seed").c_str(), draw() == first);
+}
+
 } // namespace
 
 int main() {
@@ -302,6 +331,12 @@ int main() {
   check_long_decimal_parse<ds_real>(test, "ds_real");
   check_long_decimal_parse<ts_real>(test, "ts_real");
   check_long_decimal_parse<qs_real>(test, "qs_real");
+  check_random<dd_real>(test, "dd_real", [] { return ddrand(); }, 2);
+  check_random<td_real>(test, "td_real", [] { return tdrand(); }, 3);
+  check_random<qd_real>(test, "qd_real", [] { return qdrand(); }, 4);
+  check_random<ds_real>(test, "ds_real", [] { return ds_real::rand(); }, 2);
+  check_random<ts_real>(test, "ts_real", [] { return ts_real::rand(); }, 3);
+  check_random<qs_real>(test, "qs_real", [] { return qs_real::rand(); }, 4);
 
   fpu_fix_end(&old_cw);
   std::cout << (test.pass ? "PASS regression_smoke" : "FAIL regression_smoke")

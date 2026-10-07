@@ -266,6 +266,9 @@ QD_API edd_real operator/(const edd_real &a, const edd_real &b);
 QD_API edd_real sqr(const edd_real &a);
 QD_API edd_real sqrt(const edd_real &a);
 QD_API edd_real nroot(const edd_real &a, int n);
+
+/* Uniform in [0, 1) with all limbs random (see <qd/qd_random.h>). */
+QD_API edd_real eddrand(void);
 QD_API edd_real npwr(const edd_real &a, int n);
 QD_API edd_real pow(const edd_real &a, int n);
 QD_API edd_real pow(const edd_real &a, const edd_real &b);

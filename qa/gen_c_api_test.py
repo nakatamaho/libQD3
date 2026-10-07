@@ -159,8 +159,17 @@ def emit_case(t, name, cls):
     elif kind == 'write':
         body += f'  if (iter == 0) {{\n    Operand<{T}> a(qd_real(0.5));\n    {name}(a.limbs);\n  }}\n'
     elif kind == 'rand':
-        body += f'  Operand<{T}> a;\n  {name}(a.limbs);\n'
-        body += f'  report.check("{name}", a.value() >= 0.0 && a.value() < 1.0);\n'
+        # Distribution over many draws, plus reproducibility by qd_srand.
+        body += '  if (iter == 0) {\n'
+        body += f'    Operand<{T}> a;\n    double lo = 1.0, hi = 0.0, sum = 0.0;\n    bool in_range = true;\n'
+        body += f'    for (int i = 0; i < 4000; ++i) {{\n      {name}(a.limbs);\n'
+        body += '      const qd_real v = a.value();\n      in_range = in_range && v >= 0.0 && v < 1.0;\n'
+        body += '      lo = std::min(lo, to_double(v));\n      hi = std::max(hi, to_double(v));\n      sum += to_double(v);\n    }\n'
+        body += f'    report.check("{name} in [0, 1)", in_range);\n'
+        body += f'    report.check("{name} range", lo < 0.01 && hi > 0.99);\n'
+        body += f'    report.check("{name} mean", std::fabs(sum / 4000 - 0.5) < 0.02);\n'
+        body += f'    Operand<{T}> b;\n    qd_srand(77);\n    {name}(a.limbs);\n    qd_srand(77);\n    {name}(b.limbs);\n'
+        body += f'    report.check("{name} reproducible", a.value() == b.value());\n  }}\n'
     elif kind in ('pi', '2pi'):
         body += f'  Operand<{T}> a;\n  {name}(a.limbs);\n'
         ref = 'qd_real::_pi' if kind == 'pi' else 'qd_real::_2pi'

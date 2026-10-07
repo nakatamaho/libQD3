@@ -31,8 +31,8 @@ plus ADL; no overloads are added to namespace `std`.
 2026-10-07 libQD3 1.6.0 adds a C API for `ds_real`, `ts_real` and `qs_real`,
 completes the C API for the other types, adds complex elementary functions,
 binary64 interoperability and symmetric dd/qd conversions to the Fortran
-modules, and fixes decimal parsing, mixed-precision comparisons and several
-Fortran conversion and rounding defects found by new epsilon-relative test
+modules, and fixes decimal parsing, mixed-precision comparisons, the random
+number functions and several Fortran conversion and rounding defects found by new epsilon-relative test
 suites.  `libqdmod` now has SOVERSION 3.  See [CHANGES.1.6.0.md](CHANGES.1.6.0.md)
 for the release notes.
 

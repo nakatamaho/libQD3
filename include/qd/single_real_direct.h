@@ -23,6 +23,7 @@
 
 #include <qd/qd_config.h>
 #include <qd/inline.h>
+#include <qd/qd_random.h>
 
 #ifdef isnan
 #undef isnan
@@ -1666,27 +1667,27 @@ inline single_real<N> polyroot(const single_real<N> *coefficients, int degree,
 
 template <int N>
 inline single_real<N> single_real<N>::rand() {
-  single_real result(0.0f);
+  // Uniform in [0, 1): N 24-bit draws at 2^-24 spacing are exact binary32
+  // limbs of a non-overlapping expansion with all 24N bits random.
+  float terms[N];
   float scale = 0x1p-24f;
   for (int i = 0; i < N; ++i) {
-    result += static_cast<float>(std::rand()) /
-              static_cast<float>(RAND_MAX) * scale;
+    terms[i] = static_cast<float>(qd_rand_u64() >> 40) * scale;
     scale *= 0x1p-24f;
   }
-  return result;
+  return qd_single_detail::from_terms<N>(terms, N);
 }
 
 template <int N>
 inline single_real<N> single_real<N>::debug_rand() {
-  if (std::rand() % 2 == 0) return rand();
+  if ((qd_rand_u64() & 1) == 0) return rand();
   single_real result(0.0f);
   int exponent = 0;
   for (int i = 0; i < N; ++i) {
     const float term = std::ldexp(
-        static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX),
-        -exponent);
+        static_cast<float>(qd_rand_u64() >> 40) * 0x1p-24f, -exponent);
     result += term;
-    exponent += 24 + std::rand() % 80;
+    exponent += 24 + static_cast<int>(qd_rand_u64() % 80);
   }
   return result;
 }

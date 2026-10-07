@@ -20,9 +20,6 @@ longer applies to the CMake-only build, and the mixed C API coverage now in
 
 ## Numerics
 
-* `ddrand`, `qdrand`, `c_td_rand`, `c_edd_rand` and the Fortran `random_number`
-  draw 31 bits per `std::rand()` call; where `RAND_MAX` is 32767 (e.g.
-  Windows) most of those bits are zero.  Use a generator with a known width.
 * overflow / underflow / NaN handling beyond division and square root (which
   were hardened in 1.4.0).
 * partial template specialization for complex division.
