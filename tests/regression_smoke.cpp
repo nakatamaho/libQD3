@@ -102,8 +102,9 @@ public:
   std::string str() const { return buffer_.str(); }
 
 private:
-  std::streambuf *old_;
+  // buffer_ must be constructed before old_'s initializer uses it.
   std::ostringstream buffer_;
+  std::streambuf *old_;
 };
 
 bool contains(const std::string &text, const char *needle) {
