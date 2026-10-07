@@ -74,6 +74,18 @@
   call report(int(y) == 2, tname, 'int below integer')
   call report(int(-y) == -2, tname, 'int above negative integer')
   call report(near(mod(mkr('7.5'), mkr(2)), mkr('1.5'), 4), tname, 'mod')
+  call report(floor(x) == mkr(2) .and. floor(-x) == mkr(-3), tname, 'floor')
+  call report(ceiling(x) == mkr(3) .and. ceiling(-x) == mkr(-2) .and. &
+              ceil(x) == mkr(3), tname, 'ceiling')
+  call report(floor(mkr(3) - epsilon(x)) == mkr(2), tname, 'floor below integer')
+  call report(near(modulo(mkr('-7.5'), mkr(2)), mkr('0.5'), 4) .and. &
+              near(modulo(mkr('7.5'), mkr(-2)), mkr('-0.5'), 4), tname, 'modulo')
+  call report(dim(mkr(5), mkr(3)) == mkr(2) .and. dim(mkr(3), mkr(5)) == mkr(0), &
+              tname, 'dim')
+  call report(near(hypot(mkr(3), mkr(4)), mkr(5), 4), tname, 'hypot')
+  call report(near(hypot(mkr(1), mkr(2)), sqrt(mkr(5)), 4), tname, 'hypot inexact')
+  call report(hypot(huge(x) / 2, huge(x) / 2) > huge(x) / 2, tname, 'hypot no overflow')
+  call report(precision(x) > 0 .and. range(x) > 0, tname, 'precision/range')
   call report(sign(mkr(2), mkr(-1)) == mkr(-2), tname, 'sign negative')
   call report(sign(mkr(-2), mkr(1)) == mkr(2), tname, 'sign positive')
   call report(sign(mkr(2), mkr(0)) == mkr(2), tname, 'sign +0')

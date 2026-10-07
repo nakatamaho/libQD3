@@ -429,6 +429,30 @@ module qdmodule
     module procedure qd_nan
   end interface
 
+  interface floor
+    module procedure qdfloor
+  end interface
+
+  interface ceil
+    module procedure qdceil
+  end interface
+
+  interface ceiling
+    module procedure qdceil
+  end interface
+
+  interface hypot
+    module procedure qdhypot
+  end interface
+
+  interface modulo
+    module procedure qdmodulo
+  end interface
+
+  interface dim
+    module procedure qddim
+  end interface
+
 contains
 
 ! Assignments
@@ -2121,6 +2145,47 @@ end function
     type (qd_real), intent(in) :: x
     call f_qd_cpow_r(z%cmp, x%re, pwr_qdc_qd%cmp)
   end function pwr_qdc_qd
+
+! Rounding and model intrinsics added for interface completeness.
+  elemental type (qd_real) function qdfloor(a)
+    type (qd_real), intent(in) :: a
+    call f_qd_floor(a%re, qdfloor%re)
+  end function qdfloor
+
+  elemental type (qd_real) function qdceil(a)
+    type (qd_real), intent(in) :: a
+    call f_qd_ceil(a%re, qdceil%re)
+  end function qdceil
+
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (qd_real) function qdhypot(a, b)
+    type (qd_real), intent(in) :: a, b
+    type (qd_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      qdhypot = m
+    else
+      qdhypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function qdhypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (qd_real) function qdmodulo(a, p)
+    type (qd_real), intent(in) :: a, p
+    qdmodulo = a - qdfloor(a / p) * p
+  end function qdmodulo
+
+  ! max(a - b, 0)
+  elemental type (qd_real) function qddim(a, b)
+    type (qd_real), intent(in) :: a, b
+    if (a > b) then
+      qddim = a - b
+    else
+      qddim = a - a
+    end if
+  end function qddim
 
 end module qdmodule
 

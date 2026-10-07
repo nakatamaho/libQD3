@@ -463,6 +463,30 @@ module qsmodule
     module procedure qs_nan
   end interface
 
+  interface floor
+    module procedure qsfloor
+  end interface
+
+  interface ceil
+    module procedure qsceil
+  end interface
+
+  interface ceiling
+    module procedure qsceil
+  end interface
+
+  interface hypot
+    module procedure qshypot
+  end interface
+
+  interface modulo
+    module procedure qsmodulo
+  end interface
+
+  interface dim
+    module procedure qsdim
+  end interface
+
 contains
 
 ! Assignments
@@ -2391,5 +2415,46 @@ end function qs_int_limbs
     type (qs_real), intent(in) :: x
     call f_qs_cpow_r(z%cmp, x%re, pwr_qsc_qs%cmp)
   end function pwr_qsc_qs
+
+! Rounding and model intrinsics added for interface completeness.
+  elemental type (qs_real) function qsfloor(a)
+    type (qs_real), intent(in) :: a
+    call f_qs_floor(a%re, qsfloor%re)
+  end function qsfloor
+
+  elemental type (qs_real) function qsceil(a)
+    type (qs_real), intent(in) :: a
+    call f_qs_ceil(a%re, qsceil%re)
+  end function qsceil
+
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (qs_real) function qshypot(a, b)
+    type (qs_real), intent(in) :: a, b
+    type (qs_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      qshypot = m
+    else
+      qshypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function qshypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (qs_real) function qsmodulo(a, p)
+    type (qs_real), intent(in) :: a, p
+    qsmodulo = a - qsfloor(a / p) * p
+  end function qsmodulo
+
+  ! max(a - b, 0)
+  elemental type (qs_real) function qsdim(a, b)
+    type (qs_real), intent(in) :: a, b
+    if (a > b) then
+      qsdim = a - b
+    else
+      qsdim = a - a
+    end if
+  end function qsdim
 
 end module qsmodule

@@ -448,6 +448,38 @@ module dsmodule
     module procedure ds_nan
   end interface
 
+  interface floor
+    module procedure dsfloor
+  end interface
+
+  interface ceil
+    module procedure dsceil
+  end interface
+
+  interface ceiling
+    module procedure dsceil
+  end interface
+
+  interface precision
+    module procedure ds_precision
+  end interface
+
+  interface range
+    module procedure ds_range
+  end interface
+
+  interface hypot
+    module procedure dshypot
+  end interface
+
+  interface modulo
+    module procedure dsmodulo
+  end interface
+
+  interface dim
+    module procedure dsdim
+  end interface
+
 contains
 
 ! Assignments
@@ -2414,5 +2446,46 @@ end function ds_int_limbs
     type (ds_real), intent(in) :: x
     call f_ds_cpow_r(z%cmp, x%re, pwr_dsc_ds%cmp)
   end function pwr_dsc_ds
+
+! Rounding and model intrinsics added for interface completeness.
+  elemental type (ds_real) function dsfloor(a)
+    type (ds_real), intent(in) :: a
+    call f_ds_floor(a%re, dsfloor%re)
+  end function dsfloor
+
+  elemental type (ds_real) function dsceil(a)
+    type (ds_real), intent(in) :: a
+    call f_ds_ceil(a%re, dsceil%re)
+  end function dsceil
+
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (ds_real) function dshypot(a, b)
+    type (ds_real), intent(in) :: a, b
+    type (ds_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      dshypot = m
+    else
+      dshypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function dshypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (ds_real) function dsmodulo(a, p)
+    type (ds_real), intent(in) :: a, p
+    dsmodulo = a - dsfloor(a / p) * p
+  end function dsmodulo
+
+  ! max(a - b, 0)
+  elemental type (ds_real) function dsdim(a, b)
+    type (ds_real), intent(in) :: a, b
+    if (a > b) then
+      dsdim = a - b
+    else
+      dsdim = a - a
+    end if
+  end function dsdim
 
 end module dsmodule

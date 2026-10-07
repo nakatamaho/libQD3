@@ -412,6 +412,38 @@ module ddmodule
     module procedure dd_nan
   end interface
 
+  interface floor
+    module procedure ddfloor
+  end interface
+
+  interface ceil
+    module procedure ddceil
+  end interface
+
+  interface ceiling
+    module procedure ddceil
+  end interface
+
+  interface precision
+    module procedure dd_precision
+  end interface
+
+  interface range
+    module procedure dd_range
+  end interface
+
+  interface hypot
+    module procedure ddhypot
+  end interface
+
+  interface modulo
+    module procedure ddmodulo
+  end interface
+
+  interface dim
+    module procedure dddim
+  end interface
+
 contains
 
 ! Assignments
@@ -2140,6 +2172,47 @@ end function
     type (dd_real), intent(in) :: x
     call f_dd_cpow_r(z%cmp, x%re, pwr_ddc_dd%cmp)
   end function pwr_ddc_dd
+
+! Rounding and model intrinsics added for interface completeness.
+  elemental type (dd_real) function ddfloor(a)
+    type (dd_real), intent(in) :: a
+    call f_dd_floor(a%re, ddfloor%re)
+  end function ddfloor
+
+  elemental type (dd_real) function ddceil(a)
+    type (dd_real), intent(in) :: a
+    call f_dd_ceil(a%re, ddceil%re)
+  end function ddceil
+
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (dd_real) function ddhypot(a, b)
+    type (dd_real), intent(in) :: a, b
+    type (dd_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      ddhypot = m
+    else
+      ddhypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function ddhypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (dd_real) function ddmodulo(a, p)
+    type (dd_real), intent(in) :: a, p
+    ddmodulo = a - ddfloor(a / p) * p
+  end function ddmodulo
+
+  ! max(a - b, 0)
+  elemental type (dd_real) function dddim(a, b)
+    type (dd_real), intent(in) :: a, b
+    if (a > b) then
+      dddim = a - b
+    else
+      dddim = a - a
+    end if
+  end function dddim
 
 end module ddmodule
 

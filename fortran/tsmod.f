@@ -509,6 +509,22 @@ module tsmodule
     module procedure tsmod
   end interface
 
+  interface ceiling
+    module procedure tsceil
+  end interface
+
+  interface hypot
+    module procedure tshypot
+  end interface
+
+  interface modulo
+    module procedure tsmodulo
+  end interface
+
+  interface dim
+    module procedure tsdim
+  end interface
+
 contains
 
   subroutine assign_ts_str(a, s)
@@ -2292,5 +2308,36 @@ end function ts_int_limbs
     type (ts_real), intent(in) :: x
     call f_ts_cpow_r(z%cmp, x%re, pwr_tsc_ts%cmp)
   end function pwr_tsc_ts
+
+! Rounding and model intrinsics added for interface completeness.
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (ts_real) function tshypot(a, b)
+    type (ts_real), intent(in) :: a, b
+    type (ts_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      tshypot = m
+    else
+      tshypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function tshypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (ts_real) function tsmodulo(a, p)
+    type (ts_real), intent(in) :: a, p
+    tsmodulo = a - tsfloor(a / p) * p
+  end function tsmodulo
+
+  ! max(a - b, 0)
+  elemental type (ts_real) function tsdim(a, b)
+    type (ts_real), intent(in) :: a, b
+    if (a > b) then
+      tsdim = a - b
+    else
+      tsdim = a - a
+    end if
+  end function tsdim
 
 end module tsmodule

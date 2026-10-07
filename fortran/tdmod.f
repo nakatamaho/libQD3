@@ -475,6 +475,22 @@ module tdmodule
     module procedure tdmod
   end interface
 
+  interface ceiling
+    module procedure tdceil
+  end interface
+
+  interface hypot
+    module procedure tdhypot
+  end interface
+
+  interface modulo
+    module procedure tdmodulo
+  end interface
+
+  interface dim
+    module procedure tddim
+  end interface
+
 contains
 
   subroutine assign_td_str(a, s)
@@ -2032,5 +2048,36 @@ end subroutine
     type (td_real), intent(in) :: x
     call f_td_cpow_r(z%cmp, x%re, pwr_tdc_td%cmp)
   end function pwr_tdc_td
+
+! Rounding and model intrinsics added for interface completeness.
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (td_real) function tdhypot(a, b)
+    type (td_real), intent(in) :: a, b
+    type (td_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      tdhypot = m
+    else
+      tdhypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function tdhypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (td_real) function tdmodulo(a, p)
+    type (td_real), intent(in) :: a, p
+    tdmodulo = a - tdfloor(a / p) * p
+  end function tdmodulo
+
+  ! max(a - b, 0)
+  elemental type (td_real) function tddim(a, b)
+    type (td_real), intent(in) :: a, b
+    if (a > b) then
+      tddim = a - b
+    else
+      tddim = a - a
+    end if
+  end function tddim
 
 end module tdmodule
