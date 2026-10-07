@@ -28,6 +28,14 @@ libQD3 also provides matching C++ complex aliases through `<qd/complex.h>`:
 plus ADL; no overloads are added to namespace `std`.
 
 ## News
+2026-10-07 libQD3 1.6.0 adds a C API for `ds_real`, `ts_real` and `qs_real`,
+completes the C API for the other types, adds complex elementary functions,
+binary64 interoperability and symmetric dd/qd conversions to the Fortran
+modules, and fixes decimal parsing, mixed-precision comparisons and several
+Fortran conversion and rounding defects found by new epsilon-relative test
+suites.  `libqdmod` now has SOVERSION 3.  See [CHANGES.1.6.0.md](CHANGES.1.6.0.md)
+for the release notes.
+
 2026-09-18 libQD3 1.5.0 was released.  This release adds binary32-based
 `ds_real`, `ts_real`, and `qs_real` float expansion types, Fortran interfaces,
 and MPFR-backed oracle coverage, with expanded dependency-free regression smoke
@@ -90,8 +98,8 @@ $ make -C docs td.pdf
 
 after installing the necessary LaTeX bits on your system.
 
-Release-specific notes for libQD3 1.5.0 are in
-[CHANGES.1.5.0.md](CHANGES.1.5.0.md).
+Release-specific notes for libQD3 1.6.0 are in
+[CHANGES.1.6.0.md](CHANGES.1.6.0.md).
 
 ## Tips for developers
 

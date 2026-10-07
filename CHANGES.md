@@ -1,6 +1,11 @@
 # CHANGES.md
 
-## Unreleased
+## 1.6.0
+
+libQD3 1.6.0 completes the C and Fortran interfaces for all six expansion
+types, fixes numerical defects found by new epsilon-relative QA, and makes the
+release gate cover Fortran.  See CHANGES.1.6.0.md for the full notes.
+
 
 C++ core:
 
@@ -36,6 +41,8 @@ Fortran:
   `real*8`/`complex*16` interoperability (now added).
 - ts/qs <-> dd/qd conversions copied limbs between binary32 and binary64
   arrays (`ts = dd` kept ~1e-8 accuracy); they now convert through C++.
+- dsmodule and qsmodule now provide the same dd/qd conversions as tsmodule
+  (real and complex, constructors and assignment in both directions).
 - Literal parsing now uses the C++ readers (the old Fortran parsers were
   inexact even for `0.5`); `d`/`D` exponents are accepted.
 - The qs `epsilon()` parameter was 1.25 * 2^-94.
@@ -53,6 +60,14 @@ QA:
 - The release-gate scripts build with `QD_BUILD_FORTRAN=ON`; set
   `QD3_QA_FORTRAN=OFF` to opt out explicitly.
 - `regression_smoke` checks exact and long-literal parsing for all types.
+- The MPC complex oracle also runs for `ds_complex`, `ts_complex` and
+  `qs_complex` (seeded random inputs).
+
+Compatibility:
+
+- `libqdmod` SOVERSION is now 3: unused Fortran module procedures were
+  removed and `dble()` of ds/ts/qs values now returns `real*8`.  `libqd`
+  keeps SOVERSION 2 (symbols were only added).
 
 ## 1.4.0
 

@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.5.0 LANGUAGES CXX C)
+project(qd3 VERSION 1.6.0 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -277,7 +277,7 @@ set(QD3_INSTALL_TARGETS "")
 
 if(BUILD_SHARED_LIBS)
   add_library(qd SHARED ${QD_SOURCES})
-  set_target_properties(qd PROPERTIES VERSION 2.0.0 SOVERSION 2)
+  set_target_properties(qd PROPERTIES VERSION 2.1.0 SOVERSION 2)
 else()
   add_library(qd STATIC ${QD_SOURCES})
 endif()
@@ -331,7 +331,7 @@ if(QD_HAVE_FORTRAN)
 
   if(BUILD_SHARED_LIBS)
     add_library(qdmod SHARED ${QD_FORTRAN_SOURCES})
-    set_target_properties(qdmod PROPERTIES VERSION 2.0.0 SOVERSION 2)
+    set_target_properties(qdmod PROPERTIES VERSION 3.0.0 SOVERSION 3)
   else()
     add_library(qdmod STATIC ${QD_FORTRAN_SOURCES})
   endif()
