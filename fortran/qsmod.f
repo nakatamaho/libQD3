@@ -13,6 +13,7 @@
 
 module qsmodule
   use ddmodule
+  use qdmodule, only: qd_real, qd_complex
   use qsext
   implicit none
 
@@ -56,6 +57,12 @@ module qsmodule
     module procedure assign_qs_dp
     module procedure assign_dp_qs
     module procedure assign_qsc_zc
+    module procedure assign_qsc_ddc
+    module procedure assign_ddc_qsc
+    module procedure assign_qs_qd
+    module procedure assign_qd_qs
+    module procedure assign_qsc_qdc
+    module procedure assign_qdc_qsc
   end interface
 
   interface operator (+)
@@ -153,6 +160,7 @@ module qsmodule
     module procedure to_qs_str
     module procedure to_qs_qsc
     module procedure to_qs_dp
+    module procedure to_qs_qd
   end interface
 
   interface ddreal
@@ -170,6 +178,8 @@ module qsmodule
     module procedure to_qsc_d
     module procedure to_qsc_dc
     module procedure to_qsc_zc
+    module procedure to_qsc_ddc
+    module procedure to_qsc_qdc
   end interface
 
   interface int
@@ -485,6 +495,18 @@ module qsmodule
 
   interface dim
     module procedure qsdim
+  end interface
+
+  interface ddcomplex
+    module procedure to_ddc_qsc
+  end interface
+
+  interface qdreal
+    module procedure to_qd_qs
+  end interface
+
+  interface qdcomplex
+    module procedure to_qdc_qsc
   end interface
 
 contains
@@ -2456,5 +2478,76 @@ end function qs_int_limbs
       qsdim = a - a
     end if
   end function qsdim
+
+! Conversions to and from the binary64-based dd/qd types.
+  elemental type (qs_complex) function to_qsc_ddc(ddc)
+    type (dd_complex), intent(in) :: ddc
+    call f_qs_from_dd(ddc%cmp(1:2), to_qsc_ddc%cmp(1:4))
+    call f_qs_from_dd(ddc%cmp(3:4), to_qsc_ddc%cmp(5:8))
+  end function to_qsc_ddc
+
+  elemental type (dd_complex) function to_ddc_qsc(qsc)
+    type (qs_complex), intent(in) :: qsc
+    call f_qs_to_dd(qsc%cmp(1:4), to_ddc_qsc%cmp(1:2))
+    call f_qs_to_dd(qsc%cmp(5:8), to_ddc_qsc%cmp(3:4))
+  end function to_ddc_qsc
+
+  elemental subroutine assign_qsc_ddc(qsc, ddc)
+    type (qs_complex), intent(inout) :: qsc
+    type (dd_complex), intent(in) :: ddc
+    qsc = to_qsc_ddc(ddc)
+  end subroutine assign_qsc_ddc
+
+  elemental subroutine assign_ddc_qsc(ddc, qsc)
+    type (dd_complex), intent(inout) :: ddc
+    type (qs_complex), intent(in) :: qsc
+    ddc = to_ddc_qsc(qsc)
+  end subroutine assign_ddc_qsc
+
+  elemental type (qs_real) function to_qs_qd(qd)
+    type (qd_real), intent(in) :: qd
+    call f_qs_from_qd(qd%re, to_qs_qd%re)
+  end function to_qs_qd
+
+  elemental type (qd_real) function to_qd_qs(qs)
+    type (qs_real), intent(in) :: qs
+    call f_qs_to_qd(qs%re, to_qd_qs%re)
+  end function to_qd_qs
+
+  elemental subroutine assign_qs_qd(qs, qd)
+    type (qs_real), intent(inout) :: qs
+    type (qd_real), intent(in) :: qd
+    call f_qs_from_qd(qd%re, qs%re)
+  end subroutine assign_qs_qd
+
+  elemental subroutine assign_qd_qs(qd, qs)
+    type (qd_real), intent(inout) :: qd
+    type (qs_real), intent(in) :: qs
+    call f_qs_to_qd(qs%re, qd%re)
+  end subroutine assign_qd_qs
+
+  elemental type (qs_complex) function to_qsc_qdc(qdc)
+    type (qd_complex), intent(in) :: qdc
+    call f_qs_from_qd(qdc%cmp(1:4), to_qsc_qdc%cmp(1:4))
+    call f_qs_from_qd(qdc%cmp(5:8), to_qsc_qdc%cmp(5:8))
+  end function to_qsc_qdc
+
+  elemental type (qd_complex) function to_qdc_qsc(qsc)
+    type (qs_complex), intent(in) :: qsc
+    call f_qs_to_qd(qsc%cmp(1:4), to_qdc_qsc%cmp(1:4))
+    call f_qs_to_qd(qsc%cmp(5:8), to_qdc_qsc%cmp(5:8))
+  end function to_qdc_qsc
+
+  elemental subroutine assign_qsc_qdc(qsc, qdc)
+    type (qs_complex), intent(inout) :: qsc
+    type (qd_complex), intent(in) :: qdc
+    qsc = to_qsc_qdc(qdc)
+  end subroutine assign_qsc_qdc
+
+  elemental subroutine assign_qdc_qsc(qdc, qsc)
+    type (qd_complex), intent(inout) :: qdc
+    type (qs_complex), intent(in) :: qsc
+    qdc = to_qdc_qsc(qsc)
+  end subroutine assign_qdc_qsc
 
 end module qsmodule
