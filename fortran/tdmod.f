@@ -147,6 +147,8 @@ module tdmodule
     module procedure pwr_td_i
     module procedure pwr_d_td
     module procedure pwr_tdc_i
+    module procedure pwr_tdc
+    module procedure pwr_tdc_td
   end interface
 
   interface tdreal
@@ -207,12 +209,15 @@ module tdmodule
 
   interface sin
     module procedure tdsin
+    module procedure tdc_sin
   end interface
   interface cos
     module procedure tdcos
+    module procedure tdc_cos
   end interface
   interface tan
     module procedure tdtan
+    module procedure tdc_tan
   end interface
   interface sincos
     module procedure tdsincos
@@ -220,12 +225,15 @@ module tdmodule
 
   interface asin
     module procedure tdasin
+    module procedure tdc_asin
   end interface
   interface acos
     module procedure tdacos
+    module procedure tdc_acos
   end interface
   interface atan
     module procedure tdatan
+    module procedure tdc_atan
   end interface
   interface atan2
     module procedure tdatan2
@@ -245,6 +253,7 @@ module tdmodule
 
   interface sqrt
     module procedure tdsqrt
+    module procedure tdc_sqrt
   end interface
   interface sqr
     module procedure tdsqr
@@ -255,12 +264,15 @@ module tdmodule
 
   interface sinh
     module procedure tdsinh
+    module procedure tdc_sinh
   end interface
   interface cosh
     module procedure tdcosh
+    module procedure tdc_cosh
   end interface
   interface tanh
     module procedure tdtanh
+    module procedure tdc_tanh
   end interface
   interface sincosh
     module procedure tdsincosh
@@ -268,12 +280,15 @@ module tdmodule
 
   interface asinh
     module procedure tdasinh
+    module procedure tdc_asinh
   end interface
   interface acosh
     module procedure tdacosh
+    module procedure tdc_acosh
   end interface
   interface atanh
     module procedure tdatanh
+    module procedure tdc_atanh
   end interface
 
   interface aint
@@ -1940,5 +1955,82 @@ end subroutine
     type (td_complex), intent(in) :: b
     ne_d_tdc = ne_td_tdc(to_td_d(a), b)
   end function ne_d_tdc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (td_complex) function tdc_sqrt(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csqrt(z%cmp, tdc_sqrt%cmp)
+  end function tdc_sqrt
+
+  elemental type (td_complex) function tdc_sin(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csin(z%cmp, tdc_sin%cmp)
+  end function tdc_sin
+
+  elemental type (td_complex) function tdc_cos(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ccos(z%cmp, tdc_cos%cmp)
+  end function tdc_cos
+
+  elemental type (td_complex) function tdc_tan(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ctan(z%cmp, tdc_tan%cmp)
+  end function tdc_tan
+
+  elemental type (td_complex) function tdc_sinh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csinh(z%cmp, tdc_sinh%cmp)
+  end function tdc_sinh
+
+  elemental type (td_complex) function tdc_cosh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ccosh(z%cmp, tdc_cosh%cmp)
+  end function tdc_cosh
+
+  elemental type (td_complex) function tdc_tanh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ctanh(z%cmp, tdc_tanh%cmp)
+  end function tdc_tanh
+
+  elemental type (td_complex) function tdc_asin(z)
+    type (td_complex), intent(in) :: z
+    call f_td_casin(z%cmp, tdc_asin%cmp)
+  end function tdc_asin
+
+  elemental type (td_complex) function tdc_acos(z)
+    type (td_complex), intent(in) :: z
+    call f_td_cacos(z%cmp, tdc_acos%cmp)
+  end function tdc_acos
+
+  elemental type (td_complex) function tdc_atan(z)
+    type (td_complex), intent(in) :: z
+    call f_td_catan(z%cmp, tdc_atan%cmp)
+  end function tdc_atan
+
+  elemental type (td_complex) function tdc_asinh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_casinh(z%cmp, tdc_asinh%cmp)
+  end function tdc_asinh
+
+  elemental type (td_complex) function tdc_acosh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_cacosh(z%cmp, tdc_acosh%cmp)
+  end function tdc_acosh
+
+  elemental type (td_complex) function tdc_atanh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_catanh(z%cmp, tdc_atanh%cmp)
+  end function tdc_atanh
+
+  elemental type (td_complex) function pwr_tdc(z, w)
+    type (td_complex), intent(in) :: z, w
+    call f_td_cpow(z%cmp, w%cmp, pwr_tdc%cmp)
+  end function pwr_tdc
+
+  elemental type (td_complex) function pwr_tdc_td(z, x)
+    type (td_complex), intent(in) :: z
+    type (td_real), intent(in) :: x
+    call f_td_cpow_r(z%cmp, x%re, pwr_tdc_td%cmp)
+  end function pwr_tdc_td
 
 end module tdmodule

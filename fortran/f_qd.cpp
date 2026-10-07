@@ -18,6 +18,7 @@
 
 #include "config.h"
 #include <qd/qd_real.h>
+#include <qd/qd_complex.h>
 #include <qd/c_qd.h>
 
 #define f_qd_add          FC_FUNC_(f_qd_add, F_QD_ADD)
@@ -88,9 +89,39 @@
 #define f_qd_pi           FC_FUNC_(f_qd_pi, F_QD_PI)
 #define f_qd_nan          FC_FUNC_(f_qd_nan, F_QD_NAN)
 #define f_qd_read         FC_FUNC_(f_qd_read, F_QD_READ)
+#define f_qd_csqrt       FC_FUNC_(f_qd_csqrt, F_QD_CSQRT)
+#define f_qd_csin        FC_FUNC_(f_qd_csin, F_QD_CSIN)
+#define f_qd_ccos        FC_FUNC_(f_qd_ccos, F_QD_CCOS)
+#define f_qd_ctan        FC_FUNC_(f_qd_ctan, F_QD_CTAN)
+#define f_qd_csinh       FC_FUNC_(f_qd_csinh, F_QD_CSINH)
+#define f_qd_ccosh       FC_FUNC_(f_qd_ccosh, F_QD_CCOSH)
+#define f_qd_ctanh       FC_FUNC_(f_qd_ctanh, F_QD_CTANH)
+#define f_qd_casin       FC_FUNC_(f_qd_casin, F_QD_CASIN)
+#define f_qd_cacos       FC_FUNC_(f_qd_cacos, F_QD_CACOS)
+#define f_qd_catan       FC_FUNC_(f_qd_catan, F_QD_CATAN)
+#define f_qd_casinh      FC_FUNC_(f_qd_casinh, F_QD_CASINH)
+#define f_qd_cacosh      FC_FUNC_(f_qd_cacosh, F_QD_CACOSH)
+#define f_qd_catanh      FC_FUNC_(f_qd_catanh, F_QD_CATANH)
+#define f_qd_cpow        FC_FUNC_(f_qd_cpow, F_QD_CPOW)
+#define f_qd_cpow_r      FC_FUNC_(f_qd_cpow_r, F_QD_CPOW_R)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1]; \
                               ptr[2] = a.x[2]; ptr[3] = a.x[3];
+
+/* Complex elementary functions on qd_complex values stored as 8
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline qd_complex load_qdc(const double *z) {
+  return qd_complex(qd_real(z), qd_real(z + 4));
+}
+inline void store_qdc(const qd_complex &w, double *r) {
+  const qd_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 4; ++i) {
+    r[i] = re[i];
+    r[i + 4] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -507,6 +538,67 @@ void f_qd_read(const char *s, int *n, double *a, int *ierr) {
   if (*ierr == 0) {
     TO_DOUBLE_PTR(r, a);
   }
+}
+
+
+void f_qd_csqrt(const double *z, double *r) {
+  store_qdc(sqrt(load_qdc(z)), r);
+}
+
+void f_qd_csin(const double *z, double *r) {
+  store_qdc(sin(load_qdc(z)), r);
+}
+
+void f_qd_ccos(const double *z, double *r) {
+  store_qdc(cos(load_qdc(z)), r);
+}
+
+void f_qd_ctan(const double *z, double *r) {
+  store_qdc(tan(load_qdc(z)), r);
+}
+
+void f_qd_csinh(const double *z, double *r) {
+  store_qdc(sinh(load_qdc(z)), r);
+}
+
+void f_qd_ccosh(const double *z, double *r) {
+  store_qdc(cosh(load_qdc(z)), r);
+}
+
+void f_qd_ctanh(const double *z, double *r) {
+  store_qdc(tanh(load_qdc(z)), r);
+}
+
+void f_qd_casin(const double *z, double *r) {
+  store_qdc(asin(load_qdc(z)), r);
+}
+
+void f_qd_cacos(const double *z, double *r) {
+  store_qdc(acos(load_qdc(z)), r);
+}
+
+void f_qd_catan(const double *z, double *r) {
+  store_qdc(atan(load_qdc(z)), r);
+}
+
+void f_qd_casinh(const double *z, double *r) {
+  store_qdc(asinh(load_qdc(z)), r);
+}
+
+void f_qd_cacosh(const double *z, double *r) {
+  store_qdc(acosh(load_qdc(z)), r);
+}
+
+void f_qd_catanh(const double *z, double *r) {
+  store_qdc(atanh(load_qdc(z)), r);
+}
+
+void f_qd_cpow(const double *z, const double *w, double *r) {
+  store_qdc(pow(load_qdc(z), load_qdc(w)), r);
+}
+
+void f_qd_cpow_r(const double *z, const double *x, double *r) {
+  store_qdc(pow(load_qdc(z), qd_real(x)), r);
 }
 
 }

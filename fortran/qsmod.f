@@ -141,6 +141,8 @@ module qsmodule
     module procedure pwr_qs_i
     module procedure pwr_d_qs
     module procedure pwr_qsc_i
+    module procedure pwr_qsc
+    module procedure pwr_qsc_qs
   end interface
 
   interface qsreal
@@ -176,12 +178,15 @@ module qsmodule
 
   interface sin
     module procedure qssin
+    module procedure qsc_sin
   end interface
   interface cos
     module procedure qscos
+    module procedure qsc_cos
   end interface
   interface tan
     module procedure qstan
+    module procedure qsc_tan
   end interface
   interface sincos
     module procedure qssincos
@@ -189,12 +194,15 @@ module qsmodule
 
   interface asin
     module procedure qsasin
+    module procedure qsc_asin
   end interface
   interface acos
     module procedure qsacos
+    module procedure qsc_acos
   end interface
   interface atan
     module procedure qsatan
+    module procedure qsc_atan
   end interface
   interface atan2
     module procedure qsatan2
@@ -214,6 +222,7 @@ module qsmodule
 
   interface sqrt
     module procedure qssqrt
+    module procedure qsc_sqrt
   end interface
   interface sqr
     module procedure qssqr
@@ -224,12 +233,15 @@ module qsmodule
 
   interface sinh
     module procedure qssinh
+    module procedure qsc_sinh
   end interface
   interface cosh
     module procedure qscosh
+    module procedure qsc_cosh
   end interface
   interface tanh
     module procedure qstanh
+    module procedure qsc_tanh
   end interface
   interface sincosh
     module procedure qssincosh
@@ -237,12 +249,15 @@ module qsmodule
 
   interface asinh
     module procedure qsasinh
+    module procedure qsc_asinh
   end interface
   interface acosh
     module procedure qsacosh
+    module procedure qsc_acosh
   end interface
   interface atanh
     module procedure qsatanh
+    module procedure qsc_atanh
   end interface
 
   interface aint
@@ -2299,5 +2314,82 @@ end function qs_int_limbs
     type (qs_complex), intent(in) :: b
     ne_dp_qsc = ne_qs_qsc(to_qs_dp(a), b)
   end function ne_dp_qsc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (qs_complex) function qsc_sqrt(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_csqrt(z%cmp, qsc_sqrt%cmp)
+  end function qsc_sqrt
+
+  elemental type (qs_complex) function qsc_sin(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_csin(z%cmp, qsc_sin%cmp)
+  end function qsc_sin
+
+  elemental type (qs_complex) function qsc_cos(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_ccos(z%cmp, qsc_cos%cmp)
+  end function qsc_cos
+
+  elemental type (qs_complex) function qsc_tan(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_ctan(z%cmp, qsc_tan%cmp)
+  end function qsc_tan
+
+  elemental type (qs_complex) function qsc_sinh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_csinh(z%cmp, qsc_sinh%cmp)
+  end function qsc_sinh
+
+  elemental type (qs_complex) function qsc_cosh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_ccosh(z%cmp, qsc_cosh%cmp)
+  end function qsc_cosh
+
+  elemental type (qs_complex) function qsc_tanh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_ctanh(z%cmp, qsc_tanh%cmp)
+  end function qsc_tanh
+
+  elemental type (qs_complex) function qsc_asin(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_casin(z%cmp, qsc_asin%cmp)
+  end function qsc_asin
+
+  elemental type (qs_complex) function qsc_acos(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_cacos(z%cmp, qsc_acos%cmp)
+  end function qsc_acos
+
+  elemental type (qs_complex) function qsc_atan(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_catan(z%cmp, qsc_atan%cmp)
+  end function qsc_atan
+
+  elemental type (qs_complex) function qsc_asinh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_casinh(z%cmp, qsc_asinh%cmp)
+  end function qsc_asinh
+
+  elemental type (qs_complex) function qsc_acosh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_cacosh(z%cmp, qsc_acosh%cmp)
+  end function qsc_acosh
+
+  elemental type (qs_complex) function qsc_atanh(z)
+    type (qs_complex), intent(in) :: z
+    call f_qs_catanh(z%cmp, qsc_atanh%cmp)
+  end function qsc_atanh
+
+  elemental type (qs_complex) function pwr_qsc(z, w)
+    type (qs_complex), intent(in) :: z, w
+    call f_qs_cpow(z%cmp, w%cmp, pwr_qsc%cmp)
+  end function pwr_qsc
+
+  elemental type (qs_complex) function pwr_qsc_qs(z, x)
+    type (qs_complex), intent(in) :: z
+    type (qs_real), intent(in) :: x
+    call f_qs_cpow_r(z%cmp, x%re, pwr_qsc_qs%cmp)
+  end function pwr_qsc_qs
 
 end module qsmodule

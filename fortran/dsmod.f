@@ -139,6 +139,8 @@ module dsmodule
     module procedure pwr_ds_i
     module procedure pwr_d_ds
     module procedure pwr_dsc_i
+    module procedure pwr_dsc
+    module procedure pwr_dsc_ds
   end interface
 
   interface dsreal
@@ -169,12 +171,15 @@ module dsmodule
 
   interface sin
     module procedure dssin
+    module procedure dsc_sin
   end interface
   interface cos
     module procedure dscos
+    module procedure dsc_cos
   end interface
   interface tan
     module procedure dstan
+    module procedure dsc_tan
   end interface
   interface sincos
     module procedure dssincos
@@ -182,12 +187,15 @@ module dsmodule
 
   interface asin
     module procedure dsasin
+    module procedure dsc_asin
   end interface
   interface acos
     module procedure dsacos
+    module procedure dsc_acos
   end interface
   interface atan
     module procedure dsatan
+    module procedure dsc_atan
   end interface
   interface atan2
     module procedure dsatan2
@@ -207,6 +215,7 @@ module dsmodule
 
   interface sqrt
     module procedure dssqrt
+    module procedure dsc_sqrt
   end interface
   interface sqr
     module procedure dssqr
@@ -217,12 +226,15 @@ module dsmodule
 
   interface sinh
     module procedure dssinh
+    module procedure dsc_sinh
   end interface
   interface cosh
     module procedure dscosh
+    module procedure dsc_cosh
   end interface
   interface tanh
     module procedure dstanh
+    module procedure dsc_tanh
   end interface
   interface sincosh
     module procedure dssincosh
@@ -230,12 +242,15 @@ module dsmodule
 
   interface asinh
     module procedure dsasinh
+    module procedure dsc_asinh
   end interface
   interface acosh
     module procedure dsacosh
+    module procedure dsc_acosh
   end interface
   interface atanh
     module procedure dsatanh
+    module procedure dsc_atanh
   end interface
 
   interface aint
@@ -2322,5 +2337,82 @@ end function ds_int_limbs
     type (ds_complex), intent(in) :: b
     ne_dp_dsc = ne_ds_dsc(to_ds_dp(a), b)
   end function ne_dp_dsc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (ds_complex) function dsc_sqrt(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_csqrt(z%cmp, dsc_sqrt%cmp)
+  end function dsc_sqrt
+
+  elemental type (ds_complex) function dsc_sin(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_csin(z%cmp, dsc_sin%cmp)
+  end function dsc_sin
+
+  elemental type (ds_complex) function dsc_cos(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_ccos(z%cmp, dsc_cos%cmp)
+  end function dsc_cos
+
+  elemental type (ds_complex) function dsc_tan(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_ctan(z%cmp, dsc_tan%cmp)
+  end function dsc_tan
+
+  elemental type (ds_complex) function dsc_sinh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_csinh(z%cmp, dsc_sinh%cmp)
+  end function dsc_sinh
+
+  elemental type (ds_complex) function dsc_cosh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_ccosh(z%cmp, dsc_cosh%cmp)
+  end function dsc_cosh
+
+  elemental type (ds_complex) function dsc_tanh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_ctanh(z%cmp, dsc_tanh%cmp)
+  end function dsc_tanh
+
+  elemental type (ds_complex) function dsc_asin(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_casin(z%cmp, dsc_asin%cmp)
+  end function dsc_asin
+
+  elemental type (ds_complex) function dsc_acos(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_cacos(z%cmp, dsc_acos%cmp)
+  end function dsc_acos
+
+  elemental type (ds_complex) function dsc_atan(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_catan(z%cmp, dsc_atan%cmp)
+  end function dsc_atan
+
+  elemental type (ds_complex) function dsc_asinh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_casinh(z%cmp, dsc_asinh%cmp)
+  end function dsc_asinh
+
+  elemental type (ds_complex) function dsc_acosh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_cacosh(z%cmp, dsc_acosh%cmp)
+  end function dsc_acosh
+
+  elemental type (ds_complex) function dsc_atanh(z)
+    type (ds_complex), intent(in) :: z
+    call f_ds_catanh(z%cmp, dsc_atanh%cmp)
+  end function dsc_atanh
+
+  elemental type (ds_complex) function pwr_dsc(z, w)
+    type (ds_complex), intent(in) :: z, w
+    call f_ds_cpow(z%cmp, w%cmp, pwr_dsc%cmp)
+  end function pwr_dsc
+
+  elemental type (ds_complex) function pwr_dsc_ds(z, x)
+    type (ds_complex), intent(in) :: z
+    type (ds_real), intent(in) :: x
+    call f_ds_cpow_r(z%cmp, x%re, pwr_dsc_ds%cmp)
+  end function pwr_dsc_ds
 
 end module dsmodule

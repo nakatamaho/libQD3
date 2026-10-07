@@ -37,6 +37,7 @@
 #include <cstdlib>
 
 #include <qd/td_real.h>
+#include <qd/td_complex.h>
 #include <qd/inline.h>
 
 #define f_td_add          FC_FUNC_(f_td_add, F_TD_ADD)
@@ -97,11 +98,41 @@
 #define f_td_pi           FC_FUNC_(f_td_pi, F_TD_PI)
 #define f_td_nan          FC_FUNC_(f_td_nan, F_TD_NAN)
 #define f_td_read         FC_FUNC_(f_td_read, F_TD_READ)
+#define f_td_csqrt       FC_FUNC_(f_td_csqrt, F_TD_CSQRT)
+#define f_td_csin        FC_FUNC_(f_td_csin, F_TD_CSIN)
+#define f_td_ccos        FC_FUNC_(f_td_ccos, F_TD_CCOS)
+#define f_td_ctan        FC_FUNC_(f_td_ctan, F_TD_CTAN)
+#define f_td_csinh       FC_FUNC_(f_td_csinh, F_TD_CSINH)
+#define f_td_ccosh       FC_FUNC_(f_td_ccosh, F_TD_CCOSH)
+#define f_td_ctanh       FC_FUNC_(f_td_ctanh, F_TD_CTANH)
+#define f_td_casin       FC_FUNC_(f_td_casin, F_TD_CASIN)
+#define f_td_cacos       FC_FUNC_(f_td_cacos, F_TD_CACOS)
+#define f_td_catan       FC_FUNC_(f_td_catan, F_TD_CATAN)
+#define f_td_casinh      FC_FUNC_(f_td_casinh, F_TD_CASINH)
+#define f_td_cacosh      FC_FUNC_(f_td_cacosh, F_TD_CACOSH)
+#define f_td_catanh      FC_FUNC_(f_td_catanh, F_TD_CATANH)
+#define f_td_cpow        FC_FUNC_(f_td_cpow, F_TD_CPOW)
+#define f_td_cpow_r      FC_FUNC_(f_td_cpow_r, F_TD_CPOW_R)
 
 #define TO_DOUBLE_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
   ptr[1] = (a)[1]; \
   ptr[2] = (a)[2];
+
+/* Complex elementary functions on td_complex values stored as 6
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline td_complex load_tdc(const double *z) {
+  return td_complex(td_real(z), td_real(z + 3));
+}
+inline void store_tdc(const td_complex &w, double *r) {
+  const td_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 3; ++i) {
+    r[i] = re[i];
+    r[i + 3] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -389,6 +420,67 @@ void f_td_read(const char *s, int *n, double *a, int *ierr) {
   if (*ierr == 0) {
     TO_DOUBLE_PTR(r, a);
   }
+}
+
+
+void f_td_csqrt(const double *z, double *r) {
+  store_tdc(sqrt(load_tdc(z)), r);
+}
+
+void f_td_csin(const double *z, double *r) {
+  store_tdc(sin(load_tdc(z)), r);
+}
+
+void f_td_ccos(const double *z, double *r) {
+  store_tdc(cos(load_tdc(z)), r);
+}
+
+void f_td_ctan(const double *z, double *r) {
+  store_tdc(tan(load_tdc(z)), r);
+}
+
+void f_td_csinh(const double *z, double *r) {
+  store_tdc(sinh(load_tdc(z)), r);
+}
+
+void f_td_ccosh(const double *z, double *r) {
+  store_tdc(cosh(load_tdc(z)), r);
+}
+
+void f_td_ctanh(const double *z, double *r) {
+  store_tdc(tanh(load_tdc(z)), r);
+}
+
+void f_td_casin(const double *z, double *r) {
+  store_tdc(asin(load_tdc(z)), r);
+}
+
+void f_td_cacos(const double *z, double *r) {
+  store_tdc(acos(load_tdc(z)), r);
+}
+
+void f_td_catan(const double *z, double *r) {
+  store_tdc(atan(load_tdc(z)), r);
+}
+
+void f_td_casinh(const double *z, double *r) {
+  store_tdc(asinh(load_tdc(z)), r);
+}
+
+void f_td_cacosh(const double *z, double *r) {
+  store_tdc(acosh(load_tdc(z)), r);
+}
+
+void f_td_catanh(const double *z, double *r) {
+  store_tdc(atanh(load_tdc(z)), r);
+}
+
+void f_td_cpow(const double *z, const double *w, double *r) {
+  store_tdc(pow(load_tdc(z), load_tdc(w)), r);
+}
+
+void f_td_cpow_r(const double *z, const double *x, double *r) {
+  store_tdc(pow(load_tdc(z), td_real(x)), r);
 }
 
 }

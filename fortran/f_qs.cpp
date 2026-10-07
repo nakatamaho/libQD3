@@ -37,6 +37,7 @@
 #include <cstdlib>
 
 #include <qd/qs_real.h>
+#include <qd/qs_complex.h>
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 #include <qd/inline.h>
@@ -105,12 +106,42 @@
 #define f_qs_from_qd      FC_FUNC_(f_qs_from_qd, F_QS_FROM_QD)
 #define f_qs_to_qd        FC_FUNC_(f_qs_to_qd, F_QS_TO_QD)
 #define f_qs_read         FC_FUNC_(f_qs_read, F_QS_READ)
+#define f_qs_csqrt       FC_FUNC_(f_qs_csqrt, F_QS_CSQRT)
+#define f_qs_csin        FC_FUNC_(f_qs_csin, F_QS_CSIN)
+#define f_qs_ccos        FC_FUNC_(f_qs_ccos, F_QS_CCOS)
+#define f_qs_ctan        FC_FUNC_(f_qs_ctan, F_QS_CTAN)
+#define f_qs_csinh       FC_FUNC_(f_qs_csinh, F_QS_CSINH)
+#define f_qs_ccosh       FC_FUNC_(f_qs_ccosh, F_QS_CCOSH)
+#define f_qs_ctanh       FC_FUNC_(f_qs_ctanh, F_QS_CTANH)
+#define f_qs_casin       FC_FUNC_(f_qs_casin, F_QS_CASIN)
+#define f_qs_cacos       FC_FUNC_(f_qs_cacos, F_QS_CACOS)
+#define f_qs_catan       FC_FUNC_(f_qs_catan, F_QS_CATAN)
+#define f_qs_casinh      FC_FUNC_(f_qs_casinh, F_QS_CASINH)
+#define f_qs_cacosh      FC_FUNC_(f_qs_cacosh, F_QS_CACOSH)
+#define f_qs_catanh      FC_FUNC_(f_qs_catanh, F_QS_CATANH)
+#define f_qs_cpow        FC_FUNC_(f_qs_cpow, F_QS_CPOW)
+#define f_qs_cpow_r      FC_FUNC_(f_qs_cpow_r, F_QS_CPOW_R)
 
 #define TO_FLOAT_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
   ptr[1] = (a)[1]; \
   ptr[2] = (a)[2]; \
   ptr[3] = (a)[3];
+
+/* Complex elementary functions on qs_complex values stored as 8
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline qs_complex load_qsc(const float *z) {
+  return qs_complex(qs_real(z), qs_real(z + 4));
+}
+inline void store_qsc(const qs_complex &w, float *r) {
+  const qs_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 4; ++i) {
+    r[i] = re[i];
+    r[i + 4] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -405,6 +436,67 @@ void f_qs_read(const char *s, int *n, float *a, int *ierr) {
   if (*ierr == 0) {
     TO_FLOAT_PTR(r, a);
   }
+}
+
+
+void f_qs_csqrt(const float *z, float *r) {
+  store_qsc(sqrt(load_qsc(z)), r);
+}
+
+void f_qs_csin(const float *z, float *r) {
+  store_qsc(sin(load_qsc(z)), r);
+}
+
+void f_qs_ccos(const float *z, float *r) {
+  store_qsc(cos(load_qsc(z)), r);
+}
+
+void f_qs_ctan(const float *z, float *r) {
+  store_qsc(tan(load_qsc(z)), r);
+}
+
+void f_qs_csinh(const float *z, float *r) {
+  store_qsc(sinh(load_qsc(z)), r);
+}
+
+void f_qs_ccosh(const float *z, float *r) {
+  store_qsc(cosh(load_qsc(z)), r);
+}
+
+void f_qs_ctanh(const float *z, float *r) {
+  store_qsc(tanh(load_qsc(z)), r);
+}
+
+void f_qs_casin(const float *z, float *r) {
+  store_qsc(asin(load_qsc(z)), r);
+}
+
+void f_qs_cacos(const float *z, float *r) {
+  store_qsc(acos(load_qsc(z)), r);
+}
+
+void f_qs_catan(const float *z, float *r) {
+  store_qsc(atan(load_qsc(z)), r);
+}
+
+void f_qs_casinh(const float *z, float *r) {
+  store_qsc(asinh(load_qsc(z)), r);
+}
+
+void f_qs_cacosh(const float *z, float *r) {
+  store_qsc(acosh(load_qsc(z)), r);
+}
+
+void f_qs_catanh(const float *z, float *r) {
+  store_qsc(atanh(load_qsc(z)), r);
+}
+
+void f_qs_cpow(const float *z, const float *w, float *r) {
+  store_qsc(pow(load_qsc(z), load_qsc(w)), r);
+}
+
+void f_qs_cpow_r(const float *z, const float *x, float *r) {
+  store_qsc(pow(load_qsc(z), qs_real(x)), r);
 }
 
 }

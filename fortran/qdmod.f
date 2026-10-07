@@ -125,6 +125,8 @@ module qdmodule
     module procedure pwr_qd_i
     module procedure pwr_d_qd
     module procedure pwr_qdc_i
+    module procedure pwr_qdc
+    module procedure pwr_qdc_qd
   end interface
 
   interface qdreal
@@ -158,12 +160,15 @@ module qdmodule
 
   interface sin
     module procedure qdsin
+    module procedure qdc_sin
   end interface
   interface cos
     module procedure qdcos
+    module procedure qdc_cos
   end interface
   interface tan
     module procedure qdtan
+    module procedure qdc_tan
   end interface
   interface sincos
     module procedure qdsincos
@@ -171,12 +176,15 @@ module qdmodule
 
   interface asin
     module procedure qdasin
+    module procedure qdc_asin
   end interface
   interface acos
     module procedure qdacos
+    module procedure qdc_acos
   end interface
   interface atan
     module procedure qdatan
+    module procedure qdc_atan
   end interface
   interface atan2
     module procedure qdatan2
@@ -196,6 +204,7 @@ module qdmodule
 
   interface sqrt
     module procedure qdsqrt
+    module procedure qdc_sqrt
   end interface
   interface sqr
     module procedure qdsqr
@@ -206,12 +215,15 @@ module qdmodule
 
   interface sinh
     module procedure qdsinh
+    module procedure qdc_sinh
   end interface
   interface cosh
     module procedure qdcosh
+    module procedure qdc_cosh
   end interface
   interface tanh
     module procedure qdtanh
+    module procedure qdc_tanh
   end interface
   interface sincosh
     module procedure qdsincosh
@@ -219,12 +231,15 @@ module qdmodule
 
   interface asinh
     module procedure qdasinh
+    module procedure qdc_asinh
   end interface
   interface acosh
     module procedure qdacosh
+    module procedure qdc_acosh
   end interface
   interface atanh
     module procedure qdatanh
+    module procedure qdc_atanh
   end interface
 
   interface aint
@@ -2029,6 +2044,83 @@ end function
     type (qd_complex), intent(in) :: b
     ne_d_qdc = ne_qd_qdc(to_qd_d(a), b)
   end function ne_d_qdc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (qd_complex) function qdc_sqrt(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_csqrt(z%cmp, qdc_sqrt%cmp)
+  end function qdc_sqrt
+
+  elemental type (qd_complex) function qdc_sin(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_csin(z%cmp, qdc_sin%cmp)
+  end function qdc_sin
+
+  elemental type (qd_complex) function qdc_cos(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_ccos(z%cmp, qdc_cos%cmp)
+  end function qdc_cos
+
+  elemental type (qd_complex) function qdc_tan(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_ctan(z%cmp, qdc_tan%cmp)
+  end function qdc_tan
+
+  elemental type (qd_complex) function qdc_sinh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_csinh(z%cmp, qdc_sinh%cmp)
+  end function qdc_sinh
+
+  elemental type (qd_complex) function qdc_cosh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_ccosh(z%cmp, qdc_cosh%cmp)
+  end function qdc_cosh
+
+  elemental type (qd_complex) function qdc_tanh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_ctanh(z%cmp, qdc_tanh%cmp)
+  end function qdc_tanh
+
+  elemental type (qd_complex) function qdc_asin(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_casin(z%cmp, qdc_asin%cmp)
+  end function qdc_asin
+
+  elemental type (qd_complex) function qdc_acos(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_cacos(z%cmp, qdc_acos%cmp)
+  end function qdc_acos
+
+  elemental type (qd_complex) function qdc_atan(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_catan(z%cmp, qdc_atan%cmp)
+  end function qdc_atan
+
+  elemental type (qd_complex) function qdc_asinh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_casinh(z%cmp, qdc_asinh%cmp)
+  end function qdc_asinh
+
+  elemental type (qd_complex) function qdc_acosh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_cacosh(z%cmp, qdc_acosh%cmp)
+  end function qdc_acosh
+
+  elemental type (qd_complex) function qdc_atanh(z)
+    type (qd_complex), intent(in) :: z
+    call f_qd_catanh(z%cmp, qdc_atanh%cmp)
+  end function qdc_atanh
+
+  elemental type (qd_complex) function pwr_qdc(z, w)
+    type (qd_complex), intent(in) :: z, w
+    call f_qd_cpow(z%cmp, w%cmp, pwr_qdc%cmp)
+  end function pwr_qdc
+
+  elemental type (qd_complex) function pwr_qdc_qd(z, x)
+    type (qd_complex), intent(in) :: z
+    type (qd_real), intent(in) :: x
+    call f_qd_cpow_r(z%cmp, x%re, pwr_qdc_qd%cmp)
+  end function pwr_qdc_qd
 
 end module qdmodule
 

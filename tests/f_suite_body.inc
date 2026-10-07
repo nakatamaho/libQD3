@@ -158,7 +158,38 @@
 
   call extra_checks()
 
+  ! Complex elementary functions against MPC references for z = 1+2i.
+  cx = mkc(one, mkr(2))
+  call report(cnear(sqrt(cx), c_csqrt_re, c_csqrt_im, 8), tname, 'complex sqrt')
+  call report(cnear(sin(cx), c_csin_re, c_csin_im, 64), tname, 'complex sin')
+  call report(cnear(cos(cx), c_ccos_re, c_ccos_im, 64), tname, 'complex cos')
+  call report(cnear(tan(cx), c_ctan_re, c_ctan_im, 64), tname, 'complex tan')
+  call report(cnear(sinh(cx), c_csinh_re, c_csinh_im, 64), tname, 'complex sinh')
+  call report(cnear(cosh(cx), c_ccosh_re, c_ccosh_im, 64), tname, 'complex cosh')
+  call report(cnear(tanh(cx), c_ctanh_re, c_ctanh_im, 64), tname, 'complex tanh')
+  call report(cnear(asin(cx), c_casin_re, c_casin_im, 64), tname, 'complex asin')
+  call report(cnear(acos(cx), c_cacos_re, c_cacos_im, 64), tname, 'complex acos')
+  call report(cnear(atan(cx), c_catan_re, c_catan_im, 64), tname, 'complex atan')
+  call report(cnear(asinh(cx), c_casinh_re, c_casinh_im, 64), tname, 'complex asinh')
+  call report(cnear(acosh(cx), c_cacosh_re, c_cacosh_im, 64), tname, 'complex acosh')
+  call report(cnear(atanh(cx), c_catanh_re, c_catanh_im, 64), tname, 'complex atanh')
+  call report(cnear(cx ** mkc(mkr('0.5'), mkr('-1.5')), c_cpowc_re, c_cpowc_im, 64), &
+              tname, 'complex ** complex')
+  call report(cnear(cx ** mkr('1.5'), c_cpowr_re, c_cpowr_im, 64), tname, &
+              'complex ** real')
+  cz = sqrt(mkc(mkr(-4), mkr(0)))
+  call report(real(cz) == mkr(0) .and. aimag(cz) == mkr(2), tname, &
+              'complex sqrt branch')
+
 contains
+
+  ! True when both parts of got are within k epsilon of the references.
+  logical function cnear(got, re_ref, im_ref, k)
+    type(ct), intent(in) :: got
+    character(len=*), intent(in) :: re_ref, im_ref
+    integer, intent(in) :: k
+    cnear = near(real(got), mkr(re_ref), k) .and. near(aimag(got), mkr(im_ref), k)
+  end function cnear
 
   ! True when got is within k ulps-of-epsilon of ref (relative above 1).
   logical function near(got, ref, k)

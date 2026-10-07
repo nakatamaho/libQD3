@@ -163,6 +163,8 @@ module tsmodule
     module procedure pwr_ts_i
     module procedure pwr_d_ts
     module procedure pwr_tsc_i
+    module procedure pwr_tsc
+    module procedure pwr_tsc_ts
   end interface
 
   interface tsreal
@@ -225,12 +227,15 @@ module tsmodule
 
   interface sin
     module procedure tssin
+    module procedure tsc_sin
   end interface
   interface cos
     module procedure tscos
+    module procedure tsc_cos
   end interface
   interface tan
     module procedure tstan
+    module procedure tsc_tan
   end interface
   interface sincos
     module procedure tssincos
@@ -238,12 +243,15 @@ module tsmodule
 
   interface asin
     module procedure tsasin
+    module procedure tsc_asin
   end interface
   interface acos
     module procedure tsacos
+    module procedure tsc_acos
   end interface
   interface atan
     module procedure tsatan
+    module procedure tsc_atan
   end interface
   interface atan2
     module procedure tsatan2
@@ -263,6 +271,7 @@ module tsmodule
 
   interface sqrt
     module procedure tssqrt
+    module procedure tsc_sqrt
   end interface
   interface sqr
     module procedure tssqr
@@ -273,12 +282,15 @@ module tsmodule
 
   interface sinh
     module procedure tssinh
+    module procedure tsc_sinh
   end interface
   interface cosh
     module procedure tscosh
+    module procedure tsc_cosh
   end interface
   interface tanh
     module procedure tstanh
+    module procedure tsc_tanh
   end interface
   interface sincosh
     module procedure tssincosh
@@ -286,12 +298,15 @@ module tsmodule
 
   interface asinh
     module procedure tsasinh
+    module procedure tsc_asinh
   end interface
   interface acosh
     module procedure tsacosh
+    module procedure tsc_acosh
   end interface
   interface atanh
     module procedure tsatanh
+    module procedure tsc_atanh
   end interface
 
   interface aint
@@ -2200,5 +2215,82 @@ end function ts_int_limbs
     type (ts_complex), intent(in) :: b
     ne_dp_tsc = ne_ts_tsc(to_ts_dp(a), b)
   end function ne_dp_tsc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (ts_complex) function tsc_sqrt(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_csqrt(z%cmp, tsc_sqrt%cmp)
+  end function tsc_sqrt
+
+  elemental type (ts_complex) function tsc_sin(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_csin(z%cmp, tsc_sin%cmp)
+  end function tsc_sin
+
+  elemental type (ts_complex) function tsc_cos(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_ccos(z%cmp, tsc_cos%cmp)
+  end function tsc_cos
+
+  elemental type (ts_complex) function tsc_tan(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_ctan(z%cmp, tsc_tan%cmp)
+  end function tsc_tan
+
+  elemental type (ts_complex) function tsc_sinh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_csinh(z%cmp, tsc_sinh%cmp)
+  end function tsc_sinh
+
+  elemental type (ts_complex) function tsc_cosh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_ccosh(z%cmp, tsc_cosh%cmp)
+  end function tsc_cosh
+
+  elemental type (ts_complex) function tsc_tanh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_ctanh(z%cmp, tsc_tanh%cmp)
+  end function tsc_tanh
+
+  elemental type (ts_complex) function tsc_asin(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_casin(z%cmp, tsc_asin%cmp)
+  end function tsc_asin
+
+  elemental type (ts_complex) function tsc_acos(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_cacos(z%cmp, tsc_acos%cmp)
+  end function tsc_acos
+
+  elemental type (ts_complex) function tsc_atan(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_catan(z%cmp, tsc_atan%cmp)
+  end function tsc_atan
+
+  elemental type (ts_complex) function tsc_asinh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_casinh(z%cmp, tsc_asinh%cmp)
+  end function tsc_asinh
+
+  elemental type (ts_complex) function tsc_acosh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_cacosh(z%cmp, tsc_acosh%cmp)
+  end function tsc_acosh
+
+  elemental type (ts_complex) function tsc_atanh(z)
+    type (ts_complex), intent(in) :: z
+    call f_ts_catanh(z%cmp, tsc_atanh%cmp)
+  end function tsc_atanh
+
+  elemental type (ts_complex) function pwr_tsc(z, w)
+    type (ts_complex), intent(in) :: z, w
+    call f_ts_cpow(z%cmp, w%cmp, pwr_tsc%cmp)
+  end function pwr_tsc
+
+  elemental type (ts_complex) function pwr_tsc_ts(z, x)
+    type (ts_complex), intent(in) :: z
+    type (ts_real), intent(in) :: x
+    call f_ts_cpow_r(z%cmp, x%re, pwr_tsc_ts%cmp)
+  end function pwr_tsc_ts
 
 end module tsmodule

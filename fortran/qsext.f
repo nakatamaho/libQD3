@@ -283,5 +283,80 @@ module qsext
       integer, intent(out) :: ierr
     end subroutine
 
+    pure subroutine f_qs_csqrt(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_csin(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_ccos(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_ctan(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_csinh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_ccosh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_ctanh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_casin(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_cacos(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_catan(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_casinh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_cacosh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_catanh(z, r)
+      real*4, intent(in) :: z(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_cpow(z, w, r)
+      real*4, intent(in) :: z(8), w(8)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qs_cpow_r(z, x, r)
+      real*4, intent(in) :: z(8), x(4)
+      real*4, intent(out) :: r(8)
+    end subroutine
+
   end interface
 end

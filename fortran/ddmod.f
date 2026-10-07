@@ -121,6 +121,8 @@ module ddmodule
     module procedure pwr_dd_i
     module procedure pwr_d_dd
     module procedure pwr_ddc_i
+    module procedure pwr_ddc
+    module procedure pwr_ddc_dd
   end interface
 
   interface ddreal
@@ -149,12 +151,15 @@ module ddmodule
 
   interface sin
     module procedure ddsin
+    module procedure ddc_sin
   end interface
   interface cos
     module procedure ddcos
+    module procedure ddc_cos
   end interface
   interface tan
     module procedure ddtan
+    module procedure ddc_tan
   end interface
   interface sincos
     module procedure ddsincos
@@ -162,12 +167,15 @@ module ddmodule
 
   interface asin
     module procedure ddasin
+    module procedure ddc_asin
   end interface
   interface acos
     module procedure ddacos
+    module procedure ddc_acos
   end interface
   interface atan
     module procedure ddatan
+    module procedure ddc_atan
   end interface
   interface atan2
     module procedure ddatan2
@@ -187,6 +195,7 @@ module ddmodule
 
   interface sqrt
     module procedure ddsqrt
+    module procedure ddc_sqrt
   end interface
   interface sqr
     module procedure ddsqr
@@ -197,12 +206,15 @@ module ddmodule
 
   interface sinh
     module procedure ddsinh
+    module procedure ddc_sinh
   end interface
   interface cosh
     module procedure ddcosh
+    module procedure ddc_cosh
   end interface
   interface tanh
     module procedure ddtanh
+    module procedure ddc_tanh
   end interface
   interface sincosh
     module procedure ddsincosh
@@ -210,12 +222,15 @@ module ddmodule
 
   interface asinh
     module procedure ddasinh
+    module procedure ddc_asinh
   end interface
   interface acosh
     module procedure ddacosh
+    module procedure ddc_acosh
   end interface
   interface atanh
     module procedure ddatanh
+    module procedure ddc_atanh
   end interface
 
   interface aint
@@ -2048,6 +2063,83 @@ end function
     type (dd_complex), intent(in) :: b
     ne_d_ddc = ne_dd_ddc(to_dd_d(a), b)
   end function ne_d_ddc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (dd_complex) function ddc_sqrt(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csqrt(z%cmp, ddc_sqrt%cmp)
+  end function ddc_sqrt
+
+  elemental type (dd_complex) function ddc_sin(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csin(z%cmp, ddc_sin%cmp)
+  end function ddc_sin
+
+  elemental type (dd_complex) function ddc_cos(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ccos(z%cmp, ddc_cos%cmp)
+  end function ddc_cos
+
+  elemental type (dd_complex) function ddc_tan(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ctan(z%cmp, ddc_tan%cmp)
+  end function ddc_tan
+
+  elemental type (dd_complex) function ddc_sinh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csinh(z%cmp, ddc_sinh%cmp)
+  end function ddc_sinh
+
+  elemental type (dd_complex) function ddc_cosh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ccosh(z%cmp, ddc_cosh%cmp)
+  end function ddc_cosh
+
+  elemental type (dd_complex) function ddc_tanh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ctanh(z%cmp, ddc_tanh%cmp)
+  end function ddc_tanh
+
+  elemental type (dd_complex) function ddc_asin(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_casin(z%cmp, ddc_asin%cmp)
+  end function ddc_asin
+
+  elemental type (dd_complex) function ddc_acos(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_cacos(z%cmp, ddc_acos%cmp)
+  end function ddc_acos
+
+  elemental type (dd_complex) function ddc_atan(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_catan(z%cmp, ddc_atan%cmp)
+  end function ddc_atan
+
+  elemental type (dd_complex) function ddc_asinh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_casinh(z%cmp, ddc_asinh%cmp)
+  end function ddc_asinh
+
+  elemental type (dd_complex) function ddc_acosh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_cacosh(z%cmp, ddc_acosh%cmp)
+  end function ddc_acosh
+
+  elemental type (dd_complex) function ddc_atanh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_catanh(z%cmp, ddc_atanh%cmp)
+  end function ddc_atanh
+
+  elemental type (dd_complex) function pwr_ddc(z, w)
+    type (dd_complex), intent(in) :: z, w
+    call f_dd_cpow(z%cmp, w%cmp, pwr_ddc%cmp)
+  end function pwr_ddc
+
+  elemental type (dd_complex) function pwr_ddc_dd(z, x)
+    type (dd_complex), intent(in) :: z
+    type (dd_real), intent(in) :: x
+    call f_dd_cpow_r(z%cmp, x%re, pwr_ddc_dd%cmp)
+  end function pwr_ddc_dd
 
 end module ddmodule
 
