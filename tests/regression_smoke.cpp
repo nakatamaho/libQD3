@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -18,6 +19,11 @@
 #include <qd/fpu.h>
 #include <qd/qd_real.h>
 #include <qd/td_real.h>
+#include <qd/ds_real.h>
+#include <qd/ts_real.h>
+#include <qd/qs_real.h>
+#include <qd/qd_random.h>
+#include <limits>
 
 namespace {
 
@@ -97,8 +103,9 @@ public:
   std::string str() const { return buffer_.str(); }
 
 private:
-  std::streambuf *old_;
+  // buffer_ must be constructed before old_'s initializer uses it.
   std::ostringstream buffer_;
+  std::streambuf *old_;
 };
 
 bool contains(const std::string &text, const char *needle) {
@@ -240,6 +247,109 @@ void check_td_regressions(TestContext &test) {
                                                td_reference(value), 64.0));
 }
 
+// Decimal literals that are exactly representable must parse exactly; the
+// readers used to multiply by an inexact 10^-k, so td_real("3.0") was off.
+template <class T>
+void check_exact_decimal_parse(TestContext &test, const char *name) {
+  static const char *const literals[] = {"0.5", "0.25", "1.5", "2.75", "3.0",
+                                         "7.5", "0.0625", "-0.5", "123.375",
+                                         "1e1", "5e-1", "1024"};
+  for (const char *literal : literals) {
+    const std::string label = std::string(name) + " parses " + literal + " exactly";
+    test.check(label.c_str(), T(literal) == T(std::strtod(literal, 0)));
+  }
+}
+
+// Long decimal literals must round to within one epsilon of the
+// quad-double value for the binary32-based types.
+template <class T>
+void check_long_decimal_parse(TestContext &test, const char *name) {
+  static const char *const literals[] = {
+      "1.414213562373095048801688724209698078569671875376948073176679737990732e0",
+      "1.259921049894873164767210607278228350570251464701507980081975112155299e0",
+      "3.333333333333333333333333333333333333333333333333333333333333333333333e-1",
+      "-2.718281828459045235360287471352662497757247093699959574966967627724076e-7"};
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  for (const char *literal : literals) {
+    const T got(literal);
+    const qd_real reference(literal);
+    qd_real sum(0.0);
+    for (double limb : got.x) sum += limb;
+    const double error = to_double(abs((sum - reference) / reference));
+    const std::string label = std::string(name) + " long literal within 1 eps";
+    test.check(label.c_str(), error <= eps);
+  }
+}
+
+// Random functions must cover [0, 1) uniformly with every limb populated,
+// independently of the platform's RAND_MAX, and be reproducible by seed.
+template <class T, class Draw>
+void check_random(TestContext &test, const char *name, Draw draw, int limbs) {
+  const int samples = 20000;
+  double lo = 1.0, hi = 0.0, sum = 0.0;
+  int last_limb_set = 0;
+  bool in_range = true;
+  for (int i = 0; i < samples; ++i) {
+    const T v = draw();
+    const double d = to_double(v);
+    in_range = in_range && d >= 0.0 && v < T(1.0);
+    lo = std::min(lo, d);
+    hi = std::max(hi, d);
+    sum += d;
+    if (static_cast<double>(v.x[limbs - 1]) != 0.0) ++last_limb_set;
+  }
+  const std::string prefix = std::string(name) + " random ";
+  test.check((prefix + "in [0, 1)").c_str(), in_range);
+  test.check((prefix + "covers the interval").c_str(), lo < 1e-3 && hi > 0.999);
+  test.check((prefix + "mean").c_str(), std::fabs(sum / samples - 0.5) < 0.01);
+  test.check((prefix + "fills the last limb").c_str(), last_limb_set > samples * 99 / 100);
+  qd_srand(12345);
+  const T first = draw();
+  qd_srand(12345);
+  test.check((prefix + "reproducible by seed").c_str(), draw() == first);
+}
+
+// log(1 + t) for small t must keep relative accuracy; the Newton iteration
+// used for log only kept absolute accuracy (up to 2e11 eps relative error).
+// log1p is accurate, so it serves as the reference.
+template <class T>
+void check_log_near_one(TestContext &test, const char *name) {
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  bool ok = true;
+  for (double t : {1e-3, -1e-3, 1e-6, 1e-9, -1e-9, 1e-12, 0.1, -0.1}) {
+    // y - 1 is exact for y near 1, so log1p(y - 1) is the reference for
+    // log(y) even when 1 + t itself was rounded.
+    const T y = T(1.0) + T(t);
+    const T got = log(y);
+    const T expected = log1p(y - T(1.0));
+    ok = ok && to_double(abs((got - expected) / expected)) <= 4 * eps;
+  }
+  test.check((std::string(name) + " log near 1 keeps relative accuracy").c_str(), ok);
+}
+
+// fmod is exact; it used to round b * n before subtracting and lost all
+// accuracy to cancellation (17754 eps for ds_real).
+template <class T>
+void check_fmod_exact(TestContext &test, const char *name) {
+  const T a("-395.82354716487563450755260419100522994995117187500");
+  const T b("0.021330100454711953261721646413207054138183593750");
+  const T r = fmod(a, b);
+  const T n = aint(a / b);
+  // a, b and n are exact; with qd_real as reference r must be a - n*b.
+  qd_real ra(0.0), rb(0.0), rn(0.0), rr(0.0);
+  for (int i = 0; i < static_cast<int>(sizeof(a.x) / sizeof(a.x[0])); ++i) {
+    ra += static_cast<double>(a.x[i]);
+    rb += static_cast<double>(b.x[i]);
+    rn += static_cast<double>(n.x[i]);
+    rr += static_cast<double>(r.x[i]);
+  }
+  const qd_real expected = ra - rn * rb;
+  const double eps = static_cast<double>(std::numeric_limits<T>::epsilon());
+  test.check((std::string(name) + " fmod exact").c_str(),
+             to_double(abs((rr - expected) / expected)) <= eps &&
+                 abs(rr) < abs(rb) && (rr <= 0.0) == (ra <= 0.0));
+}
+
 } // namespace
 
 int main() {
@@ -253,6 +363,38 @@ int main() {
   check_special_comparisons<td_real>(test, "td_real");
   check_special_comparisons<qd_real>(test, "qd_real");
   check_td_regressions(test);
+  check_exact_decimal_parse<dd_real>(test, "dd_real");
+  check_exact_decimal_parse<td_real>(test, "td_real");
+  check_exact_decimal_parse<qd_real>(test, "qd_real");
+  check_exact_decimal_parse<ds_real>(test, "ds_real");
+  check_exact_decimal_parse<ts_real>(test, "ts_real");
+  check_exact_decimal_parse<qs_real>(test, "qs_real");
+  check_long_decimal_parse<ds_real>(test, "ds_real");
+  check_long_decimal_parse<ts_real>(test, "ts_real");
+  check_long_decimal_parse<qs_real>(test, "qs_real");
+  check_log_near_one<dd_real>(test, "dd_real");
+  check_log_near_one<td_real>(test, "td_real");
+  check_log_near_one<qd_real>(test, "qd_real");
+  check_log_near_one<ds_real>(test, "ds_real");
+  check_log_near_one<ts_real>(test, "ts_real");
+  check_log_near_one<qs_real>(test, "qs_real");
+  check_fmod_exact<ds_real>(test, "ds_real");
+  check_fmod_exact<ts_real>(test, "ts_real");
+  check_fmod_exact<qs_real>(test, "qs_real");
+  {
+    // cbrt of a tiny double-double reached 33 eps through nroot.
+    const dd_real x(0x1.56e2b6e40c2a8p-24, 0x1.5edf281038395p-78);
+    const dd_real c = cbrt(x);
+    const qd_real err = qd_real(c) * qd_real(c) * qd_real(c) - qd_real(x);
+    test.check("dd_real cbrt tiny argument",
+               to_double(abs(err / qd_real(x))) <= 6 * dd_real::_eps);
+  }
+  check_random<dd_real>(test, "dd_real", [] { return ddrand(); }, 2);
+  check_random<td_real>(test, "td_real", [] { return tdrand(); }, 3);
+  check_random<qd_real>(test, "qd_real", [] { return qdrand(); }, 4);
+  check_random<ds_real>(test, "ds_real", [] { return ds_real::rand(); }, 2);
+  check_random<ts_real>(test, "ts_real", [] { return ts_real::rand(); }, 3);
+  check_random<qs_real>(test, "qs_real", [] { return qs_real::rand(); }, 4);
 
   fpu_fix_end(&old_cw);
   std::cout << (test.pass ? "PASS regression_smoke" : "FAIL regression_smoke")

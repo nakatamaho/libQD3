@@ -37,6 +37,7 @@
 
 #include "config.h"
 #include <qd/td_real.h>
+#include <qd/qd_random.h>
 #include "util.h"
 #include "td_trig_reduce.h"
 
@@ -382,6 +383,12 @@ td_real log(const td_real &a) {
   }
   if (a.is_one()) {
     return 0.0;
+  }
+
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - 1.0) < 0.125) {
+    return log1p(a - 1.0);
   }
 
   int e;
@@ -827,7 +834,9 @@ int td_real::read(const char *s, td_real &a) {
   int nd = 0;
   int e = 0;
   bool done = false;
-  td_real r = 0.0;
+  /* Accumulate and scale in quad-double, then round to triple-double once:
+     long literals exceed triple-double precision while digits are added. */
+  qd_real r = 0.0;
 
   while (*p == ' ') {
     p++;
@@ -892,11 +901,15 @@ int td_real::read(const char *s, td_real &a) {
     e -= (nd - point);
   }
 
-  if (e != 0) {
-    r *= (td_real(10.0) ^ e);
+  /* Divide by the exact power 10^-e rather than multiplying by the inexact
+     10^e, so decimals that are representable parse exactly. */
+  if (e > 0) {
+    r *= (qd_real(10.0) ^ e);
+  } else if (e < 0) {
+    r /= (qd_real(10.0) ^ (-e));
   }
 
-  a = (sign < 0) ? -r : r;
+  a = to_td_real((sign < 0) ? -r : r);
   return 0;
 }
 
@@ -1114,3 +1127,14 @@ string td_real::to_string(int precision, int width, ios_base::fmtflags fmt,
 }
 
 bool td_suppress_error_messages = false;
+
+QD_API td_real tdrand() {
+  /* Three 53-bit draws at 2^-53 spacing form an exact triple-double. */
+  const double scale = std::ldexp(1.0, -53);
+  double m = scale;
+  td_real r = 0.0;
+  for (int i = 0; i < 3; i++, m *= scale) {
+    r += static_cast<double>(qd_rand_u64() >> 11) * m;
+  }
+  return r;
+}

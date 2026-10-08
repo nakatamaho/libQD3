@@ -55,7 +55,7 @@ std::vector<qd_oracle::Tap::Diagnostic> failure_diag(
     mpfr_t reference, double observed, double allowed) {
   std::vector<qd_oracle::Tap::Diagnostic> diag;
   std::ostringstream replay;
-  replay << "tests/oracle/single_oracle -" << qd_oracle::TypeTraits<T>::name()
+  replay << "tests/oracle/single_oracle " << qd_oracle::type_option<T>()
          << " --seed=" << qd_oracle::rng::active_seed();
   diag.push_back(qd_oracle::Tap::Diagnostic(
       "seed", std::to_string(qd_oracle::rng::active_seed())));
@@ -295,8 +295,8 @@ bool special_and_io_group(std::vector<qd_oracle::Tap::Diagnostic> *failure) {
       (T(1) / T(0)).isinf() && (inf - inf).isnan();
   if (!pass) {
     std::ostringstream replay;
-    replay << "tests/oracle/single_oracle -"
-           << qd_oracle::TypeTraits<T>::name() << " --seed="
+    replay << "tests/oracle/single_oracle " << qd_oracle::type_option<T>()
+           << " --seed="
            << qd_oracle::rng::active_seed();
     failure->push_back(qd_oracle::Tap::Diagnostic("replay", replay.str()));
   }

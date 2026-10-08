@@ -64,9 +64,13 @@ inline edd_real edd_nint_internal(const edd_real &a) {
 static const int edd_exp_squares = 12;
 static const edd_word edd_exp_k = (edd_word) 4096.0;
 static const edd_word edd_exp_inv_k = (edd_word) 1.0 / edd_exp_k;
-static const edd_real edd_pi16 = to_edd_real(qd_real(
-    1.963495408493620697e-01, 7.654042494670957545e-18,
-    -1.871731131073962291e-34, 8.553725411101285102e-51));
+// pi/16 as exact binary80 limbs (edd_real::_pi scaled by 2^-4).  Computing it
+// with to_edd_real() during static initialization is wrong on MinGW, where
+// DLL initializers can run before the x87 control word is set to 64-bit
+// precision.
+static const edd_real edd_pi16 = edd_real(
+    (edd_word) 0xc.90fdaa22168c235p-6L,
+    (edd_word) -0xe.ce675d1fc8f8cbbp-72L);
 
 static const qd_real edd_sin_table_qd[4] = {
   qd_real(1.950903220161282758e-01, -7.991079068461731263e-18,
@@ -329,6 +333,11 @@ edd_real log(const edd_real &a) {
     return edd_real::_inf;
   if (a.is_one())
     return edd_real((edd_word) 0.0);
+
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - (edd_word) 1.0) < (edd_word) 0.125)
+    return log1p(a - (edd_word) 1.0);
 
   int e;
   edd_word m = edd::frexpx(a[0], &e);

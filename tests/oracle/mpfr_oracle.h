@@ -114,6 +114,16 @@ struct TypeTraits<edd_real> {
 };
 #endif
 
+// Command-line option selecting T in the oracle programs ("-dd", "-ds", ...);
+// single_real names end in "_real", which the option parsers do not accept.
+template <class T>
+std::string type_option() {
+  std::string name(TypeTraits<T>::name());
+  const std::string::size_type suffix = name.find("_real");
+  if (suffix != std::string::npos) name.erase(suffix);
+  return "-" + name;
+}
+
 template <class T>
 constexpr mpfr_prec_t ref_prec() {
   return static_cast<mpfr_prec_t>(std::numeric_limits<T>::digits + 160);

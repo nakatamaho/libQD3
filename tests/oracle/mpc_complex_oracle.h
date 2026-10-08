@@ -23,13 +23,17 @@ struct Options {
   bool test_dd;
   bool test_td;
   bool test_qd;
+  bool test_ds;
+  bool test_ts;
+  bool test_qs;
   bool test_edd;
   bool verbose;
   bool has_seed;
   std::uint64_t seed;
 
   Options()
-      : test_dd(false), test_td(false), test_qd(false), test_edd(false),
+      : test_dd(false), test_td(false), test_qd(false), test_ds(false),
+        test_ts(false), test_qs(false), test_edd(false),
         verbose(false), has_seed(false), seed(0) {}
 };
 
@@ -160,10 +164,9 @@ template <class Real>
 std::vector<Tap::Diagnostic> base_diag(const char *program,
                                        const char *case_name,
                                        int iteration) {
-  typedef TypeTraits<Real> traits;
   std::vector<Tap::Diagnostic> diag;
   std::ostringstream replay;
-  replay << "tests/oracle/" << program << " -" << traits::name()
+  replay << "tests/oracle/" << program << " " << type_option<Real>()
          << " --seed=" << qd_oracle::rng::active_seed();
   diag.push_back(Tap::Diagnostic("seed", std::to_string(qd_oracle::rng::active_seed())));
   diag.push_back(Tap::Diagnostic("replay", replay.str()));

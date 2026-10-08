@@ -234,5 +234,102 @@ module qdext
       real*8, intent(out) :: a(4)
     end subroutine
 
+    subroutine f_qd_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*8, intent(out) :: a(4)
+      integer, intent(out) :: ierr
+    end subroutine
+
+    pure subroutine f_qd_csqrt(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_csin(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_ccos(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_ctan(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_csinh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_ccosh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_ctanh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_casin(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cacos(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_catan(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_casinh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cacosh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_catanh(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cpow(z, w, r)
+      real*8, intent(in) :: z(8), w(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cpow_r(z, x, r)
+      real*8, intent(in) :: z(8), x(4)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cdiv(z, w, r)
+      real*8, intent(in) :: z(8), w(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
+    pure subroutine f_qd_cabs(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_qd_clog(z, r)
+      real*8, intent(in) :: z(8)
+      real*8, intent(out) :: r(8)
+    end subroutine
+
   end interface
 end

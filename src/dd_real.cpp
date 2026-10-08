@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include <qd/dd_real.h>
+#include <qd/qd_random.h>
 #include "util.h"
 
 #include <qd/bits.h>
@@ -292,6 +293,12 @@ dd_real log(const dd_real &a) {
     return dd_real::_nan;
   }
 
+  /* Near 1 the Newton step x + a*exp(-x) - 1 cancels and keeps only
+     absolute accuracy; a - 1 is exact there, so use the log1p series. */
+  if (abs(a - 1.0) < 0.125) {
+    return log1p(a - 1.0);
+  }
+
   dd_real x = std::log(a.x[0]);   /* Initial approximation */
 
   x = x + a * exp(-x) - 1.0;
@@ -391,15 +398,8 @@ dd_real hypot(const dd_real &a, const dd_real &b) {
   return x * sqrt(1.0 + sqr(r));
 }
 
-dd_real cbrt(const dd_real &a) {
-  if (a.isnan()) {
-    return dd_real::_nan;
-  }
-  if (a.is_zero()) {
-    return a;
-  }
-  return nroot(a, 3);
-}
+/* cbrt(const dd_real &) is defined in qd_real.cpp: it is evaluated in
+   quad-double precision. */
 
 dd_real trunc(const dd_real &a) {
   return aint(a);
@@ -921,22 +921,12 @@ QD_API dd_real fmod(const dd_real &a, const dd_real &b) {
 }
 
 QD_API dd_real ddrand() {
-  static const double m_const = 4.6566128730773926e-10;  /* = 2^{-31} */
-  double m = m_const;
-  dd_real r = 0.0;
-  double d;
-
-  /* Strategy:  Generate 31 bits at a time, using lrand48 
-     random number generator.  Shift the bits, and reapeat
-     4 times. */
-
-  for (int i = 0; i < 4; i++, m *= m_const) {
-//    d = lrand48() * m;
-    d = std::rand() * m;
-    r += d;
-  }
-
-  return r;
+  /* Uniform in [0, 1) with all 106 bits random: two 53-bit draws at
+     2^-53 spacing form an exact, non-overlapping double-double. */
+  const double scale = std::ldexp(1.0, -53);
+  const double hi = static_cast<double>(qd_rand_u64() >> 11) * scale;
+  const double lo = static_cast<double>(qd_rand_u64() >> 11) * scale * scale;
+  return dd_real(hi) + lo;
 }
 
 /* polyeval(c, n, x)
@@ -1381,8 +1371,12 @@ int dd_real::read(const char *s, dd_real &a) {
     e -= (nd - point);
   }
 
-  if (e != 0) {
+  /* Divide by the exact power 10^-e rather than multiplying by the inexact
+     10^e, so decimals that are representable parse exactly. */
+  if (e > 0) {
     r *= (dd_real(10.0) ^ e);
+  } else if (e < 0) {
+    r /= (dd_real(10.0) ^ (-e));
   }
 
   a = (sign == -1) ? -r : r;
@@ -1419,16 +1413,16 @@ void dd_real::dump_bits(const string &name, std::ostream &os) const {
 
 dd_real dd_real::debug_rand() { 
 
-  if (std::rand() % 2 == 0)
+  if ((qd_rand_u64() & 1) == 0)
     return ddrand();
 
   int expn = 0;
   dd_real a = 0.0;
   double d;
   for (int i = 0; i < 2; i++) {
-    d = std::ldexp(static_cast<double>(std::rand()) / RAND_MAX, -expn);
+    d = std::ldexp(static_cast<double>(qd_rand_u64() >> 11) * std::ldexp(1.0, -53), -expn);
     a += d;
-    expn = expn + 54 + std::rand() % 200;
+    expn = expn + 54 + static_cast<int>(qd_rand_u64() % 200);
   }
   return a;
 }

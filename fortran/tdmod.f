@@ -91,6 +91,8 @@ module tdmodule
     module procedure add_td_tdc
     module procedure add_tdc_d
     module procedure add_d_tdc
+    module procedure add_tdc_i
+    module procedure add_i_tdc
   end interface
 
   interface operator (-)
@@ -104,6 +106,10 @@ module tdmodule
     module procedure sub_tdc_d
     module procedure sub_d_tdc
     module procedure neg_tdc
+    module procedure sub_td_i
+    module procedure sub_i_td
+    module procedure sub_tdc_i
+    module procedure sub_i_tdc
   end interface
 
   interface operator (*)
@@ -131,6 +137,9 @@ module tdmodule
     module procedure div_tdc_td
     module procedure div_td_tdc
     module procedure div_tdc_d
+    module procedure div_tdc_i
+    module procedure div_i_tdc
+    module procedure div_d_tdc
   end interface
 
   interface operator (**)
@@ -138,6 +147,8 @@ module tdmodule
     module procedure pwr_td_i
     module procedure pwr_d_td
     module procedure pwr_tdc_i
+    module procedure pwr_tdc
+    module procedure pwr_tdc_td
   end interface
 
   interface tdreal
@@ -198,12 +209,15 @@ module tdmodule
 
   interface sin
     module procedure tdsin
+    module procedure tdc_sin
   end interface
   interface cos
     module procedure tdcos
+    module procedure tdc_cos
   end interface
   interface tan
     module procedure tdtan
+    module procedure tdc_tan
   end interface
   interface sincos
     module procedure tdsincos
@@ -211,12 +225,15 @@ module tdmodule
 
   interface asin
     module procedure tdasin
+    module procedure tdc_asin
   end interface
   interface acos
     module procedure tdacos
+    module procedure tdc_acos
   end interface
   interface atan
     module procedure tdatan
+    module procedure tdc_atan
   end interface
   interface atan2
     module procedure tdatan2
@@ -236,6 +253,7 @@ module tdmodule
 
   interface sqrt
     module procedure tdsqrt
+    module procedure tdc_sqrt
   end interface
   interface sqr
     module procedure tdsqr
@@ -246,12 +264,15 @@ module tdmodule
 
   interface sinh
     module procedure tdsinh
+    module procedure tdc_sinh
   end interface
   interface cosh
     module procedure tdcosh
+    module procedure tdc_cosh
   end interface
   interface tanh
     module procedure tdtanh
+    module procedure tdc_tanh
   end interface
   interface sincosh
     module procedure tdsincosh
@@ -259,12 +280,15 @@ module tdmodule
 
   interface asinh
     module procedure tdasinh
+    module procedure tdc_asinh
   end interface
   interface acosh
     module procedure tdacosh
+    module procedure tdc_acosh
   end interface
   interface atanh
     module procedure tdatanh
+    module procedure tdc_atanh
   end interface
 
   interface aint
@@ -314,6 +338,8 @@ module tdmodule
     module procedure eq_tdc
     module procedure eq_tdc_td
     module procedure eq_td_tdc
+    module procedure eq_tdc_d
+    module procedure eq_d_tdc
   end interface
 
   interface operator (/=)
@@ -325,6 +351,8 @@ module tdmodule
     module procedure ne_tdc
     module procedure ne_tdc_td
     module procedure ne_td_tdc
+    module procedure ne_tdc_d
+    module procedure ne_d_tdc
   end interface
 
   interface operator (>)
@@ -447,6 +475,22 @@ module tdmodule
     module procedure tdmod
   end interface
 
+  interface ceiling
+    module procedure tdceil
+  end interface
+
+  interface hypot
+    module procedure tdhypot
+  end interface
+
+  interface modulo
+    module procedure tdmodulo
+  end interface
+
+  interface dim
+    module procedure tddim
+  end interface
+
 contains
 
   subroutine assign_td_str(a, s)
@@ -486,7 +530,7 @@ contains
   elemental subroutine assign_i_td(i, a)
     integer, intent(inout) :: i
     type (td_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_td(a)
   end subroutine assign_i_td
 
   elemental subroutine assign_td_dd(td, dd)
@@ -723,7 +767,9 @@ contains
 
   elemental integer function to_int_td(a)
     type (td_real), intent(in) :: a
-    to_int_td = a%re(1)
+    type (td_real) :: t
+    t = tdaint(a)
+    to_int_td = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_td
 
   elemental type (td_complex) function tdcconjg(tdc)
@@ -977,17 +1023,7 @@ contains
   elemental type (td_complex) function div_tdc(a, b)
     type (td_complex), intent(in) :: a, b
     type (td_real) :: t1, t2, t3, t4, t5
-    call f_td_mul(a%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_td_mul(a%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_mul(a%cmp(1:3), b%cmp(4:6), t1%re)
-    call f_td_mul(a%cmp(4:6), b%cmp(1:3), t2%re)
-    call f_td_sub(t2%re, t1%re, t4%re)
-    call f_td_mul(b%cmp(1:3), b%cmp(1:3), t1%re)
-    call f_td_mul(b%cmp(4:6), b%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t5%re)
-    call f_td_div(t3%re, t5%re, div_tdc%cmp(1:3))
-    call f_td_div(t4%re, t5%re, div_tdc%cmp(4:6))
+    call f_td_cdiv(a%cmp, b%cmp, div_tdc%cmp)
   end function div_tdc
 
   elemental type (td_complex) function div_tdc_td(a, b)
@@ -1001,14 +1037,10 @@ contains
     type (td_real), intent(in) :: a
     type (td_complex), intent(in) :: b
     type (td_real) :: t1, t2, t3, t4, t5
-    call f_td_mul(a%re, b%cmp(1:3), t1%re)
-    call f_td_mul(a%re, b%cmp(4:6), t2%re)
-    t2%re = -t2%re
-    call f_td_mul(b%cmp(1:3), b%cmp(1:3), t3%re)
-    call f_td_mul(b%cmp(4:6), b%cmp(4:6), t4%re)
-    call f_td_add(t3%re, t4%re, t5%re)
-    call f_td_div(t1%re, t5%re, div_td_tdc%cmp(1:3))
-    call f_td_div(t2%re, t5%re, div_td_tdc%cmp(4:6))
+    type (td_complex) :: ac
+    ac%cmp(1:3) = a%re
+    ac%cmp(4:6) = 0
+    call f_td_cdiv(ac%cmp, b%cmp, div_td_tdc%cmp)
   end function div_td_tdc
 
   elemental type (td_complex) function div_tdc_d(a, b)
@@ -1156,12 +1188,7 @@ contains
   elemental type (td_complex) function tdclog(a)
     type (td_complex), intent(in) :: a
     type (td_real) :: t1, t2, t3
-    call f_td_mul(a%cmp(1:3), a%cmp(1:3), t1%re)
-    call f_td_mul(a%cmp(4:6), a%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_log(t3%re, t1%re)
-    tdclog%cmp(1:3) = 0.5d0 * t1%re
-    call f_td_atan2(a%cmp(4:6), a%cmp(1:3), tdclog%cmp(4:6))
+    call f_td_clog(a%cmp, tdclog%cmp)
   end function tdclog
 
   elemental type (td_real) function tdlog10(a)
@@ -1254,45 +1281,26 @@ contains
   elemental type (td_real) function tdcabs(tdc)
     type (td_complex), intent(in) :: tdc
     type (td_real) :: t1, t2, t3
-    call f_td_mul(tdc%cmp(1:3), tdc%cmp(1:3), t1%re)
-    call f_td_mul(tdc%cmp(4:6), tdc%cmp(4:6), t2%re)
-    call f_td_add(t1%re, t2%re, t3%re)
-    call f_td_sqrt(t3%re, tdcabs%re)
+    call f_td_cabs(tdc%cmp, tdcabs%re)
   end function tdcabs
 
   elemental type (td_real) function tdsign(a, b) result (c)
     type (td_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tdsign
 
   elemental type (td_real) function tdsign_td_d(a, b) result (c)
     type (td_real), intent(in) :: a
     real*8, intent(in) :: b
-    if (b .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function tdsign_td_d
 
   subroutine tdrand(harvest)
@@ -1479,7 +1487,7 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
-    ge_td = (r >= 0)
+    ge_td = (r == 0 .or. r == 1)
   end function ge_td
 
   elemental logical function ge_td_d(a, b)
@@ -1487,7 +1495,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_td_comp_td_d(a%re, b, r)
-    ge_td_d = (r >= 0)
+    ge_td_d = (r == 0 .or. r == 1)
   end function ge_td_d
 
   elemental logical function ge_d_td(a, b)
@@ -1495,7 +1503,7 @@ contains
     type (td_real), intent(in) :: b
     integer :: r
     call f_td_comp_d_td(a, b%re, r)
-    ge_d_td = (r >= 0)
+    ge_d_td = (r == 0 .or. r == 1)
   end function ge_d_td
 
   elemental logical function ge_td_i(a, b)
@@ -1514,7 +1522,7 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
-    le_td = (r <= 0)
+    le_td = (r == 0 .or. r == -1)
   end function le_td
 
   elemental logical function le_td_d(a, b)
@@ -1522,7 +1530,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_td_comp_td_d(a%re, b, r)
-    le_td_d = (r <= 0)
+    le_td_d = (r == 0 .or. r == -1)
   end function le_td_d
 
   elemental logical function le_d_td(a, b)
@@ -1530,7 +1538,7 @@ contains
     type (td_real), intent(in) :: b
     integer :: r
     call f_td_comp_d_td(a, b%re, r)
-    le_d_td = (r <= 0)
+    le_d_td = (r == 0 .or. r == -1)
   end function le_d_td
 
   elemental logical function le_td_i(a, b)
@@ -1729,6 +1737,8 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r <= 0) then
       tdmin2 = a
     else
@@ -1752,6 +1762,8 @@ contains
     type (td_real), intent(in) :: a, b
     integer :: r
     call f_td_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r >= 0) then
       tdmax2 = a
     else
@@ -1797,122 +1809,30 @@ subroutine tdinp(iu, a)
 110 return
 end subroutine
 
-subroutine tdinpc(a, b)
-  implicit none
-  integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-  parameter (ln = 80)
-  real*8 bi
-  character*80 a
-  character*1 ai
-  character*10 dig
-  character*16 ca
-  parameter (dig = '0123456789')
-  real*8 b(3), f(3), s0(3), s1(3), s2(3)
+subroutine tdinpc (a, b)
 
-  id = 0
-  ip = -1
-  is = 0
-  inz = 0
-  s1(1) = 0.d0
-  s1(2) = 0.d0
-  s1(3) = 0.d0
+!   Converts the CHARACTER*80 array A into the TD number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
-  beg = 0
-  do i = 1, 80
-    if (a(i:i) /= ' ') then
-      beg = i
-      goto 80
-    end if
-  end do
+implicit none
+character*80 a
+real*8 b(3)
+character*80 t
+integer i, n, ierr
 
-  goto 210
-80 continue
-
-  do i = beg, 80
-    if (a(i:i) == ' ') then
-      lnn = i - 1
-      goto 90
-    end if
-  enddo
-
-  lnn = 80
-90 continue
-
-  do i = beg, lnn
-    ai = a(i:i)
-    if (ai .eq. '.') then
-      if (ip >= 0) goto 210
-      ip = id
-      inz = 1
-    elseif (ai .eq. '+') then
-      if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-      is = 1
-    elseif (ai .eq. '-') then
-      if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-      is = -1
-    elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-      goto 100
-    elseif (index(dig, ai) .eq. 0) then
-      goto 210
-    else
-      bi = index(dig, ai) - 1
-      if (inz > 0 .or. bi > 0.d0) then
-        inz = 1
-        id = id + 1
-        call f_td_mul_td_d(s1, 10.d0, s0)
-        f(1) = bi
-        f(2) = 0.d0
-        f(3) = 0.d0
-        call f_td_add(s0, f, s1)
-      endif
-    endif
-  enddo
-
-100 continue
-  if (is .eq. -1) then
-    s1(1) = -s1(1)
-    s1(2) = -s1(2)
-    s1(3) = -s1(3)
-  endif
-  k = i
-  if (ip == -1) ip = id
-  ie = 0
-  is = 0
-  ca = ' '
-
-  do i = k + 1, lnn
-    ai = a(i:i)
-    if (ai .eq. ' ') then
-    elseif (ai .eq. '+') then
-      if (ie .ne. 0 .or. is .ne. 0) goto 210
-      is = 1
-    elseif (ai .eq. '-') then
-      if (ie .ne. 0 .or. is .ne. 0) goto 210
-      is = -1
-    elseif (index(dig, ai) .eq. 0) then
-      goto 210
-    else
-      ie = ie + 1
-      if (ie .gt. 3) goto 210
-      ca(ie:ie) = ai
-    endif
-  enddo
-
-  ie = dddigin(ca, 4)
-  if (is .eq. -1) ie = -ie
-  ie = ie + ip - id
-  s0(1) = 10.d0
-  s0(2) = 0.d0
-  s0(3) = 0.d0
-  call f_td_npwr(s0, ie, s2)
-  call f_td_mul(s1, s2, b)
-  goto 220
-
-210 write (6, 1) a
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
+end do
+ierr = -1
+if (n > 0) call f_td_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** tdinpc: Syntax error in literal string: ', a)
   stop
-
-220 return
+end if
 end subroutine
 
 subroutine tdout(iu, a)
@@ -1935,24 +1855,191 @@ subroutine tdoutc(a, b)
   call f_td_swrite(a, 47, b(3), 55)
 end subroutine
 
-  real*8 function dddigin(ca, n)
-    implicit none
-    real*8 d1
-    character*(*), ca
-    character*16 digits
-    integer i, k, n
-    parameter (digits = '0123456789')
+! Mixed-mode operators added for interface completeness.
+  elemental type (td_real) function sub_td_i(a, b)
+    type (td_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_td_i = sub_td(a, to_td_i(b))
+  end function sub_td_i
 
-    d1 = 0.d0
-    do i = 1, n
-      k = index(digits, ca(i:i)) - 1
-      if (k < 0) then
-        write (6, *) 'dddigin: non-digit in character string'
-      elseif (k <= 9) then
-        d1 = 10.d0 * d1 + k
-      endif
-    enddo
-    dddigin = d1
-  end function dddigin
+  elemental type (td_real) function sub_i_td(a, b)
+    integer, intent(in) :: a
+    type (td_real), intent(in) :: b
+    sub_i_td = sub_td(to_td_i(a), b)
+  end function sub_i_td
+
+  elemental type (td_complex) function add_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_tdc_i = add_tdc_td(a, to_td_i(b))
+  end function add_tdc_i
+
+  elemental type (td_complex) function add_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    add_i_tdc = add_td_tdc(to_td_i(a), b)
+  end function add_i_tdc
+
+  elemental type (td_complex) function sub_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_tdc_i = sub_tdc_td(a, to_td_i(b))
+  end function sub_tdc_i
+
+  elemental type (td_complex) function sub_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    sub_i_tdc = sub_td_tdc(to_td_i(a), b)
+  end function sub_i_tdc
+
+  elemental type (td_complex) function div_tdc_i(a, b)
+    type (td_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_tdc_i = div_tdc_td(a, to_td_i(b))
+  end function div_tdc_i
+
+  elemental type (td_complex) function div_i_tdc(a, b)
+    integer, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    div_i_tdc = div_td_tdc(to_td_i(a), b)
+  end function div_i_tdc
+
+  elemental type (td_complex) function div_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    div_d_tdc = div_td_tdc(to_td_d(a), b)
+  end function div_d_tdc
+
+  elemental logical function eq_tdc_d(a, b)
+    type (td_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_tdc_d = eq_tdc_td(a, to_td_d(b))
+  end function eq_tdc_d
+
+  elemental logical function eq_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    eq_d_tdc = eq_td_tdc(to_td_d(a), b)
+  end function eq_d_tdc
+
+  elemental logical function ne_tdc_d(a, b)
+    type (td_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_tdc_d = ne_tdc_td(a, to_td_d(b))
+  end function ne_tdc_d
+
+  elemental logical function ne_d_tdc(a, b)
+    real*8, intent(in) :: a
+    type (td_complex), intent(in) :: b
+    ne_d_tdc = ne_td_tdc(to_td_d(a), b)
+  end function ne_d_tdc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (td_complex) function tdc_sqrt(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csqrt(z%cmp, tdc_sqrt%cmp)
+  end function tdc_sqrt
+
+  elemental type (td_complex) function tdc_sin(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csin(z%cmp, tdc_sin%cmp)
+  end function tdc_sin
+
+  elemental type (td_complex) function tdc_cos(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ccos(z%cmp, tdc_cos%cmp)
+  end function tdc_cos
+
+  elemental type (td_complex) function tdc_tan(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ctan(z%cmp, tdc_tan%cmp)
+  end function tdc_tan
+
+  elemental type (td_complex) function tdc_sinh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_csinh(z%cmp, tdc_sinh%cmp)
+  end function tdc_sinh
+
+  elemental type (td_complex) function tdc_cosh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ccosh(z%cmp, tdc_cosh%cmp)
+  end function tdc_cosh
+
+  elemental type (td_complex) function tdc_tanh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_ctanh(z%cmp, tdc_tanh%cmp)
+  end function tdc_tanh
+
+  elemental type (td_complex) function tdc_asin(z)
+    type (td_complex), intent(in) :: z
+    call f_td_casin(z%cmp, tdc_asin%cmp)
+  end function tdc_asin
+
+  elemental type (td_complex) function tdc_acos(z)
+    type (td_complex), intent(in) :: z
+    call f_td_cacos(z%cmp, tdc_acos%cmp)
+  end function tdc_acos
+
+  elemental type (td_complex) function tdc_atan(z)
+    type (td_complex), intent(in) :: z
+    call f_td_catan(z%cmp, tdc_atan%cmp)
+  end function tdc_atan
+
+  elemental type (td_complex) function tdc_asinh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_casinh(z%cmp, tdc_asinh%cmp)
+  end function tdc_asinh
+
+  elemental type (td_complex) function tdc_acosh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_cacosh(z%cmp, tdc_acosh%cmp)
+  end function tdc_acosh
+
+  elemental type (td_complex) function tdc_atanh(z)
+    type (td_complex), intent(in) :: z
+    call f_td_catanh(z%cmp, tdc_atanh%cmp)
+  end function tdc_atanh
+
+  elemental type (td_complex) function pwr_tdc(z, w)
+    type (td_complex), intent(in) :: z, w
+    call f_td_cpow(z%cmp, w%cmp, pwr_tdc%cmp)
+  end function pwr_tdc
+
+  elemental type (td_complex) function pwr_tdc_td(z, x)
+    type (td_complex), intent(in) :: z
+    type (td_real), intent(in) :: x
+    call f_td_cpow_r(z%cmp, x%re, pwr_tdc_td%cmp)
+  end function pwr_tdc_td
+
+! Rounding and model intrinsics added for interface completeness.
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (td_real) function tdhypot(a, b)
+    type (td_real), intent(in) :: a, b
+    type (td_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      tdhypot = m
+    else
+      tdhypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function tdhypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (td_real) function tdmodulo(a, p)
+    type (td_real), intent(in) :: a, p
+    tdmodulo = a - tdfloor(a / p) * p
+  end function tdmodulo
+
+  ! max(a - b, 0)
+  elemental type (td_real) function tddim(a, b)
+    type (td_real), intent(in) :: a, b
+    if (a > b) then
+      tddim = a - b
+    else
+      tddim = a - a
+    end if
+  end function tddim
 
 end module tdmodule

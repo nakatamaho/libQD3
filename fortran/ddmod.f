@@ -26,7 +26,7 @@ module ddmodule
   end type dd_complex
 
   real*8 d_dd_eps
-  parameter (d_dd_eps = 4.93038065763132d-32)
+  parameter (d_dd_eps = 2.0d0**(-104))
 
   type (dd_real) dd_one, dd_zero, dd_eps, dd_huge, dd_tiny
   parameter (dd_one = dd_real((/1.0d0, 0.0d0/)), &
@@ -65,6 +65,8 @@ module ddmodule
     module procedure add_dd_ddc
     module procedure add_ddc_d
     module procedure add_d_ddc
+    module procedure add_ddc_i
+    module procedure add_i_ddc
   end interface
 
   interface operator (-)
@@ -78,6 +80,10 @@ module ddmodule
     module procedure sub_ddc_d
     module procedure sub_d_ddc
     module procedure neg_ddc
+    module procedure sub_dd_i
+    module procedure sub_i_dd
+    module procedure sub_ddc_i
+    module procedure sub_i_ddc
   end interface
 
   interface operator (*)
@@ -105,6 +111,9 @@ module ddmodule
     module procedure div_ddc_dd
     module procedure div_dd_ddc
     module procedure div_ddc_d
+    module procedure div_ddc_i
+    module procedure div_i_ddc
+    module procedure div_d_ddc
   end interface
 
   interface operator (**)
@@ -112,6 +121,8 @@ module ddmodule
     module procedure pwr_dd_i
     module procedure pwr_d_dd
     module procedure pwr_ddc_i
+    module procedure pwr_ddc
+    module procedure pwr_ddc_dd
   end interface
 
   interface ddreal
@@ -140,12 +151,15 @@ module ddmodule
 
   interface sin
     module procedure ddsin
+    module procedure ddc_sin
   end interface
   interface cos
     module procedure ddcos
+    module procedure ddc_cos
   end interface
   interface tan
     module procedure ddtan
+    module procedure ddc_tan
   end interface
   interface sincos
     module procedure ddsincos
@@ -153,12 +167,15 @@ module ddmodule
 
   interface asin
     module procedure ddasin
+    module procedure ddc_asin
   end interface
   interface acos
     module procedure ddacos
+    module procedure ddc_acos
   end interface
   interface atan
     module procedure ddatan
+    module procedure ddc_atan
   end interface
   interface atan2
     module procedure ddatan2
@@ -178,6 +195,7 @@ module ddmodule
 
   interface sqrt
     module procedure ddsqrt
+    module procedure ddc_sqrt
   end interface
   interface sqr
     module procedure ddsqr
@@ -188,12 +206,15 @@ module ddmodule
 
   interface sinh
     module procedure ddsinh
+    module procedure ddc_sinh
   end interface
   interface cosh
     module procedure ddcosh
+    module procedure ddc_cosh
   end interface
   interface tanh
     module procedure ddtanh
+    module procedure ddc_tanh
   end interface
   interface sincosh
     module procedure ddsincosh
@@ -201,12 +222,15 @@ module ddmodule
 
   interface asinh
     module procedure ddasinh
+    module procedure ddc_asinh
   end interface
   interface acosh
     module procedure ddacosh
+    module procedure ddc_acosh
   end interface
   interface atanh
     module procedure ddatanh
+    module procedure ddc_atanh
   end interface
 
   interface aint
@@ -248,6 +272,8 @@ module ddmodule
     module procedure eq_ddc
     module procedure eq_ddc_dd
     module procedure eq_dd_ddc
+    module procedure eq_ddc_d
+    module procedure eq_d_ddc
   end interface
 
   interface operator (/=)
@@ -259,6 +285,8 @@ module ddmodule
     module procedure ne_ddc
     module procedure ne_ddc_dd
     module procedure ne_dd_ddc
+    module procedure ne_ddc_d
+    module procedure ne_d_ddc
   end interface
 
   interface operator (>)
@@ -384,6 +412,38 @@ module ddmodule
     module procedure dd_nan
   end interface
 
+  interface floor
+    module procedure ddfloor
+  end interface
+
+  interface ceil
+    module procedure ddceil
+  end interface
+
+  interface ceiling
+    module procedure ddceil
+  end interface
+
+  interface precision
+    module procedure dd_precision
+  end interface
+
+  interface range
+    module procedure dd_range
+  end interface
+
+  interface hypot
+    module procedure ddhypot
+  end interface
+
+  interface modulo
+    module procedure ddmodulo
+  end interface
+
+  interface dim
+    module procedure dddim
+  end interface
+
 contains
 
 ! Assignments
@@ -425,7 +485,7 @@ contains
   elemental subroutine assign_i_dd(i, a)
     integer, intent(inout) :: i
     type (dd_real), intent(in) :: a
-    i = a%re(1)
+    i = to_int_dd(a)
   end subroutine assign_i_dd
 
   elemental subroutine assign_ddc (a, b)
@@ -509,7 +569,9 @@ contains
 
   elemental integer function to_int_dd(a) 
     type (dd_real), intent(in) :: a
-    to_int_dd = a%re(1)
+    type (dd_real) :: t
+    t = ddaint(a)
+    to_int_dd = int(t%re(1)) + int(sum(t%re(2:)))
   end function to_int_dd
 
   type (dd_real) function to_dd_str(s)
@@ -821,18 +883,7 @@ contains
 
   elemental type (dd_complex) function div_ddc(a, b)
     type (dd_complex), intent(in) :: a, b
-    type (dd_real) t1, t2, t3, t4, t5
-    call f_dd_mul (a%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_dd_mul (a%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_mul (a%cmp(1:2), b%cmp(3:4), t1%re)
-    call f_dd_mul (a%cmp(3:4), b%cmp(1:2), t2%re)
-    call f_dd_sub (t2%re, t1%re, t4%re)
-    call f_dd_mul (b%cmp(1:2), b%cmp(1:2), t1%re)
-    call f_dd_mul (b%cmp(3:4), b%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t5%re)
-    call f_dd_div (t3%re, t5%re, div_ddc%cmp(1:2))
-    call f_dd_div (t4%re, t5%re, div_ddc%cmp(3:4))
+    call f_dd_cdiv(a%cmp, b%cmp, div_ddc%cmp)
   end function div_ddc
 
   elemental type (dd_complex) function div_ddc_d(a,b)
@@ -852,15 +903,10 @@ contains
   elemental type (dd_complex) function div_dd_ddc(a, b)
     type (dd_real), intent(in) :: a
     type (dd_complex), intent(in) :: b
-    type (dd_real) t1, t2, t3, t4, t5
-    call f_dd_mul (a%re, b%cmp(1:2), t1%re)
-    call f_dd_mul (a%re, b%cmp(3:4), t2%re)
-    t2%re = - t2%re
-    call f_dd_mul (b%cmp(1:2), b%cmp(1:2), t3%re)
-    call f_dd_mul (b%cmp(3:4), b%cmp(3:4), t4%re)
-    call f_dd_add (t3%re, t4%re, t5%re)
-    call f_dd_div (t1%re, t5%re, div_dd_ddc%cmp(1:2))
-    call f_dd_div (t2%re, t5%re, div_dd_ddc%cmp(3:4))
+    type (dd_complex) :: ac
+    ac%cmp(1:2) = a%re
+    ac%cmp(3:4) = 0
+    call f_dd_cdiv(ac%cmp, b%cmp, div_dd_ddc%cmp)
   end function div_dd_ddc
 
 ! Power
@@ -1020,13 +1066,7 @@ contains
 
   elemental type (dd_complex) function ddclog (a)
     type (dd_complex), intent(in) :: a
-    type (dd_real) t1, t2, t3
-    call f_dd_mul (a%cmp(1:2), a%cmp(1:2), t1%re)
-    call f_dd_mul (a%cmp(3:4), a%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_log (t3%re, t1%re)
-    ddclog%cmp(1:2) = 0.5d0 * t1%re
-    call f_dd_atan2 (a%cmp(3:4), a%cmp(1:2), ddclog%cmp(3:4))
+    call f_dd_clog(a%cmp, ddclog%cmp)
   end function ddclog
 
 
@@ -1105,7 +1145,7 @@ contains
 
   elemental integer function ddnint(a)
     type (dd_real), intent(in) :: a
-    ddnint = to_int_dd(ddaint(a));
+    ddnint = to_int_dd(ddanint(a))
   end function ddnint
 
 
@@ -1388,7 +1428,7 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_dd = .true.
     else
       ge_dd = .false.
@@ -1400,7 +1440,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(a%re, b, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       ge_dd_d = .true.
     else
       ge_dd_d = .false.
@@ -1412,7 +1452,7 @@ contains
     type (dd_real), intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(b%re, a, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       ge_d_dd = .true.
     else
       ge_d_dd = .false.
@@ -1436,7 +1476,7 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_dd = .true.
     else
       le_dd = .false.
@@ -1448,7 +1488,7 @@ contains
     real*8, intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(a%re, b, r)
-    if (r <= 0) then
+    if (r == 0 .or. r == -1) then
       le_dd_d = .true.
     else
       le_dd_d = .false.
@@ -1460,7 +1500,7 @@ contains
     type (dd_real), intent(in) :: b
     integer :: r
     call f_dd_comp_dd_d(b%re, a, r)
-    if (r >= 0) then
+    if (r == 0 .or. r == 1) then
       le_d_dd = .true.
     else
       le_d_dd = .false.
@@ -1487,47 +1527,27 @@ contains
 
   elemental type (dd_real) function ddcabs (ddc)
     type (dd_complex), intent(in) :: ddc
-    type (dd_real) t1, t2, t3
-    call f_dd_mul (ddc%cmp(1:2), ddc%cmp(1:2), t1%re)
-    call f_dd_mul (ddc%cmp(3:4), ddc%cmp(3:4), t2%re)
-    call f_dd_add (t1%re, t2%re, t3%re)
-    call f_dd_sqrt (t3%re, ddcabs%re)
+    call f_dd_cabs(ddc%cmp, ddcabs%re)
   end function ddcabs
 
 ! Sign transfer
   elemental type (dd_real) function ddsign(a, b) result (c)
     type (dd_real), intent(in) :: a, b
-    if (b%re(1) .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b%re(1)) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function ddsign
 
   elemental type (dd_real) function ddsign_dd_d(a, b) result (c)
     type (dd_real), intent(in) :: a
     real*8, intent(in) ::  b
-    if (b .gt. 0.0d0) then
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = a%re
-      else
-        c%re = -a%re
-      end if
+    if ((sign(1.0d0, a%re(1)) .lt. 0) .eqv. (sign(1.0d0, b) .lt. 0)) then
+      c%re = a%re
     else
-      if (a%re(1) .gt. 0.0d0) then
-        c%re = -a%re
-      else
-        c%re = a%re
-      end if
-    endif
+      c%re = -a%re
+    end if
   end function ddsign_dd_d
 
 ! Input
@@ -1721,6 +1741,8 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == 1) then
       ddmin2 = b
     else
@@ -1744,6 +1766,8 @@ contains
     type (dd_real), intent(in) :: a, b
     integer :: r
     call f_dd_comp(a%re, b%re, r)
+    ! Unordered (NaN) operands keep the pre-1.6 result: treat as equal.
+    if (r == 2) r = 0
     if (r == -1) then
       ddmax2 = b
     else
@@ -1801,129 +1825,28 @@ end subroutine
 
 subroutine ddinpc (a, b)
 
-!   Converts the CHARACTER*80 array A into the DD number B.
+!   Converts the CHARACTER*80 array A into the DD number B using the C++
+!   decimal reader, so Fortran and C++ parse literals identically.  Fortran
+!   'd'/'D' exponent markers are accepted.
 
 implicit none
-integer i, id, ie, inz, ip, is, k, ln, lnn, beg
-parameter (ln = 80)
-real*8 bi
 character*80 a
-character*1 ai
-character*10 dig
-character*16 ca
-parameter (dig = '0123456789')
-real*8 b(2), f(2), s0(2), s1(2), s2(2)
+real*8 b(2)
+character*80 t
+integer i, n, ierr
 
-id = 0
-ip = -1
-is = 0
-inz = 0
-s1(1) = 0.d0
-s1(2) = 0.d0
-
-beg = 0
-do i = 1, 80
-  if (a(i:i) /= ' ') then
-    beg = i
-    goto 80
-  end if
+t = adjustl(a)
+n = len_trim(t)
+do i = 1, n
+  if (t(i:i) == 'd' .or. t(i:i) == 'D') t(i:i) = 'e'
 end do
-
-goto 210
-80 continue
-
-do i = beg, 80
-  if (a(i:i) == ' ') then
-    lnn = i-1
-    goto 90
-  end if
- enddo
-
-lnn = 80
-90 continue
-
-!   Scan for digits, looking for the period also.
-
-do i = beg, lnn
-  ai = a(i:i)
-  if (ai .eq. '.') then
-    if (ip >= 0) goto 210
-    ip = id
-    inz = 1
-  elseif (ai .eq. '+') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (id .ne. 0 .or. ip >= 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (ai .eq. 'e' .or. ai .eq. 'E' .or. ai .eq. 'd' .or. ai .eq. 'D') then
-    goto 100
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-!    read (ai, '(f1.0)') bi
-    bi = index (dig, ai) - 1
-    if (inz > 0 .or. bi > 0.d0) then
-      inz = 1
-      id = id + 1
-!    call ddmuld (s1, 10.d0, s0)
-      call f_dd_mul_dd_d (s1, 10.d0, s0)
-      f(1) = bi
-      f(2) = 0.d0
-!    call dddqc (bi, f)
-!    call ddadd (s0, f, s1)
-      call f_dd_add (s0, f, s1)
-    endif
-  endif
-enddo
-
-100   continue
-if (is .eq. -1) then
-  s1(1) = - s1(1)
-  s1(2) = - s1(2)
-endif
-k = i
-if (ip == -1) ip = id
-ie = 0
-is = 0
-ca = ' '
-
-do i = k + 1, lnn
-  ai = a(i:i)
-  if (ai .eq. ' ') then
-  elseif (ai .eq. '+') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = 1
-  elseif (ai .eq. '-') then
-    if (ie .ne. 0 .or. is .ne. 0) goto 210
-    is = -1
-  elseif (index (dig, ai) .eq. 0) then
-    goto 210
-  else
-    ie = ie + 1
-    if (ie .gt. 3) goto 210
-    ca(ie:ie) = ai
-  endif
-enddo
-
-! read (ca, '(i4)') ie
-ie = dddigin (ca, 4)
-if (is .eq. -1) ie = - ie
-ie = ie + ip - id
-s0(1) = 10.d0
-s0(2) = 0.d0
-! call ddnpwr (s0, ie, s2)
-call f_dd_npwr (s0, ie, s2)
-! call ddmul (s1, s2, b)
-call f_dd_mul (s1, s2, b)
-goto 220
-
-210  write (6, 1) a
+ierr = -1
+if (n > 0) call f_dd_read(t, n, b, ierr)
+if (ierr /= 0) then
+  write (6, 1) a
 1 format ('*** ddinpc: Syntax error in literal string: ', a)
-! call ddabrt
-stop
-
-220  return
+  stop
+end if
 end subroutine
 
 subroutine ddout (iu, a)
@@ -1952,28 +1875,6 @@ subroutine ddoutc (a, b)
   b(2) = ' '
   call f_dd_swrite(a, 31, b(3), 38)
 end subroutine
-
-  real*8 function dddigin (ca, n)
-    implicit none
-    real*8 d1
-    character*(*), ca
-    character*16 digits
-    integer i, k, n
-    parameter (digits = '0123456789')
-
-    d1 = 0.d0
-
-    do i = 1, n
-      k = index (digits, ca(i:i)) - 1
-      if (k < 0) then
-        write (6, *) 'dddigin: non-digit in character string'
-      elseif (k <= 9) then
-        d1 = 10.d0 * d1 + k
-      endif
-    enddo
-
-    dddigin = d1
-  end function
 
   character*16 function dddigout (a, n)
     implicit none
@@ -2071,6 +1972,203 @@ elemental type (dd_real) function dd_aimag(a)
   type (dd_complex), intent(in) :: a
   dd_aimag%re = a%cmp(3:4)
 end function
+
+! Mixed-mode operators added for interface completeness.
+  elemental type (dd_real) function sub_dd_i(a, b)
+    type (dd_real), intent(in) :: a
+    integer, intent(in) :: b
+    sub_dd_i = sub_dd(a, to_dd_i(b))
+  end function sub_dd_i
+
+  elemental type (dd_real) function sub_i_dd(a, b)
+    integer, intent(in) :: a
+    type (dd_real), intent(in) :: b
+    sub_i_dd = sub_dd(to_dd_i(a), b)
+  end function sub_i_dd
+
+  elemental type (dd_complex) function add_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    add_ddc_i = add_ddc_dd(a, to_dd_i(b))
+  end function add_ddc_i
+
+  elemental type (dd_complex) function add_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    add_i_ddc = add_dd_ddc(to_dd_i(a), b)
+  end function add_i_ddc
+
+  elemental type (dd_complex) function sub_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    sub_ddc_i = sub_ddc_dd(a, to_dd_i(b))
+  end function sub_ddc_i
+
+  elemental type (dd_complex) function sub_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    sub_i_ddc = sub_dd_ddc(to_dd_i(a), b)
+  end function sub_i_ddc
+
+  elemental type (dd_complex) function div_ddc_i(a, b)
+    type (dd_complex), intent(in) :: a
+    integer, intent(in) :: b
+    div_ddc_i = div_ddc_dd(a, to_dd_i(b))
+  end function div_ddc_i
+
+  elemental type (dd_complex) function div_i_ddc(a, b)
+    integer, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    div_i_ddc = div_dd_ddc(to_dd_i(a), b)
+  end function div_i_ddc
+
+  elemental type (dd_complex) function div_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    div_d_ddc = div_dd_ddc(to_dd_d(a), b)
+  end function div_d_ddc
+
+  elemental logical function eq_ddc_d(a, b)
+    type (dd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    eq_ddc_d = eq_ddc_dd(a, to_dd_d(b))
+  end function eq_ddc_d
+
+  elemental logical function eq_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    eq_d_ddc = eq_dd_ddc(to_dd_d(a), b)
+  end function eq_d_ddc
+
+  elemental logical function ne_ddc_d(a, b)
+    type (dd_complex), intent(in) :: a
+    real*8, intent(in) :: b
+    ne_ddc_d = ne_ddc_dd(a, to_dd_d(b))
+  end function ne_ddc_d
+
+  elemental logical function ne_d_ddc(a, b)
+    real*8, intent(in) :: a
+    type (dd_complex), intent(in) :: b
+    ne_d_ddc = ne_dd_ddc(to_dd_d(a), b)
+  end function ne_d_ddc
+
+! Complex elementary functions, evaluated by the C++ complex implementation.
+  elemental type (dd_complex) function ddc_sqrt(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csqrt(z%cmp, ddc_sqrt%cmp)
+  end function ddc_sqrt
+
+  elemental type (dd_complex) function ddc_sin(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csin(z%cmp, ddc_sin%cmp)
+  end function ddc_sin
+
+  elemental type (dd_complex) function ddc_cos(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ccos(z%cmp, ddc_cos%cmp)
+  end function ddc_cos
+
+  elemental type (dd_complex) function ddc_tan(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ctan(z%cmp, ddc_tan%cmp)
+  end function ddc_tan
+
+  elemental type (dd_complex) function ddc_sinh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_csinh(z%cmp, ddc_sinh%cmp)
+  end function ddc_sinh
+
+  elemental type (dd_complex) function ddc_cosh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ccosh(z%cmp, ddc_cosh%cmp)
+  end function ddc_cosh
+
+  elemental type (dd_complex) function ddc_tanh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_ctanh(z%cmp, ddc_tanh%cmp)
+  end function ddc_tanh
+
+  elemental type (dd_complex) function ddc_asin(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_casin(z%cmp, ddc_asin%cmp)
+  end function ddc_asin
+
+  elemental type (dd_complex) function ddc_acos(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_cacos(z%cmp, ddc_acos%cmp)
+  end function ddc_acos
+
+  elemental type (dd_complex) function ddc_atan(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_catan(z%cmp, ddc_atan%cmp)
+  end function ddc_atan
+
+  elemental type (dd_complex) function ddc_asinh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_casinh(z%cmp, ddc_asinh%cmp)
+  end function ddc_asinh
+
+  elemental type (dd_complex) function ddc_acosh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_cacosh(z%cmp, ddc_acosh%cmp)
+  end function ddc_acosh
+
+  elemental type (dd_complex) function ddc_atanh(z)
+    type (dd_complex), intent(in) :: z
+    call f_dd_catanh(z%cmp, ddc_atanh%cmp)
+  end function ddc_atanh
+
+  elemental type (dd_complex) function pwr_ddc(z, w)
+    type (dd_complex), intent(in) :: z, w
+    call f_dd_cpow(z%cmp, w%cmp, pwr_ddc%cmp)
+  end function pwr_ddc
+
+  elemental type (dd_complex) function pwr_ddc_dd(z, x)
+    type (dd_complex), intent(in) :: z
+    type (dd_real), intent(in) :: x
+    call f_dd_cpow_r(z%cmp, x%re, pwr_ddc_dd%cmp)
+  end function pwr_ddc_dd
+
+! Rounding and model intrinsics added for interface completeness.
+  elemental type (dd_real) function ddfloor(a)
+    type (dd_real), intent(in) :: a
+    call f_dd_floor(a%re, ddfloor%re)
+  end function ddfloor
+
+  elemental type (dd_real) function ddceil(a)
+    type (dd_real), intent(in) :: a
+    call f_dd_ceil(a%re, ddceil%re)
+  end function ddceil
+
+  ! sqrt(a**2 + b**2) without intermediate overflow or underflow.
+  elemental type (dd_real) function ddhypot(a, b)
+    type (dd_real), intent(in) :: a, b
+    type (dd_real) :: x, y, m
+    x = abs(a)
+    y = abs(b)
+    m = max(x, y)
+    if (m == 0) then
+      ddhypot = m
+    else
+      ddhypot = m * sqrt((x / m) ** 2 + (y / m) ** 2)
+    end if
+  end function ddhypot
+
+  ! a - floor(a / p) * p: the result has the sign of p.
+  elemental type (dd_real) function ddmodulo(a, p)
+    type (dd_real), intent(in) :: a, p
+    ddmodulo = a - ddfloor(a / p) * p
+  end function ddmodulo
+
+  ! max(a - b, 0)
+  elemental type (dd_real) function dddim(a, b)
+    type (dd_real), intent(in) :: a, b
+    if (a > b) then
+      dddim = a - b
+    else
+      dddim = a - a
+    end if
+  end function dddim
 
 end module ddmodule
 

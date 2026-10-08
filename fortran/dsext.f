@@ -247,5 +247,131 @@ module dsext
     pure subroutine f_ds_nan(a)
       real*4, intent(out) :: a(2)
     end subroutine
+    pure subroutine f_ds_from_double(a, c)
+      real*8, intent(in) :: a
+      real*4, intent(out) :: c(2)
+    end subroutine
+
+    pure subroutine f_ds_to_double(a, c)
+      real*4, intent(in) :: a(2)
+      real*8, intent(out) :: c
+    end subroutine
+
+    pure subroutine f_ds_from_dd(a, c)
+      real*8, intent(in) :: a(2)
+      real*4, intent(out) :: c(2)
+    end subroutine
+
+    pure subroutine f_ds_to_dd(a, c)
+      real*4, intent(in) :: a(2)
+      real*8, intent(out) :: c(2)
+    end subroutine
+
+    pure subroutine f_ds_from_qd(a, c)
+      real*8, intent(in) :: a(4)
+      real*4, intent(out) :: c(2)
+    end subroutine
+
+    pure subroutine f_ds_to_qd(a, c)
+      real*4, intent(in) :: a(2)
+      real*8, intent(out) :: c(4)
+    end subroutine
+    subroutine f_ds_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*4, intent(out) :: a(2)
+      integer, intent(out) :: ierr
+    end subroutine
+
+    pure subroutine f_ds_csqrt(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_csin(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_ccos(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_ctan(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_csinh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_ccosh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_ctanh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_casin(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cacos(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_catan(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_casinh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cacosh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_catanh(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cpow(z, w, r)
+      real*4, intent(in) :: z(4), w(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cpow_r(z, x, r)
+      real*4, intent(in) :: z(4), x(2)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cdiv(z, w, r)
+      real*4, intent(in) :: z(4), w(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_ds_cabs(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(2)
+    end subroutine
+
+    pure subroutine f_ds_clog(z, r)
+      real*4, intent(in) :: z(4)
+      real*4, intent(out) :: r(4)
+    end subroutine
+
   end interface
 end

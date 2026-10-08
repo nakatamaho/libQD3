@@ -14,9 +14,11 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 
 #include "config.h"
 #include <qd/qd_real.h>
+#include <qd/qd_complex.h>
 #include <qd/c_qd.h>
 
 #define f_qd_add          FC_FUNC_(f_qd_add, F_QD_ADD)
@@ -86,9 +88,43 @@
 
 #define f_qd_pi           FC_FUNC_(f_qd_pi, F_QD_PI)
 #define f_qd_nan          FC_FUNC_(f_qd_nan, F_QD_NAN)
+#define f_qd_read         FC_FUNC_(f_qd_read, F_QD_READ)
+#define f_qd_csqrt       FC_FUNC_(f_qd_csqrt, F_QD_CSQRT)
+#define f_qd_csin        FC_FUNC_(f_qd_csin, F_QD_CSIN)
+#define f_qd_ccos        FC_FUNC_(f_qd_ccos, F_QD_CCOS)
+#define f_qd_ctan        FC_FUNC_(f_qd_ctan, F_QD_CTAN)
+#define f_qd_csinh       FC_FUNC_(f_qd_csinh, F_QD_CSINH)
+#define f_qd_ccosh       FC_FUNC_(f_qd_ccosh, F_QD_CCOSH)
+#define f_qd_ctanh       FC_FUNC_(f_qd_ctanh, F_QD_CTANH)
+#define f_qd_casin       FC_FUNC_(f_qd_casin, F_QD_CASIN)
+#define f_qd_cacos       FC_FUNC_(f_qd_cacos, F_QD_CACOS)
+#define f_qd_catan       FC_FUNC_(f_qd_catan, F_QD_CATAN)
+#define f_qd_casinh      FC_FUNC_(f_qd_casinh, F_QD_CASINH)
+#define f_qd_cacosh      FC_FUNC_(f_qd_cacosh, F_QD_CACOSH)
+#define f_qd_catanh      FC_FUNC_(f_qd_catanh, F_QD_CATANH)
+#define f_qd_cpow        FC_FUNC_(f_qd_cpow, F_QD_CPOW)
+#define f_qd_cpow_r      FC_FUNC_(f_qd_cpow_r, F_QD_CPOW_R)
+#define f_qd_cdiv        FC_FUNC_(f_qd_cdiv, F_QD_CDIV)
+#define f_qd_cabs        FC_FUNC_(f_qd_cabs, F_QD_CABS)
+#define f_qd_clog        FC_FUNC_(f_qd_clog, F_QD_CLOG)
 
 #define TO_DOUBLE_PTR(a, ptr) ptr[0] = a.x[0]; ptr[1] = a.x[1]; \
                               ptr[2] = a.x[2]; ptr[3] = a.x[3];
+
+/* Complex elementary functions on qd_complex values stored as 8
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline qd_complex load_qdc(const double *z) {
+  return qd_complex(qd_real(z), qd_real(z + 4));
+}
+inline void store_qdc(const qd_complex &w, double *r) {
+  const qd_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 4; ++i) {
+    r[i] = re[i];
+    r[i + 4] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -460,32 +496,41 @@ void f_qd_rand(double *a) {
 
 void f_qd_comp(const double *a, const double *b, int *result) {
   qd_real aa(a), bb(b);
-  if (aa < bb)
+if (aa < bb) {
     *result = -1;
-  else if (aa > bb)
+  } else if (aa > bb) {
     *result = 1;
-  else 
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_comp_qd_d(const double *a, const double *b, int *result) {
   qd_real aa(a);
-  if (aa < *b)
+if (aa < *b) {
     *result = -1;
-  else if (aa > *b)
+  } else if (aa > *b) {
     *result = 1;
-  else 
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_comp_d_qd(const double *a, const double *b, int *result) {
   qd_real bb(b);
-  if (*a < bb)
+if (*a < bb) {
     *result = -1;
-  else if (*a > bb)
+  } else if (*a > bb) {
     *result = 1;
-  else 
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
+  }
 }
 
 void f_qd_pi(double *a) {
@@ -494,6 +539,94 @@ void f_qd_pi(double *a) {
 
 void f_qd_nan(double *a) {
   TO_DOUBLE_PTR(qd_real::_nan, a);
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_qd_read(const char *s, int *n, double *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  qd_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_DOUBLE_PTR(r, a);
+  }
+}
+
+
+void f_qd_csqrt(const double *z, double *r) {
+  store_qdc(sqrt(load_qdc(z)), r);
+}
+
+void f_qd_csin(const double *z, double *r) {
+  store_qdc(sin(load_qdc(z)), r);
+}
+
+void f_qd_ccos(const double *z, double *r) {
+  store_qdc(cos(load_qdc(z)), r);
+}
+
+void f_qd_ctan(const double *z, double *r) {
+  store_qdc(tan(load_qdc(z)), r);
+}
+
+void f_qd_csinh(const double *z, double *r) {
+  store_qdc(sinh(load_qdc(z)), r);
+}
+
+void f_qd_ccosh(const double *z, double *r) {
+  store_qdc(cosh(load_qdc(z)), r);
+}
+
+void f_qd_ctanh(const double *z, double *r) {
+  store_qdc(tanh(load_qdc(z)), r);
+}
+
+void f_qd_casin(const double *z, double *r) {
+  store_qdc(asin(load_qdc(z)), r);
+}
+
+void f_qd_cacos(const double *z, double *r) {
+  store_qdc(acos(load_qdc(z)), r);
+}
+
+void f_qd_catan(const double *z, double *r) {
+  store_qdc(atan(load_qdc(z)), r);
+}
+
+void f_qd_casinh(const double *z, double *r) {
+  store_qdc(asinh(load_qdc(z)), r);
+}
+
+void f_qd_cacosh(const double *z, double *r) {
+  store_qdc(acosh(load_qdc(z)), r);
+}
+
+void f_qd_catanh(const double *z, double *r) {
+  store_qdc(atanh(load_qdc(z)), r);
+}
+
+void f_qd_cpow(const double *z, const double *w, double *r) {
+  store_qdc(pow(load_qdc(z), load_qdc(w)), r);
+}
+
+void f_qd_cpow_r(const double *z, const double *x, double *r) {
+  store_qdc(pow(load_qdc(z), qd_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_qd_cdiv(const double *z, const double *w, double *r) {
+  store_qdc(load_qdc(z) / load_qdc(w), r);
+}
+
+void f_qd_cabs(const double *z, double *r) {
+  const qd_real a = abs(load_qdc(z));
+  for (int i = 0; i < 4; ++i) r[i] = a[i];
+}
+
+void f_qd_clog(const double *z, double *r) {
+  store_qdc(log(load_qdc(z)), r);
 }
 
 }

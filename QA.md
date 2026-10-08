@@ -50,6 +50,8 @@ special-function behavior. Source links are included for each test path.
 | [tests/oracle/test_complex_unary.cpp](tests/oracle/test_complex_unary.cpp) | MPC-backed complex unary special-function oracle. |
 | [tests/oracle/test_complex_binary.cpp](tests/oracle/test_complex_binary.cpp) | MPC-backed complex `pow` and `ldexp` oracle. |
 | [tests/oracle/test_complex_special.cpp](tests/oracle/test_complex_special.cpp) | MPC/MPFR-backed complex helper-function oracle. |
+| [tests/f_test.f](tests/f_test.f) | Fortran smoke test for the dd/td/qd/ds/ts/qs modules. |
+| [tests/f_suite.f90](tests/f_suite.f90) | Fortran precision suite: one type-generic body ([tests/f_suite_body.inc](tests/f_suite_body.inc)) checked against MPFR-generated constants with epsilon-relative tolerances for every Fortran module, plus binary64 and cross-type conversion checks. |
 
 ## Real Arithmetic
 
@@ -135,3 +137,9 @@ For wider build-option coverage, use:
 - [qa/check_oracle_matrix_cmake.sh](qa/check_oracle_matrix_cmake.sh)
 - [qa/check_bf_matrix_cmake.sh](qa/check_bf_matrix_cmake.sh)
 - [qa/check_complex_oracle_matrix_cmake.sh](qa/check_complex_oracle_matrix_cmake.sh)
+
+These scripts configure every build with `QD_BUILD_FORTRAN=ON`, so a release
+gate fails when no Fortran compiler is available instead of silently skipping
+the Fortran interfaces.  To run them deliberately without Fortran coverage,
+set `QD3_QA_FORTRAN=OFF`; the scripts then print a warning that the Fortran
+interfaces were not covered.

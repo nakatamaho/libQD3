@@ -74,6 +74,10 @@ void c_dd_selfmul_d(double a, double *b);
 void c_dd_selfdiv_td(const double *a, double *b);
 void c_dd_selfdiv_qd(const double *a, double *b);
 void c_dd_selfdiv_d(double a, double *b);
+void c_dd_selfadd(const double *a, double *b);
+void c_dd_selfsub(const double *a, double *b);
+void c_dd_selfmul(const double *a, double *b);
+void c_dd_selfdiv(const double *a, double *b);
 
 void c_dd_sqrt(const double *a, double *b);
 void c_dd_sqr(const double *a, double *b);

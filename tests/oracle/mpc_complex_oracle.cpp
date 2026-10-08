@@ -26,7 +26,7 @@ std::string int_text(int value) {
 }
 
 void print_usage(const char *program) {
-  std::cout << program << " [-dd] [-td] [-qd] [-edd] [-all] [-v] [--seed=N]\n";
+  std::cout << program << " [-dd] [-td] [-qd] [-ds] [-ts] [-qs] [-edd] [-all] [-v] [--seed=N]\n";
 }
 
 bool parse_options(int argc, char **argv, const char *program, Options *options) {
@@ -39,6 +39,12 @@ bool parse_options(int argc, char **argv, const char *program, Options *options)
       options->test_td = true;
     } else if (std::strcmp(arg, "-qd") == 0) {
       options->test_qd = true;
+    } else if (std::strcmp(arg, "-ds") == 0) {
+      options->test_ds = true;
+    } else if (std::strcmp(arg, "-ts") == 0) {
+      options->test_ts = true;
+    } else if (std::strcmp(arg, "-qs") == 0) {
+      options->test_qs = true;
     } else if (std::strcmp(arg, "-edd") == 0) {
 #ifdef QD_HAVE_EDD_REAL
       options->test_edd = true;
@@ -50,6 +56,9 @@ bool parse_options(int argc, char **argv, const char *program, Options *options)
       options->test_dd = true;
       options->test_td = true;
       options->test_qd = true;
+      options->test_ds = true;
+      options->test_ts = true;
+      options->test_qs = true;
 #ifdef QD_HAVE_EDD_REAL
       options->test_edd = true;
 #endif
@@ -69,7 +78,8 @@ bool parse_options(int argc, char **argv, const char *program, Options *options)
     }
   }
 
-  if (!options->test_dd && !options->test_td && !options->test_qd
+  if (!options->test_dd && !options->test_td && !options->test_qd &&
+      !options->test_ds && !options->test_ts && !options->test_qs
 #ifdef QD_HAVE_EDD_REAL
       && !options->test_edd
 #endif
@@ -77,6 +87,9 @@ bool parse_options(int argc, char **argv, const char *program, Options *options)
     options->test_dd = true;
     options->test_td = true;
     options->test_qd = true;
+    options->test_ds = true;
+    options->test_ts = true;
+    options->test_qs = true;
 #ifdef QD_HAVE_EDD_REAL
     options->test_edd = true;
 #endif
@@ -90,6 +103,9 @@ int selected_count(const Options &options) {
   if (options.test_dd) ++count;
   if (options.test_td) ++count;
   if (options.test_qd) ++count;
+  if (options.test_ds) ++count;
+  if (options.test_ts) ++count;
+  if (options.test_qs) ++count;
 #ifdef QD_HAVE_EDD_REAL
   if (options.test_edd) ++count;
 #endif

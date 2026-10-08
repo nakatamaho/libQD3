@@ -2,8 +2,9 @@
 
 #include <qd/ts_real.h>
 
-template <> const single_real<3> single_real<3>::_nan(
-    std::numeric_limits<float>::quiet_NaN());
+// Copy-initialized: MinGW's <math.h> defines a function-like _nan() macro.
+template <> const single_real<3> single_real<3>::_nan =
+    single_real<3>(std::numeric_limits<float>::quiet_NaN());
 template <> const single_real<3> single_real<3>::_inf(
     std::numeric_limits<float>::infinity());
 template <> const single_real<3> single_real<3>::_2pi(

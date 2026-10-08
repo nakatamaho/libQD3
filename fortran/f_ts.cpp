@@ -32,10 +32,14 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
 #include <qd/ts_real.h>
+#include <qd/ts_complex.h>
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
 #include <qd/inline.h>
 
 #define f_ts_add          FC_FUNC_(f_ts_add, F_TS_ADD)
@@ -95,11 +99,51 @@
 #define f_ts_comp_d_ts    FC_FUNC_(f_ts_comp_d_ts, F_TS_COMP_D_TS)
 #define f_ts_pi           FC_FUNC_(f_ts_pi, F_TS_PI)
 #define f_ts_nan          FC_FUNC_(f_ts_nan, F_TS_NAN)
+#define f_ts_from_double  FC_FUNC_(f_ts_from_double, F_TS_FROM_DOUBLE)
+#define f_ts_to_double    FC_FUNC_(f_ts_to_double, F_TS_TO_DOUBLE)
+#define f_ts_from_dd      FC_FUNC_(f_ts_from_dd, F_TS_FROM_DD)
+#define f_ts_to_dd        FC_FUNC_(f_ts_to_dd, F_TS_TO_DD)
+#define f_ts_from_qd      FC_FUNC_(f_ts_from_qd, F_TS_FROM_QD)
+#define f_ts_to_qd        FC_FUNC_(f_ts_to_qd, F_TS_TO_QD)
+#define f_ts_read         FC_FUNC_(f_ts_read, F_TS_READ)
+#define f_ts_csqrt       FC_FUNC_(f_ts_csqrt, F_TS_CSQRT)
+#define f_ts_csin        FC_FUNC_(f_ts_csin, F_TS_CSIN)
+#define f_ts_ccos        FC_FUNC_(f_ts_ccos, F_TS_CCOS)
+#define f_ts_ctan        FC_FUNC_(f_ts_ctan, F_TS_CTAN)
+#define f_ts_csinh       FC_FUNC_(f_ts_csinh, F_TS_CSINH)
+#define f_ts_ccosh       FC_FUNC_(f_ts_ccosh, F_TS_CCOSH)
+#define f_ts_ctanh       FC_FUNC_(f_ts_ctanh, F_TS_CTANH)
+#define f_ts_casin       FC_FUNC_(f_ts_casin, F_TS_CASIN)
+#define f_ts_cacos       FC_FUNC_(f_ts_cacos, F_TS_CACOS)
+#define f_ts_catan       FC_FUNC_(f_ts_catan, F_TS_CATAN)
+#define f_ts_casinh      FC_FUNC_(f_ts_casinh, F_TS_CASINH)
+#define f_ts_cacosh      FC_FUNC_(f_ts_cacosh, F_TS_CACOSH)
+#define f_ts_catanh      FC_FUNC_(f_ts_catanh, F_TS_CATANH)
+#define f_ts_cpow        FC_FUNC_(f_ts_cpow, F_TS_CPOW)
+#define f_ts_cpow_r      FC_FUNC_(f_ts_cpow_r, F_TS_CPOW_R)
+#define f_ts_cdiv        FC_FUNC_(f_ts_cdiv, F_TS_CDIV)
+#define f_ts_cabs        FC_FUNC_(f_ts_cabs, F_TS_CABS)
+#define f_ts_clog        FC_FUNC_(f_ts_clog, F_TS_CLOG)
 
 #define TO_FLOAT_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
   ptr[1] = (a)[1]; \
   ptr[2] = (a)[2];
+
+/* Complex elementary functions on ts_complex values stored as 6
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline ts_complex load_tsc(const float *z) {
+  return ts_complex(ts_real(z), ts_real(z + 3));
+}
+inline void store_tsc(const ts_complex &w, float *r) {
+  const ts_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 3; ++i) {
+    r[i] = re[i];
+    r[i + 3] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -307,34 +351,40 @@ void f_ts_rand(float *a) {
 
 void f_ts_comp(const float *a, const float *b, int *result) {
   ts_real aa(a), bb(b);
-  if (aa < bb) {
+if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
     *result = 1;
-  } else {
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_ts_comp_ts_d(const float *a, const float *b, int *result) {
   ts_real aa(a);
-  if (aa < *b) {
+if (aa < *b) {
     *result = -1;
   } else if (aa > *b) {
     *result = 1;
-  } else {
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_ts_comp_d_ts(const float *a, const float *b, int *result) {
   ts_real bb(b);
-  if (*a < bb) {
+if (*a < bb) {
     *result = -1;
   } else if (*a > bb) {
     *result = 1;
-  } else {
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
@@ -344,6 +394,132 @@ void f_ts_pi(float *a) {
 
 void f_ts_nan(float *a) {
   TO_FLOAT_PTR(ts_real::_nan, a);
+}
+
+
+/* Conversions between ts_real and the binary64-based types.  Each binary64
+   limb is converted exactly to ts_real (or rounded once, for limbs wider
+   than ts_real) and the limbs are summed in the target arithmetic, so no
+   precision is lost beyond the narrower of the two formats. */
+void f_ts_from_double(const double *a, float *c) {
+  ts_real r(*a);
+  TO_FLOAT_PTR(r, c);
+}
+
+void f_ts_to_double(const float *a, double *c) {
+  *c = to_double(ts_real(a));
+}
+
+void f_ts_from_dd(const double *a, float *c) {
+  ts_real r = ts_real(a[0]) + ts_real(a[1]);
+  TO_FLOAT_PTR(r, c);
+}
+
+void f_ts_to_dd(const float *a, double *c) {
+  dd_real s(static_cast<double>(a[0]));
+  for (int i = 1; i < 3; ++i) s += static_cast<double>(a[i]);
+  c[0] = s.x[0];
+  c[1] = s.x[1];
+}
+
+void f_ts_from_qd(const double *a, float *c) {
+  ts_real s(a[0]);
+  for (int i = 1; i < 4; ++i) s += ts_real(a[i]);
+  TO_FLOAT_PTR(s, c);
+}
+
+void f_ts_to_qd(const float *a, double *c) {
+  qd_real s(static_cast<double>(a[0]));
+  for (int i = 1; i < 3; ++i) s += static_cast<double>(a[i]);
+  for (int i = 0; i < 4; ++i) c[i] = s[i];
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_ts_read(const char *s, int *n, float *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  ts_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_FLOAT_PTR(r, a);
+  }
+}
+
+
+void f_ts_csqrt(const float *z, float *r) {
+  store_tsc(sqrt(load_tsc(z)), r);
+}
+
+void f_ts_csin(const float *z, float *r) {
+  store_tsc(sin(load_tsc(z)), r);
+}
+
+void f_ts_ccos(const float *z, float *r) {
+  store_tsc(cos(load_tsc(z)), r);
+}
+
+void f_ts_ctan(const float *z, float *r) {
+  store_tsc(tan(load_tsc(z)), r);
+}
+
+void f_ts_csinh(const float *z, float *r) {
+  store_tsc(sinh(load_tsc(z)), r);
+}
+
+void f_ts_ccosh(const float *z, float *r) {
+  store_tsc(cosh(load_tsc(z)), r);
+}
+
+void f_ts_ctanh(const float *z, float *r) {
+  store_tsc(tanh(load_tsc(z)), r);
+}
+
+void f_ts_casin(const float *z, float *r) {
+  store_tsc(asin(load_tsc(z)), r);
+}
+
+void f_ts_cacos(const float *z, float *r) {
+  store_tsc(acos(load_tsc(z)), r);
+}
+
+void f_ts_catan(const float *z, float *r) {
+  store_tsc(atan(load_tsc(z)), r);
+}
+
+void f_ts_casinh(const float *z, float *r) {
+  store_tsc(asinh(load_tsc(z)), r);
+}
+
+void f_ts_cacosh(const float *z, float *r) {
+  store_tsc(acosh(load_tsc(z)), r);
+}
+
+void f_ts_catanh(const float *z, float *r) {
+  store_tsc(atanh(load_tsc(z)), r);
+}
+
+void f_ts_cpow(const float *z, const float *w, float *r) {
+  store_tsc(pow(load_tsc(z), load_tsc(w)), r);
+}
+
+void f_ts_cpow_r(const float *z, const float *x, float *r) {
+  store_tsc(pow(load_tsc(z), ts_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_ts_cdiv(const float *z, const float *w, float *r) {
+  store_tsc(load_tsc(z) / load_tsc(w), r);
+}
+
+void f_ts_cabs(const float *z, float *r) {
+  const ts_real a = abs(load_tsc(z));
+  for (int i = 0; i < 3; ++i) r[i] = a[i];
+}
+
+void f_ts_clog(const float *z, float *r) {
+  store_tsc(log(load_tsc(z)), r);
 }
 
 }

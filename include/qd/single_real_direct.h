@@ -23,6 +23,7 @@
 
 #include <qd/qd_config.h>
 #include <qd/inline.h>
+#include <qd/qd_random.h>
 
 #ifdef isnan
 #undef isnan
@@ -43,6 +44,15 @@
 QD_API extern bool ds_suppress_error_messages;
 QD_API extern bool ts_suppress_error_messages;
 QD_API extern bool qs_suppress_error_messages;
+
+namespace qd_single_detail {
+// Converts the decimal integer given by count digits times 10^scale10 to a
+// quad-double expansion (four binary64 limbs).  Used by the binary32 decimal
+// reader so that parsing is carried out with far more precision than the
+// target type and rounded only once.
+QD_API void decimal_to_qd(const char *digits, int count, int scale10,
+                          double out[4]);
+} // namespace qd_single_detail
 
 template <int N>
 struct single_real;
@@ -131,7 +141,11 @@ inline float two_prod(float a, float b, float &error) {
     error = 0.0f;
     return product;
   }
-  error = std::fmaf(a, b, -product);
+  // The binary64 product of two binary32 values is exact (48 <= 53 bits), and
+  // so is its difference from the rounded binary32 product.  This avoids
+  // std::fmaf, which some C runtimes (e.g. MinGW) do not round correctly.
+  error = static_cast<float>(static_cast<double>(a) * static_cast<double>(b) -
+                             static_cast<double>(product));
   return product;
 }
 
@@ -428,6 +442,9 @@ inline single_real<N> from_long_double(long double value) {
                               ? -std::numeric_limits<float>::infinity()
                               : std::numeric_limits<float>::infinity());
   }
+  if (value == 0.0L) {
+    return single_real<N>(std::copysign(0.0f, static_cast<float>(value)));
+  }
   float terms[N];
   long double remainder = value;
   for (int i = 0; i < N; ++i) {
@@ -543,17 +560,9 @@ inline single_real<N> parse_decimal(const char *text) {
   }
   const int total_significant =
       static_cast<int>(digits.size() - first_digit);
-  const int significant = std::min(total_significant,
-                                   static_cast<int>(traits<N>::ndigits));
-  // Build an integer prefix using exact binary powers of ten, then scale it
-  // by the decimal position.  Repeatedly multiplying a fractional expansion
-  // by the float literal 0.1f would permanently retain the binary32
-  // approximation of one tenth and lose the decimal digits being parsed.
-  single_real<N> mantissa(0.0f);
-  for (int i = 0; i < significant; ++i) {
-    mantissa *= 10.0f;
-    mantissa += static_cast<float>(digits[first_digit + i] - '0');
-  }
+  // Digits beyond the 72nd change the value by less than 1e-71 relative,
+  // far below the precision of any binary32 expansion.
+  const int significant = std::min(total_significant, 72);
   const int fractional_digits = after_decimal
       ? static_cast<int>(digits.size()) - integer_digits : 0;
   int decimal_scale = fractional_digits - (total_significant - significant);
@@ -564,11 +573,23 @@ inline single_real<N> parse_decimal(const char *text) {
   if (decimal_scale < -10000) {
     return single_real<N>(negative ? -0.0f : 0.0f);
   }
-  if (decimal_scale > 0) {
-    mantissa /= npwr(single_real<N>(10.0f), decimal_scale);
-  } else {
-    mantissa *= npwr(single_real<N>(10.0f), -decimal_scale);
+  // Convert with quad-double precision, then split every binary64 limb into
+  // exact binary32 terms and round the exact sum to N limbs once.
+  double q[4];
+  decimal_to_qd(digits.c_str() + first_digit, significant, -decimal_scale, q);
+  float terms[12];
+  int count = 0;
+  for (int i = 0; i < 4; ++i) {
+    double rest = q[i];
+    for (int j = 0; j < 3 && rest != 0.0; ++j) {
+      const float term = static_cast<float>(rest);
+      terms[count++] = term;
+      if (!std::isfinite(term)) break;
+      rest -= static_cast<double>(term);
+    }
   }
+  if (count == 0) return single_real<N>(negative ? -0.0f : 0.0f);
+  single_real<N> mantissa = from_terms<N>(terms, count);
   return negative ? -mantissa : mantissa;
 }
 
@@ -1095,6 +1116,9 @@ inline single_real<N> log(const single_real<N> &a) {
   }
   if (a.isinf()) return single_real<N>::_inf;
   if (a.is_one()) return single_real<N>(0.0f);
+  // Near 1 the Newton step cancels and keeps only absolute accuracy; a - 1
+  // is exact there, so use the log1p series.
+  if (abs(a - 1.0f) < 0.125f) return log1p(a - 1.0f);
   int exponent = 0;
   const long double mantissa = std::frexp(
       static_cast<long double>(a.x[0]), &exponent);
@@ -1196,7 +1220,38 @@ inline single_real<N> aint(const single_real<N> &a) {
 template <int N>
 inline single_real<N> fmod(const single_real<N> &a,
                            const single_real<N> &b) {
-  return a - b * aint(a / b);
+  if (a.isnan() || b.isnan() || a.isinf() || b.is_zero()) {
+    return single_real<N>::_nan;
+  }
+  if (b.isinf() || a.is_zero()) return a;
+  // r = a - n*b is exactly representable; form the n*b products exactly and
+  // round the exact sum once.  Rounding b*n first, as before, lost all
+  // accuracy to cancellation when r is much smaller than a.
+  single_real<N> n = aint(a / b);
+  single_real<N> r;
+  for (int attempt = 0; attempt < 3; ++attempt) {
+    float terms[N + 2 * N * N];
+    int count = 0;
+    for (int i = 0; i < N; ++i) terms[count++] = a.x[i];
+    for (int i = 0; i < N; ++i) {
+      for (int j = 0; j < N; ++j) {
+        float error;
+        terms[count++] = qd_single_detail::two_prod(-n.x[i], b.x[j], error);
+        terms[count++] = error;
+      }
+    }
+    r = qd_single_detail::from_terms<N>(terms, count);
+    // a / b was rounded, so n can be off by one: the remainder must have
+    // the sign of a (or be zero) and be smaller than |b|.
+    if (!r.is_zero() && r.is_negative() != a.is_negative()) {
+      n -= (n.is_negative() ? -1.0f : 1.0f);
+    } else if (abs(r) >= abs(b)) {
+      n += ((a.is_negative() != b.is_negative()) ? -1.0f : 1.0f);
+    } else {
+      break;
+    }
+  }
+  return r;
 }
 template <int N>
 inline single_real<N> hypot(const single_real<N> &a,
@@ -1650,27 +1705,27 @@ inline single_real<N> polyroot(const single_real<N> *coefficients, int degree,
 
 template <int N>
 inline single_real<N> single_real<N>::rand() {
-  single_real result(0.0f);
+  // Uniform in [0, 1): N 24-bit draws at 2^-24 spacing are exact binary32
+  // limbs of a non-overlapping expansion with all 24N bits random.
+  float terms[N];
   float scale = 0x1p-24f;
   for (int i = 0; i < N; ++i) {
-    result += static_cast<float>(std::rand()) /
-              static_cast<float>(RAND_MAX) * scale;
+    terms[i] = static_cast<float>(qd_rand_u64() >> 40) * scale;
     scale *= 0x1p-24f;
   }
-  return result;
+  return qd_single_detail::from_terms<N>(terms, N);
 }
 
 template <int N>
 inline single_real<N> single_real<N>::debug_rand() {
-  if (std::rand() % 2 == 0) return rand();
+  if ((qd_rand_u64() & 1) == 0) return rand();
   single_real result(0.0f);
   int exponent = 0;
   for (int i = 0; i < N; ++i) {
     const float term = std::ldexp(
-        static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX),
-        -exponent);
+        static_cast<float>(qd_rand_u64() >> 40) * 0x1p-24f, -exponent);
     result += term;
-    exponent += 24 + std::rand() % 80;
+    exponent += 24 + static_cast<int>(qd_rand_u64() % 80);
   }
   return result;
 }

@@ -32,10 +32,12 @@
 #ifdef HAVE_FORTRAN
 
 #include <cstring>
+#include <string>
 #include <iostream>
 #include <cstdlib>
 
 #include <qd/td_real.h>
+#include <qd/td_complex.h>
 #include <qd/inline.h>
 
 #define f_td_add          FC_FUNC_(f_td_add, F_TD_ADD)
@@ -95,11 +97,45 @@
 #define f_td_comp_d_td    FC_FUNC_(f_td_comp_d_td, F_TD_COMP_D_TD)
 #define f_td_pi           FC_FUNC_(f_td_pi, F_TD_PI)
 #define f_td_nan          FC_FUNC_(f_td_nan, F_TD_NAN)
+#define f_td_read         FC_FUNC_(f_td_read, F_TD_READ)
+#define f_td_csqrt       FC_FUNC_(f_td_csqrt, F_TD_CSQRT)
+#define f_td_csin        FC_FUNC_(f_td_csin, F_TD_CSIN)
+#define f_td_ccos        FC_FUNC_(f_td_ccos, F_TD_CCOS)
+#define f_td_ctan        FC_FUNC_(f_td_ctan, F_TD_CTAN)
+#define f_td_csinh       FC_FUNC_(f_td_csinh, F_TD_CSINH)
+#define f_td_ccosh       FC_FUNC_(f_td_ccosh, F_TD_CCOSH)
+#define f_td_ctanh       FC_FUNC_(f_td_ctanh, F_TD_CTANH)
+#define f_td_casin       FC_FUNC_(f_td_casin, F_TD_CASIN)
+#define f_td_cacos       FC_FUNC_(f_td_cacos, F_TD_CACOS)
+#define f_td_catan       FC_FUNC_(f_td_catan, F_TD_CATAN)
+#define f_td_casinh      FC_FUNC_(f_td_casinh, F_TD_CASINH)
+#define f_td_cacosh      FC_FUNC_(f_td_cacosh, F_TD_CACOSH)
+#define f_td_catanh      FC_FUNC_(f_td_catanh, F_TD_CATANH)
+#define f_td_cpow        FC_FUNC_(f_td_cpow, F_TD_CPOW)
+#define f_td_cpow_r      FC_FUNC_(f_td_cpow_r, F_TD_CPOW_R)
+#define f_td_cdiv        FC_FUNC_(f_td_cdiv, F_TD_CDIV)
+#define f_td_cabs        FC_FUNC_(f_td_cabs, F_TD_CABS)
+#define f_td_clog        FC_FUNC_(f_td_clog, F_TD_CLOG)
 
 #define TO_DOUBLE_PTR(a, ptr) \
   ptr[0] = (a)[0]; \
   ptr[1] = (a)[1]; \
   ptr[2] = (a)[2];
+
+/* Complex elementary functions on td_complex values stored as 6
+   limbs: the real part followed by the imaginary part. */
+namespace {
+inline td_complex load_tdc(const double *z) {
+  return td_complex(td_real(z), td_real(z + 3));
+}
+inline void store_tdc(const td_complex &w, double *r) {
+  const td_real re = w.real(), im = w.imag();
+  for (int i = 0; i < 3; ++i) {
+    r[i] = re[i];
+    r[i + 3] = im[i];
+  }
+}
+} // namespace
 
 extern "C" {
 
@@ -137,18 +173,6 @@ static td_real td_ceil_local(const td_real &a) {
 
 static td_real td_aint_local(const td_real &a) {
   return (a[0] >= 0.0) ? td_floor_local(a) : td_ceil_local(a);
-}
-
-static td_real tdrand_local() {
-  static const double m_const = 4.6566128730773926e-10;
-  double m = m_const;
-  td_real r = 0.0;
-
-  for (int i = 0; i < 6; i++, m *= m_const) {
-    r += std::rand() * m;
-  }
-
-  return r;
 }
 
 void f_td_add(const double *a, const double *b, double *c) {
@@ -334,39 +358,45 @@ void f_td_neg(const double *a, double *b) {
 }
 
 void f_td_rand(double *a) {
-  TO_DOUBLE_PTR(tdrand_local(), a);
+  TO_DOUBLE_PTR(tdrand(), a);
 }
 
 void f_td_comp(const double *a, const double *b, int *result) {
   td_real aa(a), bb(b);
-  if (aa < bb) {
+if (aa < bb) {
     *result = -1;
   } else if (aa > bb) {
     *result = 1;
-  } else {
+  } else if (aa == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_td_comp_td_d(const double *a, const double *b, int *result) {
   td_real aa(a);
-  if (aa < *b) {
+if (aa < *b) {
     *result = -1;
   } else if (aa > *b) {
     *result = 1;
-  } else {
+  } else if (aa == *b) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
 void f_td_comp_d_td(const double *a, const double *b, int *result) {
   td_real bb(b);
-  if (*a < bb) {
+if (*a < bb) {
     *result = -1;
   } else if (*a > bb) {
     *result = 1;
-  } else {
+  } else if (*a == bb) {
     *result = 0;
+  } else {
+    *result = 2; /* unordered: a NaN operand */
   }
 }
 
@@ -376,6 +406,94 @@ void f_td_pi(double *a) {
 
 void f_td_nan(double *a) {
   TO_DOUBLE_PTR(td_real::_nan, a);
+}
+
+
+/* Parses the first *n characters of s; *ierr is 0 on success. */
+void f_td_read(const char *s, int *n, double *a, int *ierr) {
+  std::string str(s, static_cast<std::size_t>(*n));
+  td_real r;
+  *ierr = r.read(str.c_str(), r);
+  if (*ierr == 0) {
+    TO_DOUBLE_PTR(r, a);
+  }
+}
+
+
+void f_td_csqrt(const double *z, double *r) {
+  store_tdc(sqrt(load_tdc(z)), r);
+}
+
+void f_td_csin(const double *z, double *r) {
+  store_tdc(sin(load_tdc(z)), r);
+}
+
+void f_td_ccos(const double *z, double *r) {
+  store_tdc(cos(load_tdc(z)), r);
+}
+
+void f_td_ctan(const double *z, double *r) {
+  store_tdc(tan(load_tdc(z)), r);
+}
+
+void f_td_csinh(const double *z, double *r) {
+  store_tdc(sinh(load_tdc(z)), r);
+}
+
+void f_td_ccosh(const double *z, double *r) {
+  store_tdc(cosh(load_tdc(z)), r);
+}
+
+void f_td_ctanh(const double *z, double *r) {
+  store_tdc(tanh(load_tdc(z)), r);
+}
+
+void f_td_casin(const double *z, double *r) {
+  store_tdc(asin(load_tdc(z)), r);
+}
+
+void f_td_cacos(const double *z, double *r) {
+  store_tdc(acos(load_tdc(z)), r);
+}
+
+void f_td_catan(const double *z, double *r) {
+  store_tdc(atan(load_tdc(z)), r);
+}
+
+void f_td_casinh(const double *z, double *r) {
+  store_tdc(asinh(load_tdc(z)), r);
+}
+
+void f_td_cacosh(const double *z, double *r) {
+  store_tdc(acosh(load_tdc(z)), r);
+}
+
+void f_td_catanh(const double *z, double *r) {
+  store_tdc(atanh(load_tdc(z)), r);
+}
+
+void f_td_cpow(const double *z, const double *w, double *r) {
+  store_tdc(pow(load_tdc(z), load_tdc(w)), r);
+}
+
+void f_td_cpow_r(const double *z, const double *x, double *r) {
+  store_tdc(pow(load_tdc(z), td_real(x)), r);
+}
+
+
+/* Complex division (Smith's algorithm), modulus and log without forming
+   re^2 + im^2, which overflows or underflows for large or small values. */
+void f_td_cdiv(const double *z, const double *w, double *r) {
+  store_tdc(load_tdc(z) / load_tdc(w), r);
+}
+
+void f_td_cabs(const double *z, double *r) {
+  const td_real a = abs(load_tdc(z));
+  for (int i = 0; i < 3; ++i) r[i] = a[i];
+}
+
+void f_td_clog(const double *z, double *r) {
+  store_tdc(log(load_tdc(z)), r);
 }
 
 }

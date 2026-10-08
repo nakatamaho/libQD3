@@ -543,4 +543,17 @@ double c_qd_epsilon(void) {
     return (double) std::numeric_limits<qd_real>::epsilon();
 }
 
+
+void c_qd_comp_qd_dd(const double *a, const double *b, int *result) {
+  qd_real aa(a);
+  qd_real bb = qd_real(dd_real(b));
+  *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
+}
+
+void c_qd_comp_dd_qd(const double *a, const double *b, int *result) {
+  qd_real aa = qd_real(dd_real(a));
+  qd_real bb(b);
+  *result = (aa < bb) ? -1 : ((aa > bb) ? 1 : 0);
+}
+
 }

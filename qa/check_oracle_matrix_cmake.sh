@@ -6,6 +6,8 @@ BUILD_ROOT="${BUILD_ROOT:-$SRC_DIR/_build_oracle_matrix_cmake}"
 LOG_DIR="$BUILD_ROOT/logs"
 CTEST_CMD="${CTEST:-ctest}"
 
+# Fortran is required by default; set QD3_QA_FORTRAN=OFF to opt out
+# explicitly (see qa/cmake_matrix.cmake).
 mkdir -p "$LOG_DIR"
 
 export ENABLE_MPFR_ORACLE=ON

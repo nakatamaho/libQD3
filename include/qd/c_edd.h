@@ -51,6 +51,43 @@ void c_edd_pi(_Float64x *a);
 void c_edd_2pi(_Float64x *a);
 _Float64x c_edd_epsilon(void);
 
+void c_edd_add_edd_d(const _Float64x *a, double b, _Float64x *c);
+void c_edd_add_d_edd(double a, const _Float64x *b, _Float64x *c);
+void c_edd_sub_edd_d(const _Float64x *a, double b, _Float64x *c);
+void c_edd_sub_d_edd(double a, const _Float64x *b, _Float64x *c);
+void c_edd_mul_edd_d(const _Float64x *a, double b, _Float64x *c);
+void c_edd_mul_d_edd(double a, const _Float64x *b, _Float64x *c);
+void c_edd_div_edd_d(const _Float64x *a, double b, _Float64x *c);
+void c_edd_div_d_edd(double a, const _Float64x *b, _Float64x *c);
+
+void c_edd_selfadd(const _Float64x *a, _Float64x *b);
+void c_edd_selfsub(const _Float64x *a, _Float64x *b);
+void c_edd_selfmul(const _Float64x *a, _Float64x *b);
+void c_edd_selfdiv(const _Float64x *a, _Float64x *b);
+void c_edd_selfadd_d(double a, _Float64x *b);
+void c_edd_selfsub_d(double a, _Float64x *b);
+void c_edd_selfmul_d(double a, _Float64x *b);
+void c_edd_selfdiv_d(double a, _Float64x *b);
+
+void c_edd_npwr(const _Float64x *a, int n, _Float64x *b);
+void c_edd_nroot(const _Float64x *a, int n, _Float64x *b);
+void c_edd_nint(const _Float64x *a, _Float64x *b);
+void c_edd_aint(const _Float64x *a, _Float64x *b);
+void c_edd_floor(const _Float64x *a, _Float64x *b);
+void c_edd_ceil(const _Float64x *a, _Float64x *b);
+
+void c_edd_asin(const _Float64x *a, _Float64x *b);
+void c_edd_acos(const _Float64x *a, _Float64x *b);
+void c_edd_atan(const _Float64x *a, _Float64x *b);
+void c_edd_sincos(const _Float64x *a, _Float64x *s, _Float64x *c);
+void c_edd_asinh(const _Float64x *a, _Float64x *b);
+void c_edd_acosh(const _Float64x *a, _Float64x *b);
+void c_edd_atanh(const _Float64x *a, _Float64x *b);
+void c_edd_sincosh(const _Float64x *a, _Float64x *s, _Float64x *c);
+
+void c_edd_comp_d_edd(double a, const _Float64x *b, int *result);
+void c_edd_rand(_Float64x *a);
+
 #ifdef __cplusplus
 }
 #endif

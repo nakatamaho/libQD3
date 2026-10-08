@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (GCC, gfortran, MPFR/MPC oracles)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran libmpfr-dev libmpc-dev pkg-config
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DBUILD_TESTING=ON
+          -DQD_BUILD_FORTRAN=ON
+          -DQD3_ENABLE_MPFR_TESTS=ON
+          -DQD3_ENABLE_MPC_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j 4
+
+  mingw:
+    name: Windows (MSYS2 UCRT64 MinGW, gfortran, MPFR/MPC oracles)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-gcc-fortran
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-mpfr
+            mingw-w64-ucrt-x86_64-mpc
+            mingw-w64-ucrt-x86_64-python
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DBUILD_TESTING=ON
+          -DQD_BUILD_FORTRAN=ON
+          -DQD3_ENABLE_MPFR_TESTS=ON
+          -DQD3_ENABLE_MPC_TESTS=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        # The test executables load libqd*.dll from the build directory.
+        run: |
+          export PATH="$PWD/build:$PATH"
+          ctest --test-dir build --output-on-failure -j 4

@@ -257,6 +257,9 @@ int main(int argc, char **argv) {
   if (options.test_dd) pass &= run_type<dd_real>(tap, options.verbose);
   if (options.test_td) pass &= run_type<td_real>(tap, options.verbose);
   if (options.test_qd) pass &= run_type<qd_real>(tap, options.verbose);
+  if (options.test_ds) pass &= run_type<ds_real>(tap, options.verbose);
+  if (options.test_ts) pass &= run_type<ts_real>(tap, options.verbose);
+  if (options.test_qs) pass &= run_type<qs_real>(tap, options.verbose);
 #ifdef QD_HAVE_EDD_REAL
   if (options.test_edd) pass &= run_type<edd_real>(tap, options.verbose);
 #endif

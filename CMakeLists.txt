@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
-project(qd3 VERSION 1.5.0 LANGUAGES CXX C)
+project(qd3 VERSION 1.6.0 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -95,6 +95,9 @@ endif()
 set(QD_BASE_SOURCES
   src/c_dd.cpp
   src/c_qd.cpp
+  src/c_ds.cpp
+  src/c_ts.cpp
+  src/c_qs.cpp
   src/c_td.cpp
   src/dd_real.cpp
   src/dd_const.cpp
@@ -103,6 +106,7 @@ set(QD_BASE_SOURCES
   src/ts_real.cpp
   src/ts_const.cpp
   src/qs_real.cpp
+  src/qd_random.cpp
   src/qs_const.cpp
   src/td_real.cpp
   src/td_const.cpp
@@ -128,10 +132,14 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/c_dd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_qd.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_td.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_ds.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_ts.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/c_qs.h"
   "${CMAKE_SOURCE_DIR}/include/qd/complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/dd_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ds_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/ds_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/ds_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/c_edd.h"
@@ -143,8 +151,10 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/td_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/td_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/ts_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/ts_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/ts_inline.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qs_complex.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qs_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qs_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/single_real.h"
@@ -153,6 +163,7 @@ set(QD_PUBLIC_HEADERS
   "${CMAKE_SOURCE_DIR}/include/qd/qd_real.h"
   "${CMAKE_SOURCE_DIR}/include/qd/qd_inline.h"
   "${CMAKE_SOURCE_DIR}/include/qd/bits.h"
+  "${CMAKE_SOURCE_DIR}/include/qd/qd_random.h"
 )
 
 set(QD_PUBLIC_DETAIL_HEADERS
@@ -168,7 +179,21 @@ if(QD3_ENABLE_MPFR_TESTS OR QD3_ENABLE_MPC_TESTS)
   pkg_check_modules(GMP REQUIRED IMPORTED_TARGET gmp)
 endif()
 if(QD3_ENABLE_MPC_TESTS)
-  pkg_check_modules(MPC REQUIRED IMPORTED_TARGET mpc)
+  # Several distributions (e.g. Debian/Ubuntu libmpc-dev) ship no mpc.pc;
+  # fall back to locating the header and library directly.
+  pkg_check_modules(MPC QUIET mpc)
+  if(NOT MPC_FOUND)
+    find_path(QD3_MPC_INCLUDE_DIR mpc.h HINTS ${MPFR_INCLUDE_DIRS})
+    find_library(QD3_MPC_LIBRARY NAMES mpc HINTS ${MPFR_LIBRARY_DIRS})
+    if(NOT QD3_MPC_INCLUDE_DIR OR NOT QD3_MPC_LIBRARY)
+      message(FATAL_ERROR "QD3_ENABLE_MPC_TESTS=ON but MPC (mpc.h / libmpc) was not found")
+    endif()
+    get_filename_component(QD3_MPC_LIBRARY_DIR "${QD3_MPC_LIBRARY}" DIRECTORY)
+    set(MPC_LIBRARIES mpc)
+    set(MPC_INCLUDE_DIRS "${QD3_MPC_INCLUDE_DIR}")
+    set(MPC_LIBRARY_DIRS "${QD3_MPC_LIBRARY_DIR}")
+    message(STATUS "Found MPC without pkg-config: ${QD3_MPC_LIBRARY}")
+  endif()
 endif()
 
 set(QD3_QA_COMPILE_OPTIONS "")
@@ -268,7 +293,7 @@ set(QD3_INSTALL_TARGETS "")
 
 if(BUILD_SHARED_LIBS)
   add_library(qd SHARED ${QD_SOURCES})
-  set_target_properties(qd PROPERTIES VERSION 2.0.0 SOVERSION 2)
+  set_target_properties(qd PROPERTIES VERSION 2.1.0 SOVERSION 2)
 else()
   add_library(qd STATIC ${QD_SOURCES})
 endif()
@@ -297,6 +322,7 @@ if(QD_HAVE_FORTRAN)
     fortran/tsmod.f
     fortran/qsext.f
     fortran/qsmod.f
+    fortran/qdrandom.f
     fortran/f_dd.cpp
     fortran/f_qd.cpp
     fortran/f_td.cpp
@@ -317,12 +343,13 @@ if(QD_HAVE_FORTRAN)
     fortran/tsmod.f
     fortran/qsext.f
     fortran/qsmod.f
+    fortran/qdrandom.f
   )
   set_source_files_properties(${QD_FORTRAN_FREE_FORM_SOURCES} PROPERTIES Fortran_FORMAT FREE)
 
   if(BUILD_SHARED_LIBS)
     add_library(qdmod SHARED ${QD_FORTRAN_SOURCES})
-    set_target_properties(qdmod PROPERTIES VERSION 2.0.0 SOVERSION 2)
+    set_target_properties(qdmod PROPERTIES VERSION 3.0.0 SOVERSION 3)
   else()
     add_library(qdmod STATIC ${QD_FORTRAN_SOURCES})
   endif()
@@ -351,13 +378,21 @@ if(QD_HAVE_FORTRAN)
     list(APPEND QD3_INSTALL_TARGETS qdmod_static)
   endif()
 
-  if(BUILD_SHARED_LIBS)
+  # qd_f_main provides main() and calls the user's f_main.  A Windows DLL
+  # cannot leave f_main unresolved, so there it is always a static archive
+  # (linking the shared qd/qdmod libraries when BUILD_SHARED_LIBS is ON).
+  if(BUILD_SHARED_LIBS AND NOT WIN32)
     add_library(qd_f_main SHARED fortran/main.cpp)
     set_target_properties(qd_f_main PROPERTIES VERSION 2.0.0 SOVERSION 2)
   else()
     add_library(qd_f_main STATIC fortran/main.cpp)
   endif()
-  qd3_configure_qd_library(qd_f_main qd_f_main)
+  if(BUILD_SHARED_LIBS AND WIN32)
+    # Keep the name of the fully static variant (qd_f_main_static) free.
+    qd3_configure_qd_library(qd_f_main qd_f_main_shared)
+  else()
+    qd3_configure_qd_library(qd_f_main qd_f_main)
+  endif()
   target_link_libraries(qd_f_main PUBLIC qdmod qd)
   add_library(QD3::qd_f_main ALIAS qd_f_main)
   list(APPEND QD3_INSTALL_TARGETS qd_f_main)
@@ -405,6 +440,18 @@ if(BUILD_TESTING)
   target_link_libraries(c_test PRIVATE qd)
   add_test(NAME c_test COMMAND c_test)
 
+  # tests/c_api_test.cpp is generated by qa/gen_c_api_test.py.
+  add_executable(c_api_test tests/c_api_test.cpp)
+  qd3_configure_internal_target(c_api_test)
+  target_link_libraries(c_api_test PRIVATE qd)
+  add_test(NAME c_api_test COMMAND c_api_test)
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME c_api_test_generated
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/qa/gen_c_api_test.py"
+              --check "${CMAKE_SOURCE_DIR}")
+  endif()
+
   add_executable(huge tests/huge.cpp)
   qd3_configure_internal_target(huge)
   target_link_libraries(huge PRIVATE qd)
@@ -444,7 +491,7 @@ if(BUILD_TESTING)
   target_link_libraries(quadt_test PRIVATE qd)
   set_target_properties(quadt_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
-  set(QD_DEMO_DEPS qd_test pslq_test c_test huge complex_test regression_smoke
+  set(QD_DEMO_DEPS qd_test pslq_test c_test c_api_test huge complex_test regression_smoke
       single_smoke single_test qd_timer quadt_test)
 
   if(QD_HAVE_FORTRAN)
@@ -461,6 +508,19 @@ if(BUILD_TESTING)
     target_link_libraries(f_test PRIVATE qdmod qd_f_main qd)
     add_test(NAME f_test COMMAND f_test)
     list(APPEND QD_DEMO_DEPS f_test)
+
+    add_executable(f_suite tests/f_suite_support.f90 tests/f_suite.f90)
+    target_include_directories(f_suite BEFORE PRIVATE
+      "${QD_FORTRAN_MODULE_DIR}"
+      "${CMAKE_SOURCE_DIR}/tests"
+    )
+    set_target_properties(f_suite PROPERTIES
+      LINKER_LANGUAGE CXX
+      Fortran_MODULE_DIRECTORY "${CMAKE_BINARY_DIR}/tests/f_suite_modules")
+    qd3_add_qa_options(f_suite)
+    target_link_libraries(f_suite PRIVATE qdmod qd_f_main qd)
+    add_test(NAME f_suite COMMAND f_suite)
+    list(APPEND QD_DEMO_DEPS f_suite)
   endif()
 
   if(QD3_ENABLE_MPFR_TESTS)
@@ -777,28 +837,52 @@ if(BUILD_TESTING)
       oracle_test_complex_arith_dd
       oracle_test_complex_arith_td
       oracle_test_complex_arith_qd
+      oracle_test_complex_arith_ds
+      oracle_test_complex_arith_ts
+      oracle_test_complex_arith_qs
       oracle_test_complex_unary_dd
       oracle_test_complex_unary_td
       oracle_test_complex_unary_qd
+      oracle_test_complex_unary_ds
+      oracle_test_complex_unary_ts
+      oracle_test_complex_unary_qs
       oracle_test_complex_binary_dd
       oracle_test_complex_binary_td
       oracle_test_complex_binary_qd
+      oracle_test_complex_binary_ds
+      oracle_test_complex_binary_ts
+      oracle_test_complex_binary_qs
       oracle_test_complex_special_dd
       oracle_test_complex_special_td
       oracle_test_complex_special_qd
+      oracle_test_complex_special_ds
+      oracle_test_complex_special_ts
+      oracle_test_complex_special_qs
     )
     add_test(NAME oracle_test_complex_arith_dd COMMAND oracle_test_complex_arith -dd)
     add_test(NAME oracle_test_complex_arith_td COMMAND oracle_test_complex_arith -td)
     add_test(NAME oracle_test_complex_arith_qd COMMAND oracle_test_complex_arith -qd)
+    add_test(NAME oracle_test_complex_arith_ds COMMAND oracle_test_complex_arith -ds)
+    add_test(NAME oracle_test_complex_arith_ts COMMAND oracle_test_complex_arith -ts)
+    add_test(NAME oracle_test_complex_arith_qs COMMAND oracle_test_complex_arith -qs)
     add_test(NAME oracle_test_complex_unary_dd COMMAND oracle_test_complex_unary -dd)
     add_test(NAME oracle_test_complex_unary_td COMMAND oracle_test_complex_unary -td)
     add_test(NAME oracle_test_complex_unary_qd COMMAND oracle_test_complex_unary -qd)
+    add_test(NAME oracle_test_complex_unary_ds COMMAND oracle_test_complex_unary -ds)
+    add_test(NAME oracle_test_complex_unary_ts COMMAND oracle_test_complex_unary -ts)
+    add_test(NAME oracle_test_complex_unary_qs COMMAND oracle_test_complex_unary -qs)
     add_test(NAME oracle_test_complex_binary_dd COMMAND oracle_test_complex_binary -dd)
     add_test(NAME oracle_test_complex_binary_td COMMAND oracle_test_complex_binary -td)
     add_test(NAME oracle_test_complex_binary_qd COMMAND oracle_test_complex_binary -qd)
+    add_test(NAME oracle_test_complex_binary_ds COMMAND oracle_test_complex_binary -ds)
+    add_test(NAME oracle_test_complex_binary_ts COMMAND oracle_test_complex_binary -ts)
+    add_test(NAME oracle_test_complex_binary_qs COMMAND oracle_test_complex_binary -qs)
     add_test(NAME oracle_test_complex_special_dd COMMAND oracle_test_complex_special -dd)
     add_test(NAME oracle_test_complex_special_td COMMAND oracle_test_complex_special -td)
     add_test(NAME oracle_test_complex_special_qd COMMAND oracle_test_complex_special -qd)
+    add_test(NAME oracle_test_complex_special_ds COMMAND oracle_test_complex_special -ds)
+    add_test(NAME oracle_test_complex_special_ts COMMAND oracle_test_complex_special -ts)
+    add_test(NAME oracle_test_complex_special_qs COMMAND oracle_test_complex_special -qs)
     if(QD_HAVE_EDD_REAL)
       add_test(NAME oracle_test_complex_arith_edd COMMAND oracle_test_complex_arith -edd)
       add_test(NAME oracle_test_complex_unary_edd COMMAND oracle_test_complex_unary -edd)
@@ -856,13 +940,19 @@ if(QD3_ENABLE_COVERAGE)
   )
 endif()
 
-find_program(QD_MAKE_PROGRAM NAMES gmake make REQUIRED)
-add_custom_target(doc
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" qd.pdf
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" edd.pdf
-  COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" td.pdf
-  VERBATIM
-)
+# The LaTeX documentation is built by docs/Makefile; make is only needed for
+# the optional doc target, not to configure or build the library.
+find_program(QD_MAKE_PROGRAM NAMES gmake make)
+if(QD_MAKE_PROGRAM)
+  add_custom_target(doc
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" qd.pdf
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" edd.pdf
+    COMMAND ${QD_MAKE_PROGRAM} -C "${CMAKE_SOURCE_DIR}/docs" td.pdf
+    VERBATIM
+  )
+else()
+  message(STATUS "make not found; the doc target is not available")
+endif()
 
 add_custom_target(dist-cmake
   COMMAND sh -c "git -C '${CMAKE_SOURCE_DIR}' archive --format=tar.gz --prefix='libQD3-${PROJECT_VERSION}/' HEAD > '${CMAKE_BINARY_DIR}/libQD3-${PROJECT_VERSION}.tar.gz'"

@@ -247,5 +247,102 @@ module tdext
     pure subroutine f_td_nan(a)
       real*8, intent(out) :: a(3)
     end subroutine
+    subroutine f_td_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*8, intent(out) :: a(3)
+      integer, intent(out) :: ierr
+    end subroutine
+
+    pure subroutine f_td_csqrt(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_csin(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_ccos(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_ctan(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_csinh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_ccosh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_ctanh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_casin(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cacos(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_catan(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_casinh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cacosh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_catanh(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cpow(z, w, r)
+      real*8, intent(in) :: z(6), w(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cpow_r(z, x, r)
+      real*8, intent(in) :: z(6), x(3)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cdiv(z, w, r)
+      real*8, intent(in) :: z(6), w(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
+    pure subroutine f_td_cabs(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(3)
+    end subroutine
+
+    pure subroutine f_td_clog(z, r)
+      real*8, intent(in) :: z(6)
+      real*8, intent(out) :: r(6)
+    end subroutine
+
   end interface
 end

@@ -224,5 +224,102 @@ module ddext
       real*8, intent(out) :: a(2)
     end subroutine
 
+    subroutine f_dd_read(s, n, a, ierr)
+      integer, intent(in) :: n
+      character, intent(in) :: s(n)
+      real*8, intent(out) :: a(2)
+      integer, intent(out) :: ierr
+    end subroutine
+
+    pure subroutine f_dd_csqrt(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_csin(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_ccos(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_ctan(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_csinh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_ccosh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_ctanh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_casin(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cacos(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_catan(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_casinh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cacosh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_catanh(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cpow(z, w, r)
+      real*8, intent(in) :: z(4), w(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cpow_r(z, x, r)
+      real*8, intent(in) :: z(4), x(2)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cdiv(z, w, r)
+      real*8, intent(in) :: z(4), w(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
+    pure subroutine f_dd_cabs(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(2)
+    end subroutine
+
+    pure subroutine f_dd_clog(z, r)
+      real*8, intent(in) :: z(4)
+      real*8, intent(out) :: r(4)
+    end subroutine
+
   end interface
 end
